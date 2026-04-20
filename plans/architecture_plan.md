@@ -9,14 +9,14 @@ envlib needs a well-defined API for creating, cataloguing, and accessing standar
 The metadata model is strictly divided into two categories: **Identity Metadata** (immutable characteristics defining what the dataset is) and **State Metadata** (mutable characteristics describing the data's current extents or volume).
 
 ### 1. Identity Metadata (Required)
-These 10 fields define the core nature of the dataset. They are stored in both RCG `user_meta` and cfdb `ds.attrs`.
+These 10 fields define the core nature of the dataset. They are stored in both RCG `user_meta` and cfdb `ds.attrs`. **Values are normalized before storage and hashing per the Field normalization rules below** — notably, free-form user-input fields (`owner`, `product_code`, `spatial_resolution`, `version`) are lowercased, all fields are whitespace-stripped, and `frequency_interval` / `utc_offset` have their own canonicalization rules. CV-constrained fields (`feature`, `variable`, `method`, `aggregation_statistic`) are stored as their canonical CV value.
 
 | Field | Type | Derives dataset_id | CV Source |
 |-------|------|--------------------|-----------|
 | feature | str | yes | envlib's own (mapped to ENVO URIs) |
 | variable | str | yes | ODM2 variablename (underscore_style) |
 | method | str | yes | envlib-defined (see method vocabulary) |
-| product_code | str | yes | free-form (e.g., 'ERA5', 'VCSN') |
+| product_code | str | yes | free-form (e.g., 'era5', 'vcsn') — lowercased on storage |
 | owner | str | yes | free-form |
 | aggregation_statistic | str | yes | CF cell_methods statistical subset |
 | frequency_interval | str \| None | yes | pandas offset alias (e.g. 1H, 15min, D, M, MS, Y, 7D) or None for irregular |
@@ -26,7 +26,22 @@ These 10 fields define the core nature of the dataset. They are stored in both R
 
 **dataset_id**: A deterministic `blake2b(digest_size=12)` hash of these 10 Identity fields, hex-encoded. Computed internally. It strictly enforces uniqueness. Changing any of these fields fundamentally changes what the dataset represents, which requires generating a new dataset rather than updating an existing one.
 
-**Canonical hash serialization**: Each identity field is serialized as its string value. `None` values (e.g., `frequency_interval=None` for irregular time series) are serialized as the literal string `"None"`. Fields are joined in the order listed in the table above using a single `\x1f` (ASCII unit separator) as the delimiter, then hashed. This rule is stable across implementations and must not change.
+**Canonical hash serialization**: Each identity field is serialized as its string value. `None` values (e.g., `frequency_interval=None` for irregular time series) are serialized as the literal string `"None"`. Fields are joined using a single `\x1f` (ASCII unit separator) as the delimiter, then hashed.
+
+**Field order (MUST NOT change)**: the 10 Identity fields are concatenated in this exact order before hashing:
+
+1. `feature`
+2. `variable`
+3. `method`
+4. `product_code`
+5. `owner`
+6. `aggregation_statistic`
+7. `frequency_interval`
+8. `utc_offset`
+9. `spatial_resolution`
+10. `version`
+
+Changing the field order — or any other aspect of this serialization rule (the `None` literal, the `\x1f` delimiter, the blake2b digest size) — would produce different `dataset_id`s for the same logical dataset, breaking every existing entry in every catalogue. This rule is stable across implementations and versions and must not change.
 
 **Note**: "parameter" from tethysts is renamed to "variable" to align with ODM2 variablename. `spatial_resolution` captures the *nominal* resolution to provide stable identity grouping, mitigating floating-point inconsistencies from raw coordinate arrays. Explicit versioning allows the `product_code` to remain semantically clean while supporting distinct iterations of a dataset.
 
@@ -62,14 +77,18 @@ These fields do not affect identity. `license` and `attribution` are required at
 
 | Field | Type | Derives dataset_id | Status | CV Source |
 |-------|------|--------------------|--------|-----------|
-| license | str | no | required | curated SPDX subset |
+| license | str | no | required | curated SPDX subset + envlib extensions (open-access data licenses only) |
 | attribution | str | no | required | free-form |
 | description | str \| None | no | optional | free-form |
-| derived_from | list[str] \| None | no | optional | list of existing `dataset_id`s |
+| derived_from | list[str] \| None | no | optional | list of `dataset_id`s and/or DOI URLs |
 | doi | str \| None | no | optional | DOI URL (e.g., `https://doi.org/10.xxxx/xxxx`) |
 
 - **description** — free-form human-readable description of the dataset. Aids discoverability in the catalogue.
-- **derived_from** — list of `dataset_id`s this dataset was computed from (reanalyses, QC'd products, ensembles, etc.). Enables machine-traversable lineage. Values are not validated against the catalogue at registration time — a `derived_from` entry may reference a dataset hosted in a different RCG or not yet registered.
+- **derived_from** — list of parent datasets this dataset was computed from (reanalyses, QC'd products, ensembles, etc.). Enables machine-traversable lineage. Each entry is either:
+  - a `dataset_id` — a 24-character hex string referencing an envlib dataset (in this or another RCG); may reference a dataset not yet registered.
+  - a DOI URL — e.g., `https://doi.org/10.24381/cds.adbb2d47`, for referencing externally-published datasets that never lived in an RCG (e.g., the original ECMWF ERA5 as the parent of an envlib-derived bias-corrected product).
+  
+  Entries are distinguished by format (DOI URLs start with `https://doi.org/`; dataset_ids are 24-char hex). Neither form is resolved or validated against any external service at registration time — no network call is made; envlib only checks format.
 - **doi** — citation DOI as a full URL. Format-validated on assignment but not resolved (no network call).
 
 Non-queryable processing detail (algorithm, code version, parameters, QC thresholds, etc.) should be recorded in the CF `history` attribute on the cfdb dataset via `ds.attrs['history']`, not duplicated in envlib's metadata model. Other CF dataset-level attrs (`references`, `comment`, `source`, `institution`) remain available and are not modelled by envlib.
@@ -101,11 +120,12 @@ These fields are set automatically by the catalogue on registration. Some are im
 |-------|------|------------|-------------|
 | created_at | str (ISO8601 UTC) | immutable | Timestamp of first successful `cat.register()` for this `dataset_id`. Used to determine the "latest" version when multiple versions match a query. |
 | modified_at | str (ISO8601 UTC) | auto-updated | Timestamp of the most recent `cat.register()` call for this `dataset_id`. Updated on every register call (including re-registrations that recalculate State Metadata). Queryable via the catalogue for recency-based queries (e.g., "datasets updated in the last 7 days"). |
+| data_url | str \| None | auto-updated | Public HTTP(S) URL pointing to the cfdb file on the remote, if the `remote_conn.db_url` is set on the `S3Connection` at registration. Intended to let users view dataset metadata directly in a browser and to support a future catalogue web app layered on envlib. Absent if the remote is not configured for public HTTP access. Not queryable; not in the `dataset_id` hash. |
 
-`created_at` is set once at first insert and preserved thereafter. `modified_at` is refreshed by the catalogue on each `cat.register()` call.
+`created_at` is set once at first insert and preserved thereafter. `modified_at` and `data_url` are refreshed by the catalogue on each `cat.register()` call — `data_url` is auto-derived from `remote_conn.db_url` only (no explicit kwarg override), and is format-validated as http(s) but not network-resolved at registration time.
 
 ### Immutability
-The 10 Identity fields (feature through version) are immutable once a dataset is created. `created_at` (Provenance) is also immutable — set once at first registration. The State Metadata fields and `modified_at` (Provenance) are mutable and are updated via `cat.register()` as new data is appended to the underlying `cfdb` file.
+The 10 Identity fields (feature through version) are immutable once a dataset is created. `created_at` (Provenance) is also immutable — set once at first registration. The State Metadata fields, `modified_at`, and `data_url` (Provenance) are mutable and are refreshed by `cat.register()` as data is appended or the remote configuration changes.
 
 ### Dataset lifecycle
 
@@ -136,7 +156,20 @@ For `dataset_type='ts_ortho'`, each entry in the `geometry` point coord represen
 |---------------|------|-------|-------------|
 | `station_id` | str | `(geometry,)` | Deterministic hash of the station's 2D location. See derivation rule below. |
 
-**station_id derivation rule**: `blake2b(WKB, digest_size=12).hex()`, where WKB is the 2D representation of the point geometry (x, y only) rounded to 5 decimal places in EPSG:4326 (to be roughly 1m). If the geometry coord contains 3D points `(x, y, z)`, the z coordinate is stripped for hashing. Same-x/y-different-z points therefore share a `station_id` — vertical separation at a single physical location is expressed via other mechanisms (see below), not via station identity.
+**station_id derivation rule** (ported from tethys for migration compatibility):
+
+```python
+from shapely import wkt
+from hashlib import blake2b
+
+# `geometry` is a 2D shapely Point in EPSG:4326 (z stripped if present)
+rounded = wkt.loads(wkt.dumps(geometry, rounding_precision=5))
+station_id = blake2b(rounded.wkb, digest_size=12).hexdigest()
+```
+
+The round-trip (WKT with `rounding_precision=5` → parsed back → WKB → hashed) exists because shapely's `wkb` has no built-in rounding option; WKT does. Rounding to 5 decimal places in EPSG:4326 is approximately 1m at the equator (smaller at higher latitudes), which is fine for station identity. If the geometry coord contains 3D points `(x, y, z)`, the z coordinate is stripped before the round-trip. Same-x/y-different-z points therefore share a `station_id` — vertical separation at a single physical location is expressed via other mechanisms (see below), not via station identity.
+
+This derivation matches tethys exactly, so datasets migrated from tethys to envlib will keep the same `station_id`s for the same physical stations.
 
 This derivation guarantees that the same physical station receives the same `station_id` across every dataset that records it, enabling users to match stations across datasets.
 
@@ -250,17 +283,29 @@ The Catalogue wraps one or more RCGs. Each dataset entry is a `DatasetRef` objec
 ```python
 import envlib
 
-# Connect to one or more RCGs
+# Default — connects to the envlib public RCG (read-only, no credentials needed).
+# Zero-config entry point for browsing the public dataset commons.
+cat = envlib.Catalogue()
+
+# Explicit remotes — replaces the default public RCG entirely.
 cat = envlib.Catalogue(
     remotes=[remote1, remote2, ...],  # S3Connection or dict or URL
     cache='~/.envlib/cache',          # cache dir passed through to the cfdb/ebooklet layer
 )
 
+# Merge personal / private remotes with the public RCG.
+cat = envlib.Catalogue(remotes=[my_remote], include_public=True)
+
+# Re-pull the RCG index from all configured remotes. Use this after a new dataset
+# is registered upstream (by you or another producer) and you want to see it
+# without re-instantiating the Catalogue.
+cat.refresh()
+
 # All datasets — list of DatasetRef objects
 cat.datasets
-# [{'feature': 'atmosphere', 'variable': 'air_temperature', 'owner': 'NIWA', ...},
-#  {'feature': 'waterway', 'variable': 'discharge', 'owner': 'NIWA', ...}]
-# (DatasetRef.__repr__ displays as a metadata dict)
+# [{'feature': 'atmosphere', 'variable': 'air_temperature', 'owner': 'niwa', ...},
+#  {'feature': 'waterway', 'variable': 'discharge', 'owner': 'niwa', ...}]
+# (DatasetRef.__repr__ displays as a metadata dict; values are stored in normalized form)
 
 # Query with kwargs filtering (returns filtered list of DatasetRef).
 # All kwargs are AND'd together; a list value means "any of these" (OR within the field).
@@ -329,6 +374,18 @@ cat.register(
 )
 ```
 
+**Public default RCG**: envlib ships with a hardcoded default public RCG URL — a read-only, public HTTPS-addressable RCG hosted by the envlib maintainer that serves as a shared commons of registered datasets. Behaviour:
+
+- `envlib.Catalogue()` with no `remotes=` → connects only to the public RCG (read-only, no credentials required).
+- `envlib.Catalogue(remotes=[...])` → the default public RCG is **not** included unless explicitly opted in. Explicit `remotes=` fully replaces the default.
+- `envlib.Catalogue(remotes=[...], include_public=True)` → merges the user-provided remotes with the public RCG.
+- **Env-var override**: `ENVLIB_PUBLIC_RCG_URL` overrides the hardcoded default, useful for testing, alternative mirrors, or if the canonical public RCG moves.
+- **Write access**: for v1, only the envlib maintainer has write access to the public RCG; external registrations happen via a separate vetted process (out of scope for this plan). Writes by arbitrary users to the public RCG are not supported.
+- **License sub-policy**: the public RCG accepts any of envlib's supported open-access licenses (all values in the `license` CV — CC-BY variants, CC0, ODbL, envlib extensions like `Copernicus-1.0`, etc.). No stricter sub-policy is applied. Consumers who need only the most-open subset (e.g., CC0 / CC-BY only) can filter on the `license` field via `cat.query()`.
+- **Hosting**: the public RCG is hosted on public-HTTPS-accessible S3-compatible object storage (planned on Backblaze), configured so that `S3Connection(db_url=...)` works read-only without AWS credentials. **The RCG is a catalogue index only, not a data mirror** — individual dataset cfdb files are hosted by their respective data owners (e.g., ECMWF for ERA5, NIWA for river flow). Registering a dataset in the public RCG implies the owner has made the underlying cfdb file publicly HTTPS-accessible at the URL captured in `data_url`.
+
+**RCG keying**: envlib keys RCG entries directly by `dataset_id`, not by the cfdb's internal UUID. This makes uniqueness enforcement a property of the storage layer (can't have two entries with the same `dataset_id` key), enables direct lookup (`rcg[dataset_id]`) instead of scan-and-filter, and makes S3 object keys human-identifiable. **This requires a small ebooklet enhancement**: `RemoteConnGroup.add()` needs to accept an optional `key=` parameter (defaulting to UUID hex for backward compatibility), and ideally `__setitem__` to accept an `S3Connection` as the value. The ebooklet update must be in place before envlib implementation begins — see Implementation Order below.
+
 **Publish failure handling**: if `cat.publish()` fails after the cfdb push succeeds but before the RCG push completes, the data is on remote S3 but not yet advertised in the remote catalogue. Re-running `cat.publish()` is safe — the cfdb push is idempotent (same data), and the RCG entry write is an upsert on `dataset_id`.
 
 **Cache management**: envlib does not implement its own cache layer. The `cache=` path is passed through to the underlying `cfdb` / `ebooklet` / `booklet` stack, which already handles chunk-level pulling, local-vs-remote synchronisation, and staleness detection. Eviction policy, size limits, pinning, and cache inspection (if any) are the lower layer's concern — envlib does not duplicate these APIs. Users who need to reclaim disk can manage the cache directory manually.
@@ -357,13 +414,16 @@ cat.register(
 No `create_dataset` wrapper. Users create cfdb datasets directly and assign metadata via `ds.attrs.update()`. The `Metadata` class validates CV fields on construction and provides a dict for cfdb.
 
 ```python
-# Build metadata — validates CV fields on construction
+# Build metadata — validates CV fields and normalizes values on construction.
+# Free-form user-input fields (owner, product_code, spatial_resolution, version) are
+# lowercased and whitespace-stripped on assignment. CV-constrained fields (including
+# license) preserve their canonical case. Attribution is free-form text, not normalized.
 meta = envlib.Metadata(
     feature='atmosphere',
     variable='air_temperature',
     method='simulation',
-    product_code='ERA5',
-    owner='NIWA',
+    product_code='era5',
+    owner='niwa',
     aggregation_statistic='point',
     frequency_interval='1H',
     utc_offset='+00:00',
@@ -454,7 +514,7 @@ envlib/
 │   ├── method.json          # envlib-defined (ported from tethys)
 │   ├── feature.json         # envlib-defined (mapped to ENVO)
 │   ├── standard_name.json   # CF Conventions (from NVS P07)
-│   └── license.json         # curated SPDX subset
+│   └── license.json         # curated SPDX subset + envlib open-access extensions
 └── tests/
     ├── __init__.py
     ├── conftest.py
@@ -471,9 +531,10 @@ envlib/
 
 ## Implementation Order
 
+0. **ebooklet enhancement (prerequisite)** — add an optional `key=` parameter to `RemoteConnGroup.add()` (defaulting to UUID hex) and implement `__setitem__` to accept an `S3Connection` value. This lets envlib key RCG entries directly by `dataset_id` instead of cfdb UUID, which is foundational to the uniqueness model below. Must be released before envlib implementation begins.
 1. **Vocabularies module** — bundled JSON files (including mapped variables and CF standard names via NVS P07), validation functions, mapping utility, refresh utility
 2. **Metadata module** — `Metadata` class with CV validation, dataset_id hashing, `.to_dict()`
-3. **Catalogue module** — `Catalogue` class (RCG-backed), `DatasetRef` class with .open(), .datasets, .query(), .register() with full validation, extent extraction, and Upsert logic
+3. **Catalogue module** — `Catalogue` class (RCG-backed, keyed by `dataset_id`), `DatasetRef` class with .open(), .datasets, .query(), .refresh(), .register(), .publish(), .validate() with full validation, extent extraction, and upsert logic
 4. **Tests** for each module
 5. **Update `__init__.py`** with public API exports
 
