@@ -79,7 +79,7 @@ Changing the field order — or any other aspect of this serialization rule (the
 - **Free-form user-input Identity fields** (`owner`, `product_code`, `spatial_resolution`, `version`) are additionally lowercased before storage and hashing. This prevents `dataset_id` fragmentation from trivial case differences (e.g., `ERA5` vs `era5` vs `Era5`).
 - **Slug grammar**: `owner`, `product_code`, and `version` must match ASCII `[a-z0-9._-]+` after lowercasing (`re.fullmatch(r'[a-z0-9._-]+', value)`, no Unicode flags) — no whitespace or control characters. **Non-ASCII input is rejected up front, before lowercasing**, so no locale- or Unicode-dependent case mapping (Turkish `İ` and friends) ever reaches the hash. (The grammar also protects the `\x1f` hash delimiter; `spatial_resolution` has its own stricter grammar above.)
 - **CV-constrained fields** (`feature`, `variable`, `method`, `processing_level`, `aggregation_statistic`, `license`) are stored as their canonical CV value — no further lowercasing, since the CV itself defines the canonical case.
-- **`frequency_interval`**: must be one of envlib's own frequency codes (see the frequency_interval vocabulary) — exactly one spelling per cadence. envlib deliberately does NOT delegate canonicalization to pandas offset aliases: pandas' canonical spellings changed across versions (`'H'`→`'h'`, `'M'`→`'ME'` in pandas 2.2), and equivalent inputs (`'60min'` vs `'1h'`) don't normalize to each other — either property would destabilize `dataset_id`. (Verified empirically 2026-07-02 against pandas 2.1.4 / 2.2.3 / 3.0.3: the old aliases hard-error in 3.x, and `'15min'` / `'Y'` canonical forms also shifted across versions.)
+- **`frequency_interval`**: must be one of envlib's own frequency codes (see the frequency_interval vocabulary) — exactly one canonical spelling per cadence, with a small closed alias table mapping accepted input synonyms to canonical (e.g. `24h` → `day`; see the frequency_interval vocabulary). envlib deliberately does NOT delegate canonicalization to pandas offset aliases: pandas' canonical spellings changed across versions (`'H'`→`'h'`, `'M'`→`'ME'` in pandas 2.2), and equivalent inputs (`'60min'` vs `'1h'`) don't normalize to each other — either property would destabilize `dataset_id`. (Verified empirically 2026-07-02 against pandas 2.1.4 / 2.2.3 / 3.0.3: the old aliases hard-error in 3.x, and `'15min'` / `'Y'` canonical forms also shifted across versions.)
 - **`utc_offset`**: canonicalized per the utc_offset rules above.
 - **Free-form text General Metadata** (`attribution`, `description`): whitespace stripped only; no case normalization — these are human-readable text, not identifiers.
 
@@ -175,7 +175,12 @@ envlib v1 deliberately omits explicit lifecycle states (`deprecated`, `sunset`, 
 - **Exactly one primary data variable per dataset.** The primary variable's name in the cfdb file must equal the `Metadata.variable` value (e.g., if `variable='air_temperature'`, the cfdb file must contain `ds['air_temperature']`). This makes the primary variable self-identifying — no separate `primary_variable` attribute is needed. Registration via `cat.register()` will fail if `meta.variable` is not present as a data variable in the cfdb file.
 - **Ancillary variables** (QC flags, uncertainty estimates, counts, etc.) are permitted alongside the primary variable. They must be declared via the CF `ancillary_variables` attribute on the primary variable. Ancillary variable names are unconstrained (e.g., `air_temperature_qc`, `air_temperature_stderr`).
 - **units** required on the primary data variable
-- **standard_name** (CF convention) required on the primary data variable. The user must provide a valid CF standard name (validated against the bundled CF standard name list). Registration via `cat.register()` will fail if the standard_name is missing or not a valid CF term. envlib does not attempt to enforce semantic consistency between `standard_name` and `feature` (e.g., it will not reject `standard_name='sea_water_temperature'` paired with `feature='atmosphere'`) — the combinatorial space is too large to enforce reliably. Users who need to express detail beyond the ODM2 `variable` name (e.g., "at 2m") should encode that in the CF `standard_name`, not in the cfdb variable name.
+- **standard_name** (CF convention) — **derived by envlib, not required from the user**. envlib maintains the `(variable, feature)` → CF standard_name mapping, so the user supplies only the envlib `variable`; at `cat.validate()`/`register()` envlib looks up the mapping and, if the primary variable has no `standard_name` set, **auto-populates the curated default** (the first entry of the ordered candidate list for that `(variable, feature)`). Rules:
+  - If the user *has* set `standard_name`, envlib validates it against the bundled CF list and keeps it (the override path — for multi-candidate variables where the default isn't the right one, or for extra specificity like "at 2m"). An invalid CF term still fails.
+  - If the mapping is **empty** for that `(variable, feature)` ("none applicable" — e.g. freshwater water-quality, `air_ventilation_index`), `standard_name` is simply **absent**; this is valid (CF itself makes `standard_name` optional) and never blocks registration.
+  - If the variable is **not yet curated** (distinct from curated-empty), envlib emits a warning and leaves `standard_name` as the user set it (or absent) — it does not block.
+  - This requirement change exists because CF does not comprehensively cover envlib's variable set — even with ocean names it could never guarantee a valid term (see `plans/variable_inventory.md`), so a hard requirement was unsatisfiable.
+  - Only `standard_name` is derived — **`units` is never auto-populated** (it describes the actual stored data, often a UDUNITS-variant of CF's canonical units; overwriting it would corrupt the data description). envlib does not enforce semantic consistency between `standard_name` and `feature` beyond the mapping's own per-feature keying.
 - CRS must be defined on every dataset
 - A `time` coordinate with at least one value is required on every dataset (see Time coordinate convention; quasi-static data carries a single validity-start timestamp). `cat.validate()` / `cat.register()` fail without it.
 - **Acknowledged trade-off**: one primary variable per dataset means an N-variable product (e.g., ERA5's many fields) becomes N cfdb files, each carrying its own copy of the coordinates, and vector pairs (wind u/v) are two datasets consumers re-join. Deliberate (tethys-proven) for identity and query simplicity.
@@ -253,6 +258,9 @@ This separation prevents name collisions between the measurement axis and the st
 
 - **station_id**: derivation is tethys-identical (verified against `tethys_utils.processing.assign_station_id`), with the z-strip addition noted above.
 - **Timestamp convention (verified 2026-07-02; justification narrowed 2026-07-05)**: tethys production code never sets `label=`, and every frequency in tethys production configs is sub-daily or daily (`10min`, `1H`, `24H`, `T`) — for which pandas defaults to `label='left'` — so tethys timestamps are interval-start (`tethys_utils/time_series.py:83-166`, `misc.py:250-365`); live public datasets confirm the alignment (24H `utc_offset='12H'` data stamped 12:00 UTC = start of the NZ local day). Migrated data at these cadences needs no timestamp shifting. **Caution**: pandas' `label` default is frequency-dependent — period-end-anchored frequencies (`M`/`ME`, `Q`, `W`, `Y`) default to `label='right'` even with `closed='left'`, so any future migration source at such a cadence must be explicitly checked and shifted, never assumed interval-start. Nuance: tethys `cumulative` aggregations are right-closed (`(t, t+freq]`) though still start-labeled.
+- **frequency_interval conversion**: tethys pandas freq strings map onto envlib codes as `T` → `1min`, `10min` → `10min`, `1H` → `1h`, `24H` → `day`, `None` → `None` — all tethys production cadences are covered.
+- **feature rename**: tethys `pedosphere` → envlib `soil`; tethys `still_waters` → envlib `still_water`.
+- **variable renames (from the curation table)**: tethys `snow_depth` → `snowfall` (tethys misnamed WRF `SNOWNC` accumulated snowfall as depth), `potential_et` → `evapotranspiration_potential`, `naturalised_streamflow` → `streamflow` (naturalisation carried in `product_code`/`method`), `nitrogen_ammonia_+_ammonium` merged into `nitrogen_ammonia`, `e-coli` → `e_coli`. Full parameter→variable + CF standard_name curation in `plans/variable_inventory.md`.
 - **utc_offset conversion**: tethys stores offsets as pandas-style hour strings (`'12H'`, `'-3H'`, `'0H'`; tethys-data-models constrains them to align the day with UTC), envlib as `±HH:MM`. Migration maps `'12H'` → `'+12:00'`, `'-3H'` → `'-03:00'`, `'0H'` → `'+00:00'`, then applies envlib's enforced reduction (a fixed-duration cadence whose offset divides evenly normalizes to `+00:00`).
 - **dataset_id values do NOT carry over** — envlib's hash has different fields and serialization than tethys's ids. `station_id` values DO carry over.
 
@@ -267,6 +275,8 @@ This separation prevents name collisions between the measurement axis and the st
 - **Refresh never writes into the installed package**: `vocabularies.refresh()` writes to a user data dir (`~/.envlib/vocabularies/`) that overlays the bundled files (user copy takes precedence when present). Writing into site-packages would break on permissions, be wiped by reinstalls, and diverge across venvs.
 - **Refreshable lists vs curated mappings are separate files**: upstream term lists (ODM2 variablenames, CF standard names) are refreshable; the `variable` → CF standard_name mapping is envlib-curated by hand and is NEVER regenerated by refresh — refresh only *reports* new/removed upstream terms for manual curation.
 - **The mapping is scoped, not exhaustive**: v1 curates the mapping only for the variables actually needed (starting with the tethys migration set) and is explicitly incomplete-by-design; `get_cf_standard_names()` distinguishes "no mapping curated yet" from "no applicable standard name".
+- **The `variable` CV = ODM2 ∪ flagged envlib extensions**: several real quantities have no ODM2 variablename (model/grid fields — `specific_humidity`, `runoff`, `snow_cover`, `surface_emissivity`, `particulate_matter_10`/`2.5`, `snowfall`, `air_ventilation_index`, `allocation`, `water_use`). These are added as **envlib extensions**, flagged in `variable.json` (`source: "envlib"`) exactly as the `license` CV carries non-SPDX extensions. `vocabularies.refresh()` updates only the ODM2-sourced entries and never adds, edits, or removes extensions — it reports upstream diffs for manual curation. Each extension records its rationale; promote to a plain ODM2 entry if ODM2 later adds the term.
+- **"No applicable standard name" is common and legitimate**: the CF standard-name table targets ocean/atmosphere model quantities, so many freshwater variables have no applicable CF name and curate to an explicit empty list. Two reasons: (1) **ocean-only scope** — CF water-body property names (temperature, electrical conductivity, turbidity, dissolved oxygen, phosphate) exist *only* as `sea_water_*`; envlib uses those only when `feature=ocean` and never stamps them on a river/lake/aquifer (a false assertion that would contradict the dataset's own `feature`); (2) an **additional dimensional wall** for the nutrient species (nitrate, nitrite, ammonium, total N/P) — CF has them only as mole concentration (`mol m-3`) while monitoring data is mg/l, which is not UDUNITS-convertible, so even the ocean name is invalid. See `plans/variable_inventory.md` for the full v1 curation table and per-species rationale.
 
 ### Validation on change only (vocabulary evolution handling)
 
@@ -286,11 +296,11 @@ This means a dataset created in 2026 with `method='total_count'` (valid at that 
 
 | Field | Source | Entries | Bundled file |
 |-------|--------|---------|--------------|
-| variable | ODM2 variablename mapped to CF standard_names | ~996 | `variable.json` |
+| variable | ODM2 variablename (993 as of 2026-07-06) ∪ flagged envlib extensions, each mapped to CF standard_names | ~1000 | `variable.json` |
 | aggregation_statistic | CF cell_methods statistical values (underscore_style) | ~10 | `aggregation_statistic.json` |
 | method | envlib-defined (ported from tethys) | 7 | `method.json` |
 | processing_level | envlib-defined | 3 | `processing_level.json` |
-| frequency_interval | envlib-defined frequency codes | ~10-15 | `frequency_interval.json` |
+| frequency_interval | envlib-defined frequency codes | 12 | `frequency_interval.json` |
 | feature | envlib-defined (mapped to ENVO URIs) | ~10-15 | `feature.json` |
 | license | curated SPDX subset + envlib extensions for common non-SPDX open-access data licenses | ~10-20 | `license.json` |
 | standard_name | CF Conventions (via NVS P07 SKOS collection) | ~4000+ | `standard_name.json` |
@@ -334,8 +344,27 @@ This means a dataset created in 2026 with `method='total_count'` (valid at that 
 
 **frequency_interval** (envlib-defined frequency codes):
 - envlib owns the canonical cadence grammar — NOT delegated to pandas offset aliases (whose canonical spellings changed across pandas versions and would destabilize `dataset_id`).
-- Design rules: exactly **one spelling per cadence** (`60min` and `1h` cannot coexist); **no anchoring variants** (pandas `M` vs `MS` collapses — the global interval-start timestamp convention fixes anchoring); a **closed initial set**, extended deliberately as genuine needs emerge.
-- Illustrative codes (exact table to be finalized in implementation step 1): `1h`, `24h`, `month`, `year`. Input validation is strict against the set; a small internal parser is used (no pandas dependency).
+- Design rules: exactly **one canonical spelling per cadence** — only canonical codes are stored, hashed, displayed, and query-matched. A small **closed input-alias table** maps accepted synonyms to canonical before validation (`24h` → `day`, `60min` → `1h`), mirroring the `±HH` → `±HH:00` utc_offset input shorthand. Aliases are input convenience only — never hashed, so adding one later is non-breaking; the one permanent commitment is that an alias can never later become a distinct cadence. **No anchoring variants** (pandas `M` vs `MS` collapses — the global interval-start timestamp convention fixes anchoring); a **closed initial set**, extended deliberately as genuine needs emerge.
+- **The v1 canonical table (final, decided 2026-07-05)** — 12 codes:
+
+| Code | Kind | Duration | Notes |
+|---|---|---|---|
+| `1min` | fixed | 60 s | tethys `T` |
+| `5min` | fixed | 300 s | council/telemetry rate |
+| `10min` | fixed | 600 s | tethys `10min` |
+| `15min` | fixed | 900 s | council/telemetry rate |
+| `30min` | fixed | 1800 s | |
+| `1h` | fixed | 3600 s | tethys `1H`; ERA5 hourly. Input alias: `60min` |
+| `3h` | fixed | 10 800 s | synoptic / forecast step |
+| `6h` | fixed | 21 600 s | synoptic / forecast step |
+| `12h` | fixed | 43 200 s | |
+| `day` | fixed | 86 400 s | tethys `24H`; always exactly 24 h in the fixed-offset model. Input alias: `24h` |
+| `month` | calendar | — | e.g. ERA5 monthly; utc_offset always retained |
+| `year` | calendar | — | utc_offset always retained |
+
+- **Admission rule for future fixed codes**: the duration must divide 24 h evenly, so bins anchor unambiguously to the (offset-shifted) day boundary and no anchoring variants can arise. This is why `week`, `season`, and multi-day composite cadences (e.g., MODIS-style `8day`) are excluded from v1 — none has a self-evident global anchor (which weekday? which month triple? which epoch?); datasets at those cadences use `frequency_interval=None` until a design exists. Calendar codes are limited to true calendar units.
+- **Considered and rejected (2026-07-05) — generalizing `utc_offset` into a per-dataset anchor/phase field**: a generic "bin phase" (an anchor instant reduced mod the cadence duration; bins = `anchor + k·D`) would mathematically cover sub-daily offsets, weekly start-days, and multi-day epochs in one field. Rejected because: (1) it still can't cover calendar cadences (`month`/`year` aren't epoch-tileable), so the field would carry two different semantics; (2) it explodes the canonical value space of a hash-affecting field (a week has 672 quarter-hour phases, each a distinct permanent `dataset_id`) where `utc_offset` has ~a hundred validated values and an enforced reduction rule; (3) the use-cases are rare in environmental data. **The retained path if `week`/multi-day codes are ever needed**: pin the anchor as a constant in the code's vocabulary definition (e.g., `week` = ISO Monday start; an `8day` composite names its epoch), with `utc_offset` still supplying the time-of-day component exactly as for `day`; variants (e.g., Sunday-start weeks) become distinct codes added deliberately. This keeps `utc_offset` the single per-dataset phase knob forever, moves anchoring to a frozen per-code constant, and is non-breaking to add later since new codes only mint new ids.
+- Validation is a closed-enum lookup (alias map → canonical → table) — no parsing, no pandas dependency. `frequency_interval.json` carries `{code, kind, seconds, aliases}` per entry.
 - `None` remains the value for irregular cadences.
 
 **product_code** (free-form slug — see product_code rules under Identity Metadata):
@@ -570,14 +599,16 @@ ds = open_dataset('data.cfdb', flag='n')
 ds.attrs.update(meta.to_dict())
 ds.create.crs.from_user_input(4326, x_coord='longitude', y_coord='latitude')
 
-# Create coords and data vars
-# Users can query the bundled mapping to find corresponding CF standard names
-cf_names = envlib.vocabularies.get_cf_standard_names('air_temperature', feature='atmosphere') 
-
-# The primary data variable's name must match meta.variable
+# Create coords and data vars.
+# The primary data variable's name must match meta.variable; envlib derives its
+# standard_name from the (variable, feature) mapping at validate/register time, so
+# you normally set only units. (To override the curated default — e.g. pick a
+# non-default candidate or add "at 2m" specificity — set standard_name yourself and
+# envlib validates + keeps it. Inspect candidates with the helper below.)
 dv = ds.create.data_var.generic('air_temperature', ('latitude', 'longitude', 'time'), dtype='float32')
 dv.attrs['units'] = 'degC'
-dv.attrs['standard_name'] = cf_names[0]  # explicitly setting the mapped CF name
+# Optional — see what envlib would populate, or choose among multiple candidates:
+# cf_names = envlib.vocabularies.get_cf_standard_names('air_temperature', feature='atmosphere')
 
 # Optional ancillary variables — declared via CF ancillary_variables attribute on the primary
 qc = ds.create.data_var.generic('air_temperature_qc', ('latitude', 'longitude', 'time'), dtype='int8')
@@ -618,8 +649,13 @@ vocabularies.list('processing_level')  # -> ['raw', 'preliminary', 'quality_cont
 vocabularies.is_valid('variable', 'air_temperature')  # -> True
 vocabularies.is_valid('standard_name', 'air_temperature')  # -> True
 
-# Get mapping from ODM2 variable & feature to a list of applicable CF standard names
-vocabularies.get_cf_standard_names('temperature', feature='ocean') # -> ['sea_water_temperature', ...]
+# Get the ordered CF standard_name candidates envlib would consider for a
+# (variable, feature). envlib auto-populates the FIRST (curated default) at register
+# time; this helper is for inspecting/overriding. Empty list = "none applicable"
+# (curated, no valid CF name — common for freshwater water-quality); None = not yet curated.
+vocabularies.get_cf_standard_names('temperature', feature='ocean')     # -> ['sea_water_temperature']
+vocabularies.get_cf_standard_names('temperature', feature='waterway')  # -> []  (freshwater: CF has only sea_water_*)
+vocabularies.get_cf_standard_names('electrical_conductivity', feature='waterway')  # -> []
 
 # Refresh from external APIs (ODM2 and NVS P07)
 vocabularies.refresh()              # updates all ODM2-sourced and CF bundled files
@@ -674,7 +710,7 @@ envlib/
 - `uv run pytest` — unit tests for:
   - **Golden-vector hash tests**: fixed inputs → exact expected hex digests for `dataset_id`, `series_id`, and `station_id`, committed permanently — these are what actually lock the serialization rules. Must include: an input locking the UTF-8 encoding (bytes that differ across codecs), a station whose coordinate rounds to `-0.0` (locks signed-zero normalization), the explicit little-endian WKB bytes, rejection vectors for non-canonical `spatial_resolution` spellings (`.25deg`, `00.25deg`, `0.250deg`, `1.0km`) and out-of-range `utc_offset`s (`+24:00`, `+13:60`), and the `-00:00` → `+00:00` and offset-reduction (`1h` at `+12:00` → `+00:00`) normalizations
   - dataset_id hashing is deterministic and consistent
-  - Slug grammar and normalization: accepted/rejected forms for owner/product_code/version, utc_offset, spatial_resolution, frequency codes
+  - Slug grammar and normalization: accepted/rejected forms for owner/product_code/version, utc_offset, spatial_resolution, frequency codes — including the frequency input-alias map (`24h` → `day`, `60min` → `1h` accepted; stored and hashed only as canonical)
   - bbox: antimeridian-crossing extents round-trip through registration and match `intersects` queries correctly; 0–360-longitude sources are normalized — including a full-globe ERA5-style grid (→ `[-180, lat0, 180, lat1]`) and a regional 170°E–190°E grid (→ `min_lon > max_lon`, not a near-global box; `transform_bounds` is a no-op for native-geographic sources, so this exercises envlib's own wrap)
   - Latest-version query grouping by `series_id`, including the documented back-fill caveat behaviour
   - Metadata validation rejects missing/invalid fields
@@ -682,7 +718,8 @@ envlib/
   - Vocabulary accurately filters applicable CF standard names based on variable and feature
   - Catalogue lists/queries/filters correctly
   - Catalogue properly extracts time/bbox extents and updates them on re-registration
-  - Catalogue validation rejects datasets missing CF standard names or units on primary variables
+  - Catalogue validation rejects datasets missing **units** on the primary variable; `standard_name` is NOT required — envlib auto-populates the curated default `(variable, feature)` CF name, keeps a user-set override (validated as real CF), leaves it absent when the mapping is empty, and warns when the variable is uncurated
+  - standard_name derivation: auto-populate default for a mapped `(variable, feature)`; empty mapping → absent + registers OK; user override validated and preserved; ocean-only names never applied to non-ocean features
   - Case-insensitive query matching for mixed-case CVs (`license='cc-by-4.0'` matches stored `CC-BY-4.0`)
   - `deregister(delete_data=True)` shared-target guard: refuses when another entry references the same (`endpoint_url`, `bucket`, `db_key`)
 - Integration test: `Metadata.to_dict()` → `ds.attrs.update()` → verify metadata round-trips through cfdb .attrs
