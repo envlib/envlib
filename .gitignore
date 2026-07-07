@@ -117,3 +117,7 @@ data/*
 # Test config files
 /envlib/tests/*.toml
 /envlib/tests/*.yml
+# AI-assistant tool state
+/.claude/
+/.antigravity/
+/.antigravitycli/
