@@ -36,7 +36,9 @@ markdown_extensions:
     - pymdownx.tasklist:
         custom_checkbox: true
     - pymdownx.inlinehilite
-    - pymdownx.snippets
+    - pymdownx.snippets:
+        base_path: !relative $config_dir
+        check_paths: true
     - pymdownx.superfences
 
 plugins:
