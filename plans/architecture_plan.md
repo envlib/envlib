@@ -11,7 +11,7 @@ The metadata model is strictly divided into two categories: **Identity Metadata*
 ### 1. Identity Metadata (Required)
 These 11 fields define the core nature of the dataset. They are stored in both the RCG entry and cfdb `ds.attrs` (see Metadata storage and source of truth below). **Values are normalized before storage and hashing per the Field normalization rules below** — notably, free-form user-input fields (`owner`, `product_code`, `version`) are lowercased and slug-validated, `spatial_resolution` is lowercased under its own stricter grammar, all fields are whitespace-stripped, and `frequency_interval` / `utc_offset` / `spatial_resolution` have their own canonicalization rules. CV-constrained fields (`feature`, `variable`, `method`, `processing_level`, `aggregation_statistic`) are stored as their canonical CV value.
 
-| Field | Type | Derives dataset_id | CV Source |
+| Field | Type | Derives dataset_version_id | CV Source |
 |-------|------|--------------------|-----------|
 | feature | str | yes | envlib's own (mapped to ENVO URIs) |
 | variable | str | yes | ODM2 variablename (underscore_style) |
@@ -25,7 +25,7 @@ These 11 fields define the core nature of the dataset. They are stored in both t
 | spatial_resolution | str \| None | yes | `<number><unit>` with unit in `{m, km, deg}`, OR the literal `point` (for ts_ortho), OR `None` for irregular. See spatial_resolution rules below. |
 | version | str | yes | format validation (e.g., 1, 1.1, 2026-03) |
 
-**dataset_id**: A deterministic `blake2b(digest_size=12)` hash of these 11 Identity fields, hex-encoded. Computed internally. It strictly enforces uniqueness. Changing any of these fields fundamentally changes what the dataset represents, which requires generating a new dataset rather than updating an existing one.
+**dataset_version_id**: A deterministic `blake2b(digest_size=12)` hash of these 11 Identity fields, hex-encoded. Computed internally. It strictly enforces uniqueness. Changing any of these fields fundamentally changes what the dataset represents, which requires generating a new dataset rather than updating an existing one.
 
 **Canonical hash serialization**: Each identity field is serialized as its string value. `None` values (`frequency_interval=None` for irregular time series, `spatial_resolution=None`, `product_code=None`) are serialized as the literal string `"None"`. Fields are joined using a single `\x1f` (ASCII unit separator) as the delimiter; the joined string is encoded as **UTF-8** and hashed with a keyless blake2b — the full construction is `blake2b('\x1f'.join(fields).encode('utf-8'), digest_size=12).hexdigest()` (no `key`, `salt`, or `person`). Note the capital-N `"None"` sentinel cannot collide with stored values: free-form fields are lowercased before hashing, `product_code='none'` is rejected outright (see product_code rules), and `frequency_interval` / `spatial_resolution` reject every casing of `none` by grammar (not a valid frequency code; not valid `<number><unit>`/`point`) — so all three nullable fields are sentinel-safe.
 
@@ -43,9 +43,9 @@ These 11 fields define the core nature of the dataset. They are stored in both t
 10. `spatial_resolution`
 11. `version`
 
-Changing the field order — or any other aspect of this serialization rule (the `None` literal, the `\x1f` delimiter, the UTF-8 encoding, the keyless blake2b construction, the digest size) — would produce different `dataset_id`s for the same logical dataset, breaking every existing entry in every catalogue. This rule is stable across implementations and versions and must not change. The order is hash-internal only — user-facing display order (reprs, docs, web UIs) is independent and free to differ.
+Changing the field order — or any other aspect of this serialization rule (the `None` literal, the `\x1f` delimiter, the UTF-8 encoding, the keyless blake2b construction, the digest size) — would produce different `dataset_version_id`s for the same logical dataset, breaking every existing entry in every catalogue. This rule is stable across implementations and versions and must not change. The order is hash-internal only — user-facing display order (reprs, docs, web UIs) is independent and free to differ.
 
-**series_id**: a companion hash computed with the same serialization scheme and field order but with `version` omitted (10 fields). It identifies the dataset *series* across versions and is stored in the RCG entry and `ds.attrs` alongside `dataset_id`. It defines the grouping for the query default "latest version of each matching dataset": within a series, latest = greatest `created_at`. Known caveat: `created_at` records *first registration*, so back-filling an older version after a newer one makes the back-filled version "latest" — documented, not solved, in v1; pin `version=` explicitly in queries when this matters.
+**dataset_id**: a companion hash computed with the same serialization scheme and field order but with `version` omitted (10 fields). It identifies *the dataset* — the identity that persists across versions — and is stored in the RCG entry and `ds.attrs` alongside `dataset_version_id`. It defines the grouping for the query default "latest version of each matching dataset": among a dataset's versions, latest = greatest `created_at`. **Naming decided 2026-07-07**: envlib gives the word *dataset* to the version-spanning identity (matching tethys's version-less `dataset_id` concept, keeping the term conceptually consistent with cfdb's use of "dataset", and matching how environmental data is spoken about — "the ERA5 dataset", not one frozen revision of it); the per-version combo is named `dataset_version_id` and is the catalogue's primary key. Considered and accepted seam: cfdb's `Dataset` object is per-file and each version is its own cfdb file, so one envlib dataset maps to a small family of cfdb files (one per version) — a storage-boundary detail ("each version of a dataset is stored as its own cfdb file") judged far less confusing than putting version-jargon into the query API users touch daily. Docs convention: say "cfdb file" for the storage artifact; reserve "dataset" for the envlib concept. Known caveat: `created_at` records *first registration*, so back-filling an older version after a newer one makes the back-filled version "latest" — documented, not solved, in v1; pin `version=` explicitly in queries when this matters.
 
 **Note**: "parameter" from tethysts is renamed to "variable" to align with ODM2 variablename. `spatial_resolution` captures the *nominal* resolution to provide stable identity grouping, mitigating floating-point inconsistencies from raw coordinate arrays. Explicit versioning allows the `product_code` to remain semantically clean while supporting distinct iterations of a dataset. `processing_level` carries the quality-control state that tethys crammed into `product_code` (see tethys → envlib migration notes below).
 
@@ -56,7 +56,8 @@ Changing the field order — or any other aspect of this serialization rule (the
 - **Accepted input shorthand**: `±HH` (e.g., `+12`) is accepted as user input and auto-expanded to `±HH:00` before storage and hashing.
 - **Rejected**: `Z`, timezone names like `Pacific/Auckland`, any form with whitespace or without a sign, and out-of-range values — the offset must lie within `[-12:00, +14:00]` with minutes in `{00, 15, 30, 45}` (covers all real-world offsets; `+24:00` and `+13:60` are invalid input, not distinct identities).
 - **Fixed offset only** — not a timezone. For DST-observing regions, providers should use standard time year-round (e.g., NZ = `+12:00`, not `+13:00`). Shifting aggregation boundaries with DST cannot be expressed as a single offset and is out of scope.
-- **Semantics**: `utc_offset` defines the aggregation boundary for aggregated cadences (e.g., a daily mean aligns to midnight at the given offset). The offset is semantically significant whenever `offset mod frequency_interval != 0` — including sub-daily cadences with non-commensurate offsets (hourly means at `+05:30` or `+12:45` produce bins shifted relative to `+00:00`). When `offset mod frequency_interval == 0` (the binning is identical to UTC) or `frequency_interval` is `None`, the offset has no semantic effect — and the `Metadata` class **enforces** this rather than leaving it as guidance: for fixed-duration cadences it computes the modulo and automatically normalizes the offset to `+00:00` when it divides evenly (likewise when `frequency_interval` is `None`), so semantically identical data cannot mint spurious duplicate `dataset_id`s. For calendar cadences (`month`, `year`, and any future non-fixed-duration codes) `offset mod frequency_interval` is not defined and the offset is **always retained** — any nonzero offset shifts calendar boundaries.
+- **Semantics**: `utc_offset` defines the aggregation boundary for aggregated cadences (e.g., a daily mean aligns to midnight at the given offset). The offset is semantically significant whenever `offset mod frequency_interval != 0` — including sub-daily cadences with non-commensurate offsets (hourly means at `+05:30` or `+12:45` produce bins shifted relative to `+00:00`). When `offset mod frequency_interval == 0` (the binning is identical to UTC) or `frequency_interval` is `None`, the offset has no semantic effect — and the `Metadata` class **enforces** this rather than leaving it as guidance: for fixed-duration cadences it computes the modulo and automatically normalizes the offset to `+00:00` when it divides evenly (likewise when `frequency_interval` is `None`), so semantically identical data cannot mint spurious duplicate `dataset_version_id`s. For calendar cadences (`month`, `year`, and any future non-fixed-duration codes) `offset mod frequency_interval` is not defined and the offset is **always retained** — any nonzero offset shifts calendar boundaries.
+- **Phase-coincident offsets are deliberately NOT canonicalized** (considered and decided 2026-07-07): offsets that produce identical bin boundaries without dividing the cadence evenly (e.g. `+12:00` vs `-12:00` at `day` — both bin at 12:00 UTC; likewise `+13:45` vs `-10:15`) remain distinct identities. The offset is a semantic label for the intended local day/alignment, not merely a bin phase, and real-world collisions of this kind are vanishingly rare.
 
 **spatial_resolution rules**:
 - **Canonical form**: `<number><unit>` with no separator between number and unit; units limited to `{m, km, deg}`. The numeric part has **exactly one spelling per value**, enforced by grammar: `(0|[1-9][0-9]*)(\.[0-9]*[1-9])?` — a leading digit is required (`0.25`, not `.25`), no redundant leading zeros (`0.25`, not `00.25`), no trailing decimal point (`1`, not `1.`), and no trailing fractional zeros (`0.25`, not `0.250`; `1`, not `1.0`). Examples: `0.25deg`, `1km`, `500m`, `30m`.
@@ -67,41 +68,41 @@ Changing the field order — or any other aspect of this serialization rule (the
 - **Normalization**: only `.strip().lower()` (per Field normalization rules) — case and whitespace normalize (`0.25DEG` → `0.25deg`); the numeric part is never rewritten, only validated against the grammar above.
 
 **product_code rules**:
-- **Meaning**: a producer-chosen slug naming the *production line* — the thing that distinguishes datasets which would otherwise share an identity. For published products this is the product name (e.g., `era5-land`, `vcsn`); for in-house derivations it is an algorithm/variant slug (e.g., `stream_depletion_method_1`). Rule of thumb: if two of your datasets would otherwise get the same `dataset_id`, `product_code` is where you say how they differ.
+- **Meaning**: a producer-chosen slug naming the *production line* — the thing that distinguishes datasets which would otherwise share an identity. For published products this is the product name (e.g., `era5-land`, `vcsn`); for in-house derivations it is an algorithm/variant slug (e.g., `stream_depletion_method_1`). Rule of thumb: if two of your datasets would otherwise get the same `dataset_version_id`, `product_code` is where you say how they differ.
 - **Optional**: `None` is allowed (hashed as the literal `"None"`) and is the expected value for plain observational collections with no product identity (e.g., a council's station network).
 - **Grammar**: `[a-z0-9._-]+` after lowercasing (per Field normalization) — no whitespace. The literal value `none` is rejected to avoid confusion with the `None` sentinel.
 - **Processing/QC state does NOT belong here** — that axis is `processing_level`. (tethys overloaded `product_code` with values like `raw_data` / `quality_controlled_data`; see the migration notes.)
 
-**version rules**: a free-form slug (lowercased, `[a-z0-9._-]+`; e.g., `1`, `1.1`, `2026-03`). **The string is the identity** — `1`, `1.0`, and `01` are three different `dataset_id`s; envlib does not numerically normalize versions. Pick one spelling convention per series and keep it: re-registering "v1" as `1.0` silently forks the series.
+**version rules**: a free-form slug (lowercased, `[a-z0-9._-]+`; e.g., `1`, `1.1`, `2026-03`). **The string is the identity** — `1`, `1.0`, and `01` are three different `dataset_version_id`s; envlib does not numerically normalize versions. Pick one spelling convention per series and keep it: re-registering "v1" as `1.0` silently forks the series.
 
 **Field normalization** (applies to Identity and General Metadata):
 - **All fields**: whitespace is stripped (`.strip()`) before storage.
-- **Free-form user-input Identity fields** (`owner`, `product_code`, `spatial_resolution`, `version`) are additionally lowercased before storage and hashing. This prevents `dataset_id` fragmentation from trivial case differences (e.g., `ERA5` vs `era5` vs `Era5`).
-- **Slug grammar**: `owner`, `product_code`, and `version` must match ASCII `[a-z0-9._-]+` after lowercasing (`re.fullmatch(r'[a-z0-9._-]+', value)`, no Unicode flags) — no whitespace or control characters. **Non-ASCII input is rejected up front, before lowercasing**, so no locale- or Unicode-dependent case mapping (Turkish `İ` and friends) ever reaches the hash. (The grammar also protects the `\x1f` hash delimiter; `spatial_resolution` has its own stricter grammar above.)
+- **Free-form user-input Identity fields** (`owner`, `product_code`, `spatial_resolution`, `version`) are additionally lowercased before storage and hashing. This prevents `dataset_version_id` fragmentation from trivial case differences (e.g., `ERA5` vs `era5` vs `Era5`).
+- **Slug grammar**: `owner`, `product_code`, and `version` must match ASCII `[a-z0-9._-]+` after lowercasing (`re.fullmatch(r'[a-z0-9._-]+', value)`, no Unicode flags) — no whitespace or control characters — **and must contain at least one letter or digit** (punctuation-only slugs like `.`, `-`, `...` are rejected; identity-core review ruling 2026-07-07 — typo-class garbage must not mint permanent identities). **Non-ASCII input is rejected up front, before lowercasing**, so no locale- or Unicode-dependent case mapping (Turkish `İ` and friends) ever reaches the hash. (The grammar also protects the `\x1f` hash delimiter; `spatial_resolution` has its own stricter grammar above.)
 - **CV-constrained fields** (`feature`, `variable`, `method`, `processing_level`, `aggregation_statistic`, `license`) are stored as their canonical CV value — no further lowercasing, since the CV itself defines the canonical case.
-- **`frequency_interval`**: must be one of envlib's own frequency codes (see the frequency_interval vocabulary) — exactly one canonical spelling per cadence, with a small closed alias table mapping accepted input synonyms to canonical (e.g. `24h` → `day`; see the frequency_interval vocabulary). envlib deliberately does NOT delegate canonicalization to pandas offset aliases: pandas' canonical spellings changed across versions (`'H'`→`'h'`, `'M'`→`'ME'` in pandas 2.2), and equivalent inputs (`'60min'` vs `'1h'`) don't normalize to each other — either property would destabilize `dataset_id`. (Verified empirically 2026-07-02 against pandas 2.1.4 / 2.2.3 / 3.0.3: the old aliases hard-error in 3.x, and `'15min'` / `'Y'` canonical forms also shifted across versions.)
+- **`frequency_interval`**: must be one of envlib's own frequency codes (see the frequency_interval vocabulary) — exactly one canonical spelling per cadence, with a small closed alias table mapping accepted input synonyms to canonical (e.g. `24h` → `day`; see the frequency_interval vocabulary). envlib deliberately does NOT delegate canonicalization to pandas offset aliases: pandas' canonical spellings changed across versions (`'H'`→`'h'`, `'M'`→`'ME'` in pandas 2.2), and equivalent inputs (`'60min'` vs `'1h'`) don't normalize to each other — either property would destabilize `dataset_version_id`. (Verified empirically 2026-07-02 against pandas 2.1.4 / 2.2.3 / 3.0.3: the old aliases hard-error in 3.x, and `'15min'` / `'Y'` canonical forms also shifted across versions.)
 - **`utc_offset`**: canonicalized per the utc_offset rules above.
 - **Free-form text General Metadata** (`attribution`, `description`): whitespace stripped only; no case normalization — these are human-readable text, not identifiers.
 
-**Query normalization**: query kwarg values for queryable fields (Identity + CV fields) are normalized via `.strip().lower()` and matched against the **lowercased** stored value (`stored.lower() == query.lower()`) — lowering only the query side would silently never match CVs whose canonical case is mixed (`license='CC-BY-4.0'` → query `cc-by-4.0` vs stored `CC-BY-4.0`). CVs must therefore contain no case-insensitively colliding entries (none do). This lets users type `cat.query(variable='Air_Temperature', owner='NIWA')` and match stored `air_temperature` / `niwa`. Case-insensitive querying is a side effect of consistent normalization, not a special flag.
+**Query normalization**: query kwarg values for queryable fields (Identity + CV fields) are normalized via `.strip().lower()` and matched against the **lowercased** stored value (`stored.lower() == query.lower()`) — lowering only the query side would silently never match CVs whose canonical case is mixed (`license='CC-BY-4.0'` → query `cc-by-4.0` vs stored `CC-BY-4.0`). CVs must therefore contain no case-insensitively colliding entries (none do). This lets users type `cat.query(variable='Temperature', owner='NIWA')` and match stored `temperature` / `niwa`. Case-insensitive querying is a side effect of consistent normalization, not a special flag.
 
 ### 2. General Metadata
 These fields do not affect identity. `license` and `attribution` are required at registration; the rest are optional.
 
-| Field | Type | Derives dataset_id | Status | CV Source |
+| Field | Type | Derives dataset_version_id | Status | CV Source |
 |-------|------|--------------------|--------|-----------|
 | license | str | no | required | curated SPDX subset + envlib extensions (open-access data licenses only) |
 | attribution | str | no | required | free-form |
 | description | str \| None | no | optional | free-form |
-| derived_from | list[str] \| None | no | optional | list of `dataset_id`s and/or DOI URLs |
+| derived_from | list[str] \| None | no | optional | list of `dataset_version_id`s and/or DOI URLs |
 | doi | str \| None | no | optional | DOI URL (e.g., `https://doi.org/10.xxxx/xxxx`) |
 
 - **description** — free-form human-readable description of the dataset. Aids discoverability in the catalogue.
 - **derived_from** — list of parent datasets this dataset was computed from (reanalyses, QC'd products, ensembles, etc.). Enables machine-traversable lineage. Each entry is either:
-  - a `dataset_id` — a 24-character hex string referencing an envlib dataset (in this or another RCG); may reference a dataset not yet registered.
+  - a `dataset_version_id` — a 24-character hex string referencing an envlib dataset (in this or another RCG); may reference a dataset not yet registered.
   - a DOI URL — e.g., `https://doi.org/10.24381/cds.adbb2d47`, for referencing externally-published datasets that never lived in an RCG (e.g., the original ECMWF ERA5 as the parent of an envlib-derived bias-corrected product).
   
-  Entries are distinguished by format (DOI URLs start with `https://doi.org/`; dataset_ids are 24-char hex). Neither form is resolved or validated against any external service at registration time — no network call is made; envlib only checks format. Caveat: `series_id` and `station_id` share the same 24-hex format, so a mis-pasted id of the wrong type is format-valid and undetectable — take care that `derived_from` entries are `dataset_id`s specifically.
+  Entries are distinguished by format (DOI URLs start with `https://doi.org/`; dataset_version_ids are 24-char hex). Neither form is resolved or validated against any external service at registration time — no network call is made; envlib only checks format. Caveat: `dataset_version_id`, `dataset_id`, and `station_id` all share the same 24-hex format, so a mis-pasted id of the wrong type is format-valid and undetectable — take care that `derived_from` entries are `dataset_version_id`s specifically (lineage means "computed from that specific version").
 - **doi** — citation DOI as a full URL. Format-validated on assignment but not resolved (no network call).
 
 Non-queryable processing detail (algorithm, code version, parameters, QC thresholds, etc.) should be recorded in the CF `history` attribute on the cfdb dataset via `ds.attrs['history']`, not duplicated in envlib's metadata model. Other CF dataset-level attrs (`references`, `comment`, `source`, `institution`) remain available and are not modelled by envlib.
@@ -137,13 +138,13 @@ Extents and exact grid spacing are automatically calculated by reading the fast,
 **Empty datasets**: Registration of empty datasets (datasets with no data arrays populated or zero-length time/geometry coordinates) is not permitted. `cat.register()` and `cat.publish()` will fail if they cannot extract valid State Metadata extents from the dataset. A missing `time` coord is likewise a registration failure (see above).
 
 ### 4. Provenance Metadata (Auto-Set)
-These fields are set automatically by the catalogue on registration. Some are immutable (set once at first insert); some are auto-updated by `cat.register()`. They are stored in the RCG entry but are NOT part of the `dataset_id` hash.
+These fields are set automatically by the catalogue on registration. Some are immutable (set once at first insert); some are auto-updated by `cat.register()`. They are stored in the RCG entry but are NOT part of the `dataset_version_id` hash.
 
 | Field | Type | Mutability | Description |
 |-------|------|------------|-------------|
-| created_at | str (ISO8601 UTC) | immutable | Timestamp of first successful `cat.register()` for this `dataset_id`. Used to determine the "latest" version when multiple versions match a query. |
+| created_at | str (ISO8601 UTC) | immutable | Timestamp of first successful `cat.register()` for this `dataset_version_id`. Used to determine the "latest" version when multiple versions match a query. |
 | modified_at | str (ISO8601 UTC) | auto-updated | Timestamp of the most recent `cat.register()` call **that changed the stored entry** (State Metadata, General Metadata, or connection details). No-op re-registrations do not bump it, so it remains a meaningful recency signal. (Not queryable in v1 — see Query semantics.) |
-| data_url | str \| None | auto-updated | Public HTTP(S) URL pointing to the cfdb file on the remote, if the `remote_conn.db_url` is set on the `S3Connection` at registration. Intended to let users view dataset metadata directly in a browser and to support a future catalogue web app layered on envlib. Absent if the remote is not configured for public HTTP access. Not queryable; not in the `dataset_id` hash. |
+| data_url | str \| None | auto-updated | Public HTTP(S) URL pointing to the cfdb file on the remote, if the `remote_conn.db_url` is set on the `S3Connection` at registration. Intended to let users view dataset metadata directly in a browser and to support a future catalogue web app layered on envlib. Absent if the remote is not configured for public HTTP access. Not queryable; not in the `dataset_version_id` hash. |
 
 `created_at` is set once at first insert and preserved thereafter. `modified_at` and `data_url` are refreshed by the catalogue on `cat.register()` calls that change the stored entry — `data_url` is auto-derived from `remote_conn.db_url` only (no explicit kwarg override), and is validated as a **plain public http(s) URL — no userinfo (`user:pass@`) and no query string** (a presigned URL's signature would otherwise ride into the public catalogue entry) — but not network-resolved at registration time.
 
@@ -152,7 +153,7 @@ These fields are set automatically by the catalogue on registration. Some are im
 Identity and General Metadata live in two places: the cfdb file's `ds.attrs` and the RCG entry. **The cfdb file is authoritative; the RCG entry is a derived index.** `cat.register()` always reads metadata from the cfdb file, re-validates what changed, and rewrites the RCG entry — never the reverse. To update mutable General Metadata (license, attribution, description, ...), edit `ds.attrs` in the cfdb file and re-register.
 
 - **Attr key namespacing**: envlib's keys are stored in `ds.attrs` with an `envlib_` prefix (`envlib_owner`, `envlib_version`, ...) to avoid collisions with CF and user attrs (`version` especially). Flat prefixed keys survive netCDF export, unlike a nested dict. `Metadata.to_dict()` emits the prefixed keys.
-- **Self-identification**: the computed `dataset_id` and `series_id` are also written into `ds.attrs`. On every `cat.register()`, envlib re-derives the hash from the identity attrs and fails on mismatch — catching attrs hand-edited after first registration.
+- **Self-identification**: the computed `dataset_version_id` and `dataset_id` are also written into `ds.attrs`. On every `cat.register()`, envlib re-derives the hash from the identity attrs and fails on mismatch — catching attrs hand-edited after first registration.
 
 ### Immutability
 The 11 Identity fields (feature through version) are immutable once a dataset is created. `created_at` (Provenance) is also immutable — set once at first registration. The State Metadata fields, `modified_at`, and `data_url` (Provenance) are mutable and are refreshed by `cat.register()` as data is appended or the remote configuration changes.
@@ -163,17 +164,17 @@ envlib v1 deliberately omits explicit lifecycle states (`deprecated`, `sunset`, 
 - **Superseded versions** are handled by the version field and the `latest-by-created_at` query default. Older versions remain accessible via explicit `version=...` kwargs.
 - **Staleness** is inferable from `modified_at` — consumers can judge whether a dataset is still being updated without a dedicated "sunset" status.
 
-**Retraction** (removal of a dataset known to contain incorrect data) is handled in v1 by `cat.deregister(dataset_id, delete_data=True)` — deleting the catalogue entry and the underlying cfdb file from its remote. Plain `deregister()` (default `delete_data=False`) merely delists: the entry is removed but the hosted data stays up for existing consumers. Deregistration is also the correction path for a typo'd identity field (identity fields can never be edited in place): deregister, fix the attrs, re-register under the new `dataset_id`. There is no tombstone.
+**Retraction** (removal of a dataset known to contain incorrect data) is handled in v1 by `cat.deregister(dataset_version_id, delete_data=True)` — deleting the catalogue entry and the underlying cfdb file from its remote. Plain `deregister()` (default `delete_data=False`) merely delists: the entry is removed but the hosted data stays up for existing consumers. Deregistration is also the correction path for a typo'd identity field (identity fields can never be edited in place): deregister, fix the attrs, re-register under the new `dataset_version_id`. There is no tombstone.
 
 **Shared-target guard**: `delete_data=True` first verifies that no *other* catalogue entry references the same remote target (`endpoint_url`, `bucket`, `db_key`); if one does, deregistration hard-fails without deleting anything. This closes a destruction trap in the typo-correction path: re-publishing the fixed dataset to the *same* S3 path leaves the old entry pointing at the new data — deleting the old entry's "data" would destroy the new dataset and orphan its entry.
 
-**Deleting data after a plain delist**: once an entry is deregistered without `delete_data=True`, envlib no longer tracks the dataset, so removing the hosted data later happens one of two ways: (1) **re-register, then retract** — `cat.register()` the still-live remote back into the RCG, then `cat.deregister(dataset_id, delete_data=True)`; this is the recommended path because the shared-target guard stays in force; or (2) **direct storage deletion** — the data owner opens the remote with their own credentials and calls ebooklet's `delete_remote()` (or deletes the objects at the bucket level); envlib is not involved and the shared-target guard does not apply. The user docs must spell out both paths.
+**Deleting data after a plain delist**: once an entry is deregistered without `delete_data=True`, envlib no longer tracks the dataset, so removing the hosted data later happens one of two ways: (1) **re-register, then retract** — `cat.register()` the still-live remote back into the RCG, then `cat.deregister(dataset_version_id, delete_data=True)`; this is the recommended path because the shared-target guard stays in force; or (2) **direct storage deletion** — the data owner opens the remote with their own credentials and calls ebooklet's `delete_remote()` (or deletes the objects at the bucket level); envlib is not involved and the shared-target guard does not apply. The user docs must spell out both paths.
 
 **Possible future addition — retraction tombstone**: for datasets that have been externally cited (e.g., DOI-bearing published datasets), outright deletion leaves dead references. A future option would be to preserve the catalogue entry with a `status='retracted'` field and a `retraction_reason` in General Metadata, while still removing the underlying cfdb data. This is acknowledged as a future possibility if needed. Not committed for v1.
 
 ### Data variable requirements
-- **Exactly one primary data variable per dataset.** The primary variable's name in the cfdb file must equal the `Metadata.variable` value (e.g., if `variable='air_temperature'`, the cfdb file must contain `ds['air_temperature']`). This makes the primary variable self-identifying — no separate `primary_variable` attribute is needed. Registration via `cat.register()` will fail if `meta.variable` is not present as a data variable in the cfdb file.
-- **Ancillary variables** (QC flags, uncertainty estimates, counts, etc.) are permitted alongside the primary variable. They must be declared via the CF `ancillary_variables` attribute on the primary variable. Ancillary variable names are unconstrained (e.g., `air_temperature_qc`, `air_temperature_stderr`).
+- **Exactly one primary data variable per dataset.** The primary variable's name in the cfdb file must equal the `Metadata.variable` value (e.g., if `variable='temperature'`, the cfdb file must contain `ds['temperature']`). This makes the primary variable self-identifying — no separate `primary_variable` attribute is needed. Registration via `cat.register()` will fail if `meta.variable` is not present as a data variable in the cfdb file.
+- **Ancillary variables** (QC flags, uncertainty estimates, counts, etc.) are permitted alongside the primary variable. They must be declared via the CF `ancillary_variables` attribute on the primary variable. Ancillary variable names are unconstrained (e.g., `temperature_qc`, `temperature_stderr`).
 - **units** required on the primary data variable
 - **standard_name** (CF convention) — **derived by envlib, not required from the user**. envlib maintains the `(variable, feature)` → CF standard_name mapping, so the user supplies only the envlib `variable`; at `cat.validate()`/`register()` envlib looks up the mapping and, if the primary variable has no `standard_name` set, **auto-populates the curated default** (the first entry of the ordered candidate list for that `(variable, feature)`). Rules:
   - If the user *has* set `standard_name`, envlib validates it against the bundled CF list and keeps it (the override path — for multi-candidate variables where the default isn't the right one, or for extra specificity like "at 2m"). An invalid CF term still fails.
@@ -262,7 +263,8 @@ This separation prevents name collisions between the measurement axis and the st
 - **feature rename**: tethys `pedosphere` → envlib `soil`; tethys `still_waters` → envlib `still_water`.
 - **variable renames (from the curation table)**: tethys `snow_depth` → `snowfall` (tethys misnamed WRF `SNOWNC` accumulated snowfall as depth), `potential_et` → `evapotranspiration_potential`, `naturalised_streamflow` → `streamflow` (naturalisation carried in `product_code`/`method`), `nitrogen_ammonia_+_ammonium` merged into `nitrogen_ammonia`, `e-coli` → `e_coli`. Full parameter→variable + CF standard_name curation in `plans/variable_inventory.md`.
 - **utc_offset conversion**: tethys stores offsets as pandas-style hour strings (`'12H'`, `'-3H'`, `'0H'`; tethys-data-models constrains them to align the day with UTC), envlib as `±HH:MM`. Migration maps `'12H'` → `'+12:00'`, `'-3H'` → `'-03:00'`, `'0H'` → `'+00:00'`, then applies envlib's enforced reduction (a fixed-duration cadence whose offset divides evenly normalizes to `+00:00`).
-- **dataset_id values do NOT carry over** — envlib's hash has different fields and serialization than tethys's ids. `station_id` values DO carry over.
+- **id values do NOT carry over** — envlib's hashes have different fields and serialization than tethys's ids, for both `dataset_version_id` and `dataset_id` (though envlib's `dataset_id` now matches tethys's version-less `dataset_id` *concept*, per the 2026-07-07 naming decision). `station_id` values DO carry over.
+- **Migration code must derive ids via the `Metadata` class**, never the bare `compute_dataset_id`/`compute_dataset_version_id` functions — the class applies the utc_offset reduction rule before hashing; the bare functions trust their inputs verbatim (identity-core review note, 2026-07-07).
 
 ## Controlled Vocabularies
 
@@ -282,7 +284,7 @@ This separation prevents name collisions between the measurement axis and the st
 
 To avoid orphaning existing datasets when `vocabularies.refresh()` pulls an updated upstream vocabulary that has dropped or renamed terms, envlib validates CV-constrained metadata values only when they are being set or changed:
 
-- **Identity Metadata** is validated at `Metadata` construction (first creation of a dataset). Because Identity fields cannot change for a given `dataset_id` (they derive the hash), they are never re-validated on subsequent `cat.register()` calls.
+- **Identity Metadata** is validated at `Metadata` construction (first creation of a dataset). Because Identity fields cannot change for a given `dataset_version_id` (they derive the hash), they are never re-validated on subsequent `cat.register()` calls.
 - **General Metadata** (e.g., `license`) is validated at construction. On re-registration, `cat.register()` reads current metadata from the cfdb file, compares field-by-field to the values already stored in the RCG, and validates only fields whose values differ.
 - **On read** (`DatasetRef.metadata`, `cat.query(...)`, etc.) no CV validation is performed. Stored values are surfaced as-is. Queries match literal strings against stored values, not against the current bundled CV.
 
@@ -343,7 +345,7 @@ This means a dataset created in 2026 with `method='total_count'` (valid at that 
 - Like `method`, envlib-maintained and deliberately small; `vocabularies.refresh()` does not touch it.
 
 **frequency_interval** (envlib-defined frequency codes):
-- envlib owns the canonical cadence grammar — NOT delegated to pandas offset aliases (whose canonical spellings changed across pandas versions and would destabilize `dataset_id`).
+- envlib owns the canonical cadence grammar — NOT delegated to pandas offset aliases (whose canonical spellings changed across pandas versions and would destabilize `dataset_version_id`).
 - Design rules: exactly **one canonical spelling per cadence** — only canonical codes are stored, hashed, displayed, and query-matched. A small **closed input-alias table** maps accepted synonyms to canonical before validation (`24h` → `day`, `60min` → `1h`), mirroring the `±HH` → `±HH:00` utc_offset input shorthand. Aliases are input convenience only — never hashed, so adding one later is non-breaking; the one permanent commitment is that an alias can never later become a distinct cadence. **No anchoring variants** (pandas `M` vs `MS` collapses — the global interval-start timestamp convention fixes anchoring); a **closed initial set**, extended deliberately as genuine needs emerge.
 - **The v1 canonical table (final, decided 2026-07-05)** — 12 codes:
 
@@ -363,7 +365,7 @@ This means a dataset created in 2026 with `method='total_count'` (valid at that 
 | `year` | calendar | — | utc_offset always retained |
 
 - **Admission rule for future fixed codes**: the duration must divide 24 h evenly, so bins anchor unambiguously to the (offset-shifted) day boundary and no anchoring variants can arise. This is why `week`, `season`, and multi-day composite cadences (e.g., MODIS-style `8day`) are excluded from v1 — none has a self-evident global anchor (which weekday? which month triple? which epoch?); datasets at those cadences use `frequency_interval=None` until a design exists. Calendar codes are limited to true calendar units.
-- **Considered and rejected (2026-07-05) — generalizing `utc_offset` into a per-dataset anchor/phase field**: a generic "bin phase" (an anchor instant reduced mod the cadence duration; bins = `anchor + k·D`) would mathematically cover sub-daily offsets, weekly start-days, and multi-day epochs in one field. Rejected because: (1) it still can't cover calendar cadences (`month`/`year` aren't epoch-tileable), so the field would carry two different semantics; (2) it explodes the canonical value space of a hash-affecting field (a week has 672 quarter-hour phases, each a distinct permanent `dataset_id`) where `utc_offset` has ~a hundred validated values and an enforced reduction rule; (3) the use-cases are rare in environmental data. **The retained path if `week`/multi-day codes are ever needed**: pin the anchor as a constant in the code's vocabulary definition (e.g., `week` = ISO Monday start; an `8day` composite names its epoch), with `utc_offset` still supplying the time-of-day component exactly as for `day`; variants (e.g., Sunday-start weeks) become distinct codes added deliberately. This keeps `utc_offset` the single per-dataset phase knob forever, moves anchoring to a frozen per-code constant, and is non-breaking to add later since new codes only mint new ids.
+- **Considered and rejected (2026-07-05) — generalizing `utc_offset` into a per-dataset anchor/phase field**: a generic "bin phase" (an anchor instant reduced mod the cadence duration; bins = `anchor + k·D`) would mathematically cover sub-daily offsets, weekly start-days, and multi-day epochs in one field. Rejected because: (1) it still can't cover calendar cadences (`month`/`year` aren't epoch-tileable), so the field would carry two different semantics; (2) it explodes the canonical value space of a hash-affecting field (a week has 672 quarter-hour phases, each a distinct permanent `dataset_version_id`) where `utc_offset` has ~a hundred validated values and an enforced reduction rule; (3) the use-cases are rare in environmental data. **The retained path if `week`/multi-day codes are ever needed**: pin the anchor as a constant in the code's vocabulary definition (e.g., `week` = ISO Monday start; an `8day` composite names its epoch), with `utc_offset` still supplying the time-of-day component exactly as for `day`; variants (e.g., Sunday-start weeks) become distinct codes added deliberately. This keeps `utc_offset` the single per-dataset phase knob forever, moves anchoring to a frozen per-code constant, and is non-breaking to add later since new codes only mint new ids.
 - Validation is a closed-enum lookup (alias map → canonical → table) — no parsing, no pandas dependency. `frequency_interval.json` carries `{code, kind, seconds, aliases}` per entry.
 - `None` remains the value for irregular cadences.
 
@@ -419,7 +421,7 @@ cat.refresh()
 
 # All datasets — list of DatasetRef objects
 cat.datasets
-# [{'feature': 'atmosphere', 'variable': 'air_temperature', 'owner': 'niwa', ...},
+# [{'feature': 'atmosphere', 'variable': 'temperature', 'owner': 'niwa', ...},
 #  {'feature': 'waterway', 'variable': 'discharge', 'owner': 'niwa', ...}]
 # (DatasetRef.__repr__ displays as a metadata dict; values are stored in normalized form)
 
@@ -427,11 +429,11 @@ cat.datasets
 # All kwargs are AND'd together; a list value means "any of these" (OR within the field).
 # Query values for queryable fields are normalized (.strip().lower()) before matching.
 # By default, if version is not provided, the catalogue returns the latest version
-# of each matching dataset series (grouped by series_id) — "latest" is the greatest
-# `created_at` within the series. An explicit version=... kwarg overrides this and
+# of each matching dataset (grouped by dataset_id) — "latest" is the greatest
+# `created_at` among its versions. An explicit version=... kwarg overrides this and
 # pins the query to that exact version.
 results = cat.query(
-    variable='air_temperature',
+    variable='temperature',
     owner=['NIWA', 'CSIRO'],             # list means "any of these"
     product_code='ERA5',
     processing_level='quality_controlled',
@@ -468,8 +470,8 @@ cat.validate(local_cfdb_path='data.cfdb')
 # This is the primary flow for producing new datasets or appending new data.
 # Internally:
 #   1. validate the local cfdb
-#   2. compute dataset_id and extract State Metadata
-#   3. write the entry to the local RCG (insert or upsert on dataset_id)
+#   2. compute dataset_version_id and extract State Metadata
+#   3. write the entry to the local RCG (insert or upsert on dataset_version_id)
 #   4. push the cfdb data to its remote S3 location
 #   5. push the RCG to its remote
 # The cfdb data is pushed BEFORE the RCG commit so the catalogue never references
@@ -499,7 +501,7 @@ cat.register(
 # deletes the remote cfdb (ebooklet delete_remote()) after verifying no other
 # entry references the same remote target (see Dataset lifecycle). No tombstone in v1.
 cat.deregister(
-    dataset_id,
+    dataset_version_id,
     rcg_remote_conn=rcg_conn,
     delete_data=False,
 )
@@ -515,7 +517,7 @@ cat.deregister(
 - **License sub-policy**: the public RCG accepts any of envlib's supported open-access licenses (all values in the `license` CV — CC-BY variants, CC0, ODbL, envlib extensions like `Copernicus-1.0`, etc.). No stricter sub-policy is applied. Consumers who need only the most-open subset (e.g., CC0 / CC-BY only) can filter on the `license` field via `cat.query()`.
 - **Hosting**: the public RCG is hosted on public-HTTPS-accessible S3-compatible object storage (planned on Backblaze), configured so that `S3Connection(db_url=...)` works read-only without AWS credentials. **The RCG is a catalogue index only, not a data mirror** — individual dataset cfdb files are hosted by their respective data owners (e.g., ECMWF for ERA5, NIWA for river flow). Registering a dataset in the public RCG implies the owner has made the underlying cfdb file publicly HTTPS-accessible at the URL captured in `data_url`.
 
-**RCG keying and entry contents (DONE — ebooklet 0.9.0, released 2026-07-02)**: envlib keys RCG entries directly by `dataset_id`, not by the cfdb's internal UUID. This makes uniqueness enforcement a property of the storage layer (can't have two entries with the same `dataset_id` key), enables direct lookup (`rcg[dataset_id]`) instead of scan-and-filter, and makes S3 object keys human-identifiable. The pinned **entry schema v1** (never-change surface):
+**RCG keying and entry contents (DONE — ebooklet 0.9.0, released 2026-07-02)**: envlib keys RCG entries directly by `dataset_version_id`, not by the cfdb's internal UUID. This makes uniqueness enforcement a property of the storage layer (can't have two entries with the same `dataset_version_id` key), enables direct lookup (`rcg[dataset_version_id]`) instead of scan-and-filter, and makes S3 object keys human-identifiable. The pinned **entry schema v1** (never-change surface):
 
 ```python
 {'entry_version': 1,
@@ -526,9 +528,9 @@ cat.deregister(
  'remote_conn': <S3Connection.to_dict() — access keys are never serialized; db_url passes through verbatim, hence the plain-public-URL validation (no userinfo / query string)>}
 ```
 
-Key facts envlib builds on: `add(conn, key=dataset_id, user_meta=meta)` upserts (same key overwrites, and metadata-only upserts DO push — entries are stamped with write time, not the member's timestamp); keys must match `[A-Za-z0-9._-]+` (hex dataset_ids trivially comply); `rcg[key] = conn` and `del rcg[key]` round-trip; `dataset_type`/`crs` are cross-checkable from `remote_meta` for free. Verified end-to-end 2026-07-02 with a registration→query→member-open→metadata-upsert→deregister dry run. **envlib must pin `ebooklet>=0.9.0`.**
+Key facts envlib builds on: `add(conn, key=dataset_version_id, user_meta=meta)` upserts (same key overwrites, and metadata-only upserts DO push — entries are stamped with write time, not the member's timestamp); keys must match `[A-Za-z0-9._-]+` (hex dataset_version_ids trivially comply); `rcg[key] = conn` and `del rcg[key]` round-trip; `dataset_type`/`crs` are cross-checkable from `remote_meta` for free. Verified end-to-end 2026-07-02 with a registration→query→member-open→metadata-upsert→deregister dry run. **envlib must pin `ebooklet>=0.9.0`.**
 
-**Publish failure handling**: if `cat.publish()` fails after the cfdb push succeeds but before the RCG push completes, the data is on remote S3 but not yet advertised in the remote catalogue. Re-running `cat.publish()` is safe — the cfdb push is idempotent (same data), and the RCG entry write is an upsert on `dataset_id`.
+**Publish failure handling**: if `cat.publish()` fails after the cfdb push succeeds but before the RCG push completes, the data is on remote S3 but not yet advertised in the remote catalogue. Re-running `cat.publish()` is safe — the cfdb push is idempotent (same data), and the RCG entry write is an upsert on `dataset_version_id`.
 
 **Upstream defect FIXED — grouped-mode push clobber (fixed in ebooklet ≥0.8.4, verified 2026-07-02)**: pre-0.8.4, ebooklet's push rebuilt each affected S3 group object from locally-present keys only, silently destroying non-materialized group members (live repro: silent wrong-value reads, `InvalidRange`, dangling index entries). 0.8.4 repacks the FULL group membership, pulling missing/stale members first (one ranged read per affected group) — verified by regression tests plus a cfdb-level append-from-fresh-copy smoke with byte-exact readback. **envlib must require `ebooklet>=0.9.1` and `cfdb>=0.9.0`** (floors as of 2026-07-05; transitively brings s3func>=0.9.1 and booklet>=0.12.5 once the staged pins release). Surviving notes: (a) **the RCG stays per-key (never `num_groups`)** — writer-private entry objects are desirable independent of the bug; (b) appends from a fresh/partial local copy now download the affected groups' missing members before pushing (a correctness cost, logged by ebooklet); (c) the two cfdb-layer publish footguns are **FIXED in cfdb 0.9.0** (released 2026-07-05): mid-session `push()` now flushes all in-memory state first (new public `Dataset.sync()`), and `'w'`/`'c'` opens attach to an existing remote even with a fresh local file — `cat.publish()`/`cat.register()` need NO hydrate-first or close→reopen→push workarounds; push mid-session freely (pushing remains explicit-only, never on close).
 
@@ -550,6 +552,8 @@ Key facts envlib builds on: `add(conn, key=dataset_id, user_meta=meta)` upserts 
 - **Pattern matching**: exact match only. No glob, substring, or regex filtering.
 - **`modified_at` queries**: not supported.
 - **Pagination / ordering**: `cat.query()` returns all matching entries as a list with no guaranteed ordering and no result limit. Callers sort or paginate client-side if needed.
+
+**Value discovery (added 2026-07-07)**: the browse companion to `query()` — `cat.distinct(field, counts=False)` returns the distinct stored values of any queryable field across the catalogue (sorted list excluding `None`; with `counts=True`, a `{value: count}` dict that includes a `None` key). This answers "what is actually *in* this catalogue" — the vocabularies module answers only "what is *valid*", and cannot help at all for the free-form fields (`owner`, `product_code`, `version`). Plural convenience properties wrap it for the 11 identity fields plus `license` and `dataset_type` (`cat.variables`, `cat.owners`, `cat.features`, `cat.product_codes`, ..., `cat.dataset_types`), so tab-completion self-documents the query vocabulary. Typical browse loop: `cat.variables` → `cat.query(variable=...)` → `ref.open()`.
 
 **Possible future extension — regex pattern matching in queries**: explicit regex predicates for fields like `product_code` (e.g., to match all `ERA*` variants with a single query). Deferred from v1 for API simplicity. If added, regex is the preferred syntax over glob or substring because it is explicit and unambiguous. Not committed for v1.
 
@@ -573,7 +577,7 @@ No `create_dataset` wrapper. Users create cfdb datasets directly and assign meta
 # text, not normalized.
 meta = envlib.Metadata(
     feature='atmosphere',
-    variable='air_temperature',
+    variable='temperature',
     method='simulation',
     product_code='era5',
     processing_level='quality_controlled',
@@ -590,7 +594,7 @@ meta = envlib.Metadata(
 # Or build incrementally — validates each field as it's set
 meta = envlib.Metadata()
 meta.feature = 'atmosphere'
-meta.variable = 'air_temperature'
+meta.variable = 'temperature'
 # ...
 
 # Create cfdb dataset directly, assign metadata
@@ -605,20 +609,20 @@ ds.create.crs.from_user_input(4326, x_coord='longitude', y_coord='latitude')
 # you normally set only units. (To override the curated default — e.g. pick a
 # non-default candidate or add "at 2m" specificity — set standard_name yourself and
 # envlib validates + keeps it. Inspect candidates with the helper below.)
-dv = ds.create.data_var.generic('air_temperature', ('latitude', 'longitude', 'time'), dtype='float32')
+dv = ds.create.data_var.generic('temperature', ('latitude', 'longitude', 'time'), dtype='float32')
 dv.attrs['units'] = 'degC'
 # Optional — see what envlib would populate, or choose among multiple candidates:
-# cf_names = envlib.vocabularies.get_cf_standard_names('air_temperature', feature='atmosphere')
+# cf_names = envlib.vocabularies.get_cf_standard_names('temperature', feature='atmosphere')  # -> ['air_temperature']
 
 # Optional ancillary variables — declared via CF ancillary_variables attribute on the primary
-qc = ds.create.data_var.generic('air_temperature_qc', ('latitude', 'longitude', 'time'), dtype='int8')
-dv.attrs['ancillary_variables'] = 'air_temperature_qc'
+qc = ds.create.data_var.generic('temperature_qc', ('latitude', 'longitude', 'time'), dtype='int8')
+dv.attrs['ancillary_variables'] = 'temperature_qc'
 
 # ... write data via cfdb API ...
 ds.close()
 
 # Publish the local cfdb to its remote S3 location and register it in the catalogue.
-# Validates all requirements, computes dataset_id, extracts State Metadata (bbox in
+# Validates all requirements, computes dataset_version_id, extracts State Metadata (bbox in
 # EPSG:4326, time range, grid steps), writes the catalogue entry, then pushes the
 # cfdb data and the RCG (in that order).
 cat.publish(
@@ -631,7 +635,7 @@ cat.publish(
 **Metadata class**:
 - Properties for each field with CV validation and enforced normalization on set (whitespace strip, lowercasing + ASCII slug check, `utc_offset` canonicalization including the reduction rule, `spatial_resolution` grammar)
 - `.to_dict()` returns a plain dict suitable for `ds.attrs.update()`
-- `.dataset_id` computed property (blake2b hash of the 11 Identity fields, only available when all 11 are set); `.series_id` likewise (version omitted)
+- `.dataset_version_id` computed property (blake2b hash of the 11 Identity fields, only available when all 11 are set); `.dataset_id` likewise (version omitted)
 - Incremental or all-at-once construction
 
 ### 3. Vocabulary utilities
@@ -640,13 +644,13 @@ cat.publish(
 from envlib import vocabularies
 
 # List valid values for a field
-vocabularies.list('variable')       # -> ['air_temperature', 'precipitation', ...]
+vocabularies.list('variable')       # -> ['temperature', 'precipitation', 'streamflow', ...]
 vocabularies.list('feature')        # -> ['atmosphere', 'waterway', ...]
 vocabularies.list('standard_name')  # -> ['air_temperature', 'precipitation_flux', ...]
 vocabularies.list('processing_level')  # -> ['raw', 'preliminary', 'quality_controlled']
 
 # Check if a value is valid
-vocabularies.is_valid('variable', 'air_temperature')  # -> True
+vocabularies.is_valid('variable', 'temperature')  # -> True
 vocabularies.is_valid('standard_name', 'air_temperature')  # -> True
 
 # Get the ordered CF standard_name candidates envlib would consider for a
@@ -668,7 +672,7 @@ vocabularies.refresh('variable')    # update just one
 envlib/
 ├── __init__.py              # public API: Catalogue, Metadata, version
 ├── catalogue.py             # Catalogue class, DatasetRef class
-├── metadata.py              # Metadata class, dataset_id hashing, validation
+├── metadata.py              # Metadata class, dataset_version_id hashing, validation
 ├── vocabularies/
 │   ├── __init__.py          # list(), is_valid(), refresh(), get_cf_standard_names()
 │   ├── variable.json        # ODM2 variablename mapped to CF standard_names
@@ -700,19 +704,19 @@ envlib/
 
 0. **ebooklet enhancement (prerequisite) — DONE (ebooklet 0.9.0, released 2026-07-02)**: `RemoteConnGroup.add(conn, key=, user_meta=)` with entry schema v1 (see RCG keying and entry contents), `__setitem__`/`set` delegation, keyed upserts that push on metadata-only changes, and key-charset validation. envlib pins `ebooklet>=0.9.0`.
 1. **Vocabularies module** — bundled JSON files (including mapped variables and CF standard names via NVS P07, the `processing_level` CV, and the finalized `frequency_interval` code table), validation functions (incl. slug grammar), mapping utility, refresh utility (user-dir overlay)
-2. **Metadata module** — `Metadata` class with CV validation, dataset_id hashing, `.to_dict()`
-3. **Catalogue module** — `Catalogue` class (RCG-backed, keyed by `dataset_id`), `DatasetRef` class with .open(), .datasets, .query(), .refresh(), .register(), .publish(), .validate(), .deregister() with full validation, extent extraction, and upsert logic
+2. **Metadata module** — `Metadata` class with CV validation, dataset_version_id hashing, `.to_dict()`
+3. **Catalogue module** — `Catalogue` class (RCG-backed, keyed by `dataset_version_id`), `DatasetRef` class with .open(), .datasets, .query(), .refresh(), .register(), .publish(), .validate(), .deregister() with full validation, extent extraction, and upsert logic
 4. **Tests** for each module
 5. **Update `__init__.py`** with public API exports
 
 ## Verification
 
 - `uv run pytest` — unit tests for:
-  - **Golden-vector hash tests**: fixed inputs → exact expected hex digests for `dataset_id`, `series_id`, and `station_id`, committed permanently — these are what actually lock the serialization rules. Must include: an input locking the UTF-8 encoding (bytes that differ across codecs), a station whose coordinate rounds to `-0.0` (locks signed-zero normalization), the explicit little-endian WKB bytes, rejection vectors for non-canonical `spatial_resolution` spellings (`.25deg`, `00.25deg`, `0.250deg`, `1.0km`) and out-of-range `utc_offset`s (`+24:00`, `+13:60`), and the `-00:00` → `+00:00` and offset-reduction (`1h` at `+12:00` → `+00:00`) normalizations
-  - dataset_id hashing is deterministic and consistent
+  - **Golden-vector hash tests**: fixed inputs → exact expected hex digests for `dataset_version_id`, `dataset_id`, and `station_id`, committed permanently — these are what actually lock the serialization rules. Must include: an input locking the UTF-8 encoding (bytes that differ across codecs), a station whose coordinate rounds to `-0.0` (locks signed-zero normalization), the explicit little-endian WKB bytes, rejection vectors for non-canonical `spatial_resolution` spellings (`.25deg`, `00.25deg`, `0.250deg`, `1.0km`) and out-of-range `utc_offset`s (`+24:00`, `+13:60`), and the `-00:00` → `+00:00` and offset-reduction (`1h` at `+12:00` → `+00:00`) normalizations
+  - dataset_version_id hashing is deterministic and consistent
   - Slug grammar and normalization: accepted/rejected forms for owner/product_code/version, utc_offset, spatial_resolution, frequency codes — including the frequency input-alias map (`24h` → `day`, `60min` → `1h` accepted; stored and hashed only as canonical)
   - bbox: antimeridian-crossing extents round-trip through registration and match `intersects` queries correctly; 0–360-longitude sources are normalized — including a full-globe ERA5-style grid (→ `[-180, lat0, 180, lat1]`) and a regional 170°E–190°E grid (→ `min_lon > max_lon`, not a near-global box; `transform_bounds` is a no-op for native-geographic sources, so this exercises envlib's own wrap)
-  - Latest-version query grouping by `series_id`, including the documented back-fill caveat behaviour
+  - Latest-version query grouping by `dataset_id`, including the documented back-fill caveat behaviour
   - Metadata validation rejects missing/invalid fields
   - Vocabulary validation accepts valid terms, rejects invalid
   - Vocabulary accurately filters applicable CF standard names based on variable and feature

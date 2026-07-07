@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "vocabulary": "frequency_interval",
+    "source": "envlib-defined frequency codes (finalized 2026-07-05); no upstream refresh. Only canonical codes are stored, hashed, displayed, and query-matched; aliases are accepted input synonyms only. Admission rule for future fixed codes: the duration must divide 24 h evenly. None (not an entry) is the value for irregular cadences.",
+    "updated": "2026-07-07"
+  },
+  "entries": [
+    {"name": "1min", "kind": "fixed", "seconds": 60, "aliases": []},
+    {"name": "5min", "kind": "fixed", "seconds": 300, "aliases": []},
+    {"name": "10min", "kind": "fixed", "seconds": 600, "aliases": []},
+    {"name": "15min", "kind": "fixed", "seconds": 900, "aliases": []},
+    {"name": "30min", "kind": "fixed", "seconds": 1800, "aliases": []},
+    {"name": "1h", "kind": "fixed", "seconds": 3600, "aliases": ["60min"]},
+    {"name": "3h", "kind": "fixed", "seconds": 10800, "aliases": []},
+    {"name": "6h", "kind": "fixed", "seconds": 21600, "aliases": []},
+    {"name": "12h", "kind": "fixed", "seconds": 43200, "aliases": []},
+    {"name": "day", "kind": "fixed", "seconds": 86400, "aliases": ["24h"]},
+    {"name": "month", "kind": "calendar", "seconds": null, "aliases": []},
+    {"name": "year", "kind": "calendar", "seconds": null, "aliases": []}
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "vocabulary": "license",
+    "source": "curated SPDX subset + envlib extensions for common non-SPDX open-access data licenses; open-access licenses only; no upstream refresh",
+    "updated": "2026-07-07"
+  },
+  "entries": [
+    {
+      "name": "CC-BY-4.0",
+      "title": "Creative Commons Attribution 4.0 International",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC-BY-4.0.html"
+    },
+    {
+      "name": "CC-BY-SA-4.0",
+      "title": "Creative Commons Attribution Share Alike 4.0 International",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC-BY-SA-4.0.html"
+    },
+    {
+      "name": "CC-BY-NC-4.0",
+      "title": "Creative Commons Attribution Non Commercial 4.0 International",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC-BY-NC-4.0.html"
+    },
+    {
+      "name": "CC-BY-NC-SA-4.0",
+      "title": "Creative Commons Attribution Non Commercial Share Alike 4.0 International",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC-BY-NC-SA-4.0.html"
+    },
+    {
+      "name": "CC0-1.0",
+      "title": "Creative Commons Zero v1.0 Universal (public domain dedication)",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC0-1.0.html"
+    },
+    {
+      "name": "ODbL-1.0",
+      "title": "Open Data Commons Open Database License v1.0",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/ODbL-1.0.html"
+    },
+    {
+      "name": "CC-BY-3.0",
+      "title": "Creative Commons Attribution 3.0 Unported",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC-BY-3.0.html"
+    },
+    {
+      "name": "CC-BY-SA-3.0",
+      "title": "Creative Commons Attribution Share Alike 3.0 Unported",
+      "source": "spdx",
+      "url": "https://spdx.org/licenses/CC-BY-SA-3.0.html"
+    },
+    {
+      "name": "Copernicus-1.0",
+      "title": "Licence to Use Copernicus Products (ECMWF/Copernicus, e.g. ERA5, C3S/CAMS products)",
+      "source": "envlib",
+      "url": "https://apps.ecmwf.int/datasets/licences/copernicus/"
+    }
+  ]
+}

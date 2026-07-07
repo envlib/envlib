@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "vocabulary": "method",
+    "source": "envlib-defined (ported from tethys for migration continuity); no upstream refresh",
+    "updated": "2026-07-07"
+  },
+  "entries": [
+    {
+      "name": "derivation",
+      "description": "A method for creating results by simple calculations from field activities, sample analyses, or sensor recordings."
+    },
+    {
+      "name": "estimation",
+      "description": "A method for creating results by rough approximation or professional judgement. Does not use an analytical or numerical model."
+    },
+    {
+      "name": "field_activity",
+      "description": "A method for creating results by performing an activity in the field at or on a sampling feature. Includes manually-operated instruments (e.g., handheld probes, manual gauging, field surveys) - anything requiring a human at the measurement location."
+    },
+    {
+      "name": "simulation",
+      "description": "A method for creating results by running an analytical or numerical model. Generally more complex and/or more uncertain than derivations. Used for climate model runs, reanalyses (e.g., ERA5), and other model outputs."
+    },
+    {
+      "name": "sample_analysis",
+      "description": "A method for ex situ analysis of a sample using an instrument, typically in a laboratory, for the purpose of measuring properties of a sample."
+    },
+    {
+      "name": "sensor_recording",
+      "description": "A method for creating results by independent, automated sensor measurements without direct human interaction at the sensor during the measurement. Includes in-situ data loggers and remote sensing."
+    },
+    {
+      "name": "forecast",
+      "description": "A type of simulation to predict the future. Kept distinct from simulation so consumers can filter forecasts from historical model runs."
+    }
+  ]
+}

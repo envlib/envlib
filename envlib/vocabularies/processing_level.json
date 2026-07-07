@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "vocabulary": "processing_level",
+    "source": "envlib-defined; no upstream refresh",
+    "updated": "2026-07-07"
+  },
+  "entries": [
+    {
+      "name": "raw",
+      "description": "As collected or generated; no quality control applied."
+    },
+    {
+      "name": "preliminary",
+      "description": "Automatically screened or near-real-time; subject to revision (e.g., ERA5T, USGS provisional, telemetered data with automated checks)."
+    },
+    {
+      "name": "quality_controlled",
+      "description": "Vetted and considered settled (e.g., consolidated ERA5, USGS approved, a council's validated archive)."
+    }
+  ]
+}

@@ -11,6 +11,12 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+  "cfdb>=0.9.0",
+  "ebooklet>=0.9.1",
+  "booklet>=0.12.5",
+  "pyproj",
+  "shapely>=2.0",
+  "urllib3",
 ]
 
 [dependency-groups]
@@ -23,7 +29,8 @@ dev = [
   "pytest-cov",
   "mkdocs-material",
   "mkdocstrings[python]",
-  
+  "types-shapely>=2.1.0.20260630",
+  "numpy>=2.2.6",
 ]
 
 [tool.pytest.ini_options]
@@ -87,6 +94,11 @@ unfixable = [
   "F401",
 ]
 
+[tool.ruff.lint.flake8-quotes]
+# match black's skip-string-normalization: the codebase uses single quotes
+inline-quotes = "single"
+multiline-quotes = "single"
+
 [tool.ruff.lint.isort]
 known-first-party = ["envlib"]
 
@@ -95,7 +107,7 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
-"tests/**/*" = ["PLR2004", "S101", "TID252"]
+"envlib/tests/**/*" = ["PLR2004", "S101", "TID252"]
 
 [tool.coverage.run]
 source_pkgs = ["envlib", "tests"]
@@ -129,5 +141,13 @@ exclude = [
     "/envlib/tests/*",
 ]
 
+[tool.hatch.build.targets.wheel]
+exclude = [
+    "/envlib/tests",
+]
+
 [tool.hatch.version]
 path = "envlib/__init__.py"
+
+[tool.mypy]
+ignore_missing_imports = true

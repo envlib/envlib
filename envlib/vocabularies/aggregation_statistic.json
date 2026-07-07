@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "vocabulary": "aggregation_statistic",
+    "source": "statistical subset of the CF Conventions cell_methods vocabulary; no upstream refresh",
+    "updated": "2026-07-07"
+  },
+  "entries": [
+    {"name": "point", "description": "Instantaneous sampling; no aggregation over the interval."},
+    {"name": "mean", "description": "Arithmetic mean over the aggregation interval."},
+    {"name": "sum", "description": "Sum (accumulation) over the aggregation interval."},
+    {"name": "maximum", "description": "Maximum value within the aggregation interval."},
+    {"name": "minimum", "description": "Minimum value within the aggregation interval."},
+    {"name": "median", "description": "Median value within the aggregation interval."},
+    {"name": "mode", "description": "Most frequent value within the aggregation interval."},
+    {"name": "mid_range", "description": "Average of the maximum and minimum within the aggregation interval."},
+    {"name": "variance", "description": "Variance of values within the aggregation interval."},
+    {"name": "standard_deviation", "description": "Standard deviation of values within the aggregation interval."},
+    {"name": "range", "description": "Maximum minus minimum within the aggregation interval."}
+  ]
+}

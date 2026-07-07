@@ -1,0 +1,19 @@
+{
+  "_meta": {
+    "vocabulary": "feature",
+    "source": "envlib-defined, mapped to ENVO URIs (looked up via EBI OLS4, 2026-07-07; envo_label records the ENVO term when it differs from the envlib name)",
+    "updated": "2026-07-07"
+  },
+  "entries": [
+    {"name": "atmosphere", "description": "Ambient air, weather, and climate.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_01000267"},
+    {"name": "waterway", "description": "Rivers, streams, and canals.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_00000029", "envo_label": "watercourse"},
+    {"name": "still_water", "description": "Lakes, reservoirs, and ponds.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_01000617", "envo_label": "lentic water body"},
+    {"name": "ocean", "description": "Open ocean and seas.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_00000015"},
+    {"name": "groundwater", "description": "Aquifers and subsurface water.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_01001004"},
+    {"name": "glacier", "description": "Glaciers and ice sheets.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_00000133"},
+    {"name": "wetland", "description": "Swamps, marshes, and bogs.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_01001209", "envo_label": "wetland ecosystem"},
+    {"name": "soil", "description": "Soil and subsurface earth.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_00001998"},
+    {"name": "coastline", "description": "Coastal zones and estuaries.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_00000303", "envo_label": "sea coast"},
+    {"name": "land", "description": "General land surface and terrain.", "envo_uri": "http://purl.obolibrary.org/obo/ENVO_01001785"}
+  ]
+}

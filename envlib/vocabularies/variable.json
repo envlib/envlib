@@ -1,0 +1,4391 @@
+{
+ "_meta": {
+  "vocabulary": "variable",
+  "source": "ODM2 variablename (snake_cased) union flagged envlib extensions. The cf field is the envlib-curated (feature -> ordered CF standard_name candidates) mapping: first candidate = auto-populate default; empty list = curated 'no applicable standard name'; cf key absent (or feature key absent) = not yet curated. refresh() updates ODM2 membership only and never touches cf mappings or envlib extensions. Curation source: plans/variable_inventory.md (rulings R0-R5, decided 2026-07-06; R0 = sea_water_* names only when feature=ocean).",
+  "updated": "2026-07-06"
+ },
+ "odm2_spelling_overrides": {
+  "nitrogenNitrate_NO3": "nitrogen_nitrate",
+  "nitrogenNitrite_NO2": "nitrogen_nitrite",
+  "nitrogenDissolved_Free_Ionized_Ammonia_NH3_NH4": "nitrogen_ammonia"
+ },
+ "entries": {
+  "19_hexanoyloxyfucoxanthin": {
+   "source": "odm2",
+   "odm2_term": "19_Hexanoyloxyfucoxanthin"
+  },
+  "1_1_1_trichloroethane": {
+   "source": "odm2",
+   "odm2_term": "1_1_1_Trichloroethane"
+  },
+  "1_1_2_2_tetrachloroethane": {
+   "source": "odm2",
+   "odm2_term": "1_1_2_2_Tetrachloroethane"
+  },
+  "1_1_2_trichloroethane": {
+   "source": "odm2",
+   "odm2_term": "1_1_2_Trichloroethane"
+  },
+  "1_1_dichloroethane": {
+   "source": "odm2",
+   "odm2_term": "1_1_Dichloroethane"
+  },
+  "1_1_dichloroethene": {
+   "source": "odm2",
+   "odm2_term": "1_1_Dichloroethene"
+  },
+  "1_2_3_trimethylbenzene": {
+   "source": "odm2",
+   "odm2_term": "1_2_3_Trimethylbenzene"
+  },
+  "1_2_4_5_tetrachlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_2_4_5_Tetrachlorobenzene"
+  },
+  "1_2_4_trichlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_2_4_Trichlorobenzene"
+  },
+  "1_2_4_trimethylbenzene": {
+   "source": "odm2",
+   "odm2_term": "1_2_4_Trimethylbenzene"
+  },
+  "1_2_dibromo_3_chloropropane": {
+   "source": "odm2",
+   "odm2_term": "1_2_Dibromo_3_Chloropropane"
+  },
+  "1_2_dichlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_2_Dichlorobenzene"
+  },
+  "1_2_dichloroethane": {
+   "source": "odm2",
+   "odm2_term": "1_2_Dichloroethane"
+  },
+  "1_2_dichloropropane": {
+   "source": "odm2",
+   "odm2_term": "1_2_Dichloropropane"
+  },
+  "1_2_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_2_Dimethylnaphthalene"
+  },
+  "1_2_dinitrobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_2_Dinitrobenzene"
+  },
+  "1_2_diphenylhydrazine": {
+   "source": "odm2",
+   "odm2_term": "1_2_Diphenylhydrazine"
+  },
+  "1_3_5_trimethylbenzene": {
+   "source": "odm2",
+   "odm2_term": "1_3_5_Trimethylbenzene"
+  },
+  "1_3_dichlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_3_Dichlorobenzene"
+  },
+  "1_3_dimethyladamantane": {
+   "source": "odm2",
+   "odm2_term": "1_3_Dimethyladamantane"
+  },
+  "1_3_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_3_Dimethylnaphthalene"
+  },
+  "1_3_dinitrobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_3_Dinitrobenzene"
+  },
+  "1_4_5_8_tetramethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_4_5_8_Tetramethylnaphthalene"
+  },
+  "1_4_5_trimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_4_5_Trimethylnaphthalene"
+  },
+  "1_4_6_trimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_4_6_Trimethylnaphthalene"
+  },
+  "1_4_dichlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_4_Dichlorobenzene"
+  },
+  "1_4_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_4_Dimethylnaphthalene"
+  },
+  "1_4_dinitrobenzene": {
+   "source": "odm2",
+   "odm2_term": "1_4_Dinitrobenzene"
+  },
+  "1_5_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_5_Dimethylnaphthalene"
+  },
+  "1_6_7_trimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_6_7_Trimethylnaphthalene"
+  },
+  "1_6_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_6_Dimethylnaphthalene"
+  },
+  "1_8_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_8_Dimethylnaphthalene"
+  },
+  "1_chloronaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_Chloronaphthalene"
+  },
+  "1_ethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_Ethylnaphthalene"
+  },
+  "1_methylanthracene": {
+   "source": "odm2",
+   "odm2_term": "1_Methylanthracene"
+  },
+  "1_methyldibenzothiophene": {
+   "source": "odm2",
+   "odm2_term": "1_Methyldibenzothiophene"
+  },
+  "1_methylfluorene": {
+   "source": "odm2",
+   "odm2_term": "1_Methylfluorene"
+  },
+  "1_methylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "1_Methylnaphthalene"
+  },
+  "1_methylphenanthrene": {
+   "source": "odm2",
+   "odm2_term": "1_Methylphenanthrene"
+  },
+  "1_naphthalenol_methylcarbamate": {
+   "source": "odm2",
+   "odm2_term": "1_NaphthalenolMethylcarbamate"
+  },
+  "2_2_dichlorovinyl_dimethyl_phosphate": {
+   "source": "odm2",
+   "odm2_term": "2_2_DichlorovinylDimethylPhosphate"
+  },
+  "2_3_4_6_tetrachlorophenol": {
+   "source": "odm2",
+   "odm2_term": "2_3_4_6_Tetrachlorophenol"
+  },
+  "2_3_5_trimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "2_3_5_Trimethylnaphthalene"
+  },
+  "2_3_6_trimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "2_3_6_Trimethylnaphthalene"
+  },
+  "2_3_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "2_3_Dimethylnaphthalene"
+  },
+  "2_4_5_trichlorophenol": {
+   "source": "odm2",
+   "odm2_term": "2_4_5_Trichlorophenol"
+  },
+  "2_4_6_trichlorophenol": {
+   "source": "odm2",
+   "odm2_term": "2_4_6_Trichlorophenol"
+  },
+  "2_4_dichlorophenol": {
+   "source": "odm2",
+   "odm2_term": "2_4_Dichlorophenol"
+  },
+  "2_4_dimethylphenol": {
+   "source": "odm2",
+   "odm2_term": "2_4_Dimethylphenol"
+  },
+  "2_4_dinitrophenol": {
+   "source": "odm2",
+   "odm2_term": "2_4_Dinitrophenol"
+  },
+  "2_4_dinitrotoluene": {
+   "source": "odm2",
+   "odm2_term": "2_4_Dinitrotoluene"
+  },
+  "2_6_dichlorophenol": {
+   "source": "odm2",
+   "odm2_term": "2_6_Dichlorophenol"
+  },
+  "2_6_dinitrotoluene": {
+   "source": "odm2",
+   "odm2_term": "2_6_Dinitrotoluene"
+  },
+  "2_7_dimethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "2_7_Dimethylnaphthalene"
+  },
+  "2_butanone_mek": {
+   "source": "odm2",
+   "odm2_term": "2_Butanone_MEK"
+  },
+  "2_butoxyethanol": {
+   "source": "odm2",
+   "odm2_term": "2_Butoxyethanol"
+  },
+  "2_chloronaphthalene": {
+   "source": "odm2",
+   "odm2_term": "2_Chloronaphthalene"
+  },
+  "2_chlorophenol": {
+   "source": "odm2",
+   "odm2_term": "2_Chlorophenol"
+  },
+  "2_hexanone": {
+   "source": "odm2",
+   "odm2_term": "2_Hexanone"
+  },
+  "2_methylanthracene": {
+   "source": "odm2",
+   "odm2_term": "2_Methylanthracene"
+  },
+  "2_methyldibenzothiophene": {
+   "source": "odm2",
+   "odm2_term": "2_Methyldibenzothiophene"
+  },
+  "2_methylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "2_Methylnaphthalene"
+  },
+  "2_methylphenanthrene": {
+   "source": "odm2",
+   "odm2_term": "2_Methylphenanthrene"
+  },
+  "2_methylphenol": {
+   "source": "odm2",
+   "odm2_term": "2_Methylphenol"
+  },
+  "2_nitroaniline": {
+   "source": "odm2",
+   "odm2_term": "2_Nitroaniline"
+  },
+  "2_nitrophenol": {
+   "source": "odm2",
+   "odm2_term": "2_Nitrophenol"
+  },
+  "3_3_dichlorobenzidine": {
+   "source": "odm2",
+   "odm2_term": "3_3_Dichlorobenzidine"
+  },
+  "3_6_dimethylphenanthrene": {
+   "source": "odm2",
+   "odm2_term": "3_6_Dimethylphenanthrene"
+  },
+  "3_nitroaniline": {
+   "source": "odm2",
+   "odm2_term": "3_Nitroaniline"
+  },
+  "4_4_ddd": {
+   "source": "odm2",
+   "odm2_term": "4_4_DDD"
+  },
+  "4_4_dde": {
+   "source": "odm2",
+   "odm2_term": "4_4_DDE"
+  },
+  "4_4_ddt": {
+   "source": "odm2",
+   "odm2_term": "4_4_DDT"
+  },
+  "4_4_methylenebis_2_chloroaniline": {
+   "source": "odm2",
+   "odm2_term": "4_4_Methylenebis_2_Chloroaniline"
+  },
+  "4_4_methylenebis_n_n_dimethylaniline": {
+   "source": "odm2",
+   "odm2_term": "4_4_Methylenebis_N_N_Dimethylaniline"
+  },
+  "4_6_dinitro_2_methylphenol": {
+   "source": "odm2",
+   "odm2_term": "4_6_Dinitro_2_Methylphenol"
+  },
+  "4_bromophenylphenyl_ether": {
+   "source": "odm2",
+   "odm2_term": "4_BromophenylphenylEther"
+  },
+  "4_chloro_3_methylphenol": {
+   "source": "odm2",
+   "odm2_term": "4_Chloro_3_Methylphenol"
+  },
+  "4_chloroaniline": {
+   "source": "odm2",
+   "odm2_term": "4_Chloroaniline"
+  },
+  "4_chlorophenylphenyl_ether": {
+   "source": "odm2",
+   "odm2_term": "4_ChlorophenylphenylEther"
+  },
+  "4_methylchrysene": {
+   "source": "odm2",
+   "odm2_term": "4_Methylchrysene"
+  },
+  "4_methyldibenzothiophene": {
+   "source": "odm2",
+   "odm2_term": "4_Methyldibenzothiophene"
+  },
+  "4_methylphenol": {
+   "source": "odm2",
+   "odm2_term": "4_Methylphenol"
+  },
+  "4_nitroaniline": {
+   "source": "odm2",
+   "odm2_term": "4_Nitroaniline"
+  },
+  "4_nitrophenol": {
+   "source": "odm2",
+   "odm2_term": "4_Nitrophenol"
+  },
+  "9_10_dimethylanthracene": {
+   "source": "odm2",
+   "odm2_term": "9_10_Dimethylanthracene"
+  },
+  "9_cis_neoxanthin": {
+   "source": "odm2",
+   "odm2_term": "9_cis_Neoxanthin"
+  },
+  "absorbance": {
+   "source": "odm2",
+   "odm2_term": "absorbance"
+  },
+  "absorbance_ultraviolet": {
+   "source": "odm2",
+   "odm2_term": "absorbanceUltraviolet"
+  },
+  "abundance": {
+   "source": "odm2",
+   "odm2_term": "abundance"
+  },
+  "acenaphthene": {
+   "source": "odm2",
+   "odm2_term": "acenaphthene"
+  },
+  "acenaphthylene": {
+   "source": "odm2",
+   "odm2_term": "acenaphthylene"
+  },
+  "acetate": {
+   "source": "odm2",
+   "odm2_term": "acetate"
+  },
+  "acetic_acid": {
+   "source": "odm2",
+   "odm2_term": "aceticAcid"
+  },
+  "acetone": {
+   "source": "odm2",
+   "odm2_term": "acetone"
+  },
+  "acetophenone": {
+   "source": "odm2",
+   "odm2_term": "acetophenone"
+  },
+  "acid_neutralizing_capacity": {
+   "source": "odm2",
+   "odm2_term": "acidNeutralizingCapacity"
+  },
+  "acid_phosphatase": {
+   "source": "odm2",
+   "odm2_term": "acidPhosphatase"
+  },
+  "acidity_co2_acidity": {
+   "source": "odm2",
+   "odm2_term": "acidityCO2Acidity"
+  },
+  "acidity_exchange": {
+   "source": "odm2",
+   "odm2_term": "acidityExchange"
+  },
+  "acidity_hot": {
+   "source": "odm2",
+   "odm2_term": "acidityHot"
+  },
+  "acidity_mineral_acidity": {
+   "source": "odm2",
+   "odm2_term": "acidityMineralAcidity"
+  },
+  "acidity_total_acidity": {
+   "source": "odm2",
+   "odm2_term": "acidityTotalAcidity"
+  },
+  "activity_acid_phosphatase": {
+   "source": "odm2",
+   "odm2_term": "activityAcidPhosphatase"
+  },
+  "activity_beta_glucosidase": {
+   "source": "odm2",
+   "odm2_term": "activityBetaGlucosidase"
+  },
+  "activity_beta_nacetyl_glucosaminidase": {
+   "source": "odm2",
+   "odm2_term": "activityBetaNAcetylGlucosaminidase"
+  },
+  "activity_phenol_oxidase": {
+   "source": "odm2",
+   "odm2_term": "activityPhenolOxidase"
+  },
+  "adamantane": {
+   "source": "odm2",
+   "odm2_term": "adamantane"
+  },
+  "agency_code": {
+   "source": "odm2",
+   "odm2_term": "agencyCode"
+  },
+  "air_ventilation_index": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename and no applicable CF standard name for ventilation index.",
+   "cf": {
+    "atmosphere": []
+   }
+  },
+  "albedo": {
+   "source": "odm2",
+   "odm2_term": "albedo",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "surface_albedo",
+      "canonical_units": "1"
+     }
+    ]
+   }
+  },
+  "albite": {
+   "source": "odm2",
+   "odm2_term": "albite"
+  },
+  "aldrin": {
+   "source": "odm2",
+   "odm2_term": "aldrin"
+  },
+  "alkali_feldspar": {
+   "source": "odm2",
+   "odm2_term": "alkaliFeldspar"
+  },
+  "alkalinity": {
+   "source": "odm2",
+   "odm2_term": "alkalinity"
+  },
+  "alkalinity_bicarbonate": {
+   "source": "odm2",
+   "odm2_term": "alkalinityBicarbonate"
+  },
+  "alkalinity_carbonate": {
+   "source": "odm2",
+   "odm2_term": "alkalinityCarbonate"
+  },
+  "alkalinity_carbonate_plus_bicarbonate": {
+   "source": "odm2",
+   "odm2_term": "alkalinityCarbonatePlusBicarbonate"
+  },
+  "alkalinity_hydroxide": {
+   "source": "odm2",
+   "odm2_term": "alkalinityHydroxide"
+  },
+  "alkalinity_total": {
+   "source": "odm2",
+   "odm2_term": "alkalinityTotal"
+  },
+  "allocation": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for consented water allocation.",
+   "cf": {
+    "waterway": [],
+    "groundwater": []
+   }
+  },
+  "alloxanthin": {
+   "source": "odm2",
+   "odm2_term": "alloxanthin"
+  },
+  "alluvium_depth": {
+   "source": "odm2",
+   "odm2_term": "alluviumDepth"
+  },
+  "alpha_nacetylglucosaminidase": {
+   "source": "odm2",
+   "odm2_term": "alphaNAcetylglucosaminidase"
+  },
+  "altitude": {
+   "source": "odm2",
+   "odm2_term": "altitude"
+  },
+  "aluminum": {
+   "source": "odm2",
+   "odm2_term": "aluminum"
+  },
+  "aluminum_dissolved": {
+   "source": "odm2",
+   "odm2_term": "aluminumDissolved"
+  },
+  "aluminum_particulate": {
+   "source": "odm2",
+   "odm2_term": "aluminumParticulate"
+  },
+  "aluminum_total": {
+   "source": "odm2",
+   "odm2_term": "aluminumTotal"
+  },
+  "ammonium_flux": {
+   "source": "odm2",
+   "odm2_term": "ammoniumFlux"
+  },
+  "amphibole": {
+   "source": "odm2",
+   "odm2_term": "amphibole"
+  },
+  "aniline": {
+   "source": "odm2",
+   "odm2_term": "aniline"
+  },
+  "anthracene": {
+   "source": "odm2",
+   "odm2_term": "anthracene"
+  },
+  "antimony": {
+   "source": "odm2",
+   "odm2_term": "antimony"
+  },
+  "antimony_dissolved": {
+   "source": "odm2",
+   "odm2_term": "antimonyDissolved"
+  },
+  "antimony_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "antimonyDistributionCoefficient"
+  },
+  "antimony_particulate": {
+   "source": "odm2",
+   "odm2_term": "antimonyParticulate"
+  },
+  "antimony_total": {
+   "source": "odm2",
+   "odm2_term": "antimonyTotal"
+  },
+  "apophyllite": {
+   "source": "odm2",
+   "odm2_term": "apophyllite"
+  },
+  "area": {
+   "source": "odm2",
+   "odm2_term": "area"
+  },
+  "area_basal": {
+   "source": "odm2",
+   "odm2_term": "areaBasal"
+  },
+  "argon": {
+   "source": "odm2",
+   "odm2_term": "argon"
+  },
+  "argon_dissolved": {
+   "source": "odm2",
+   "odm2_term": "argonDissolved"
+  },
+  "aroclor_1016": {
+   "source": "odm2",
+   "odm2_term": "aroclor_1016"
+  },
+  "aroclor_1242": {
+   "source": "odm2",
+   "odm2_term": "aroclor_1242"
+  },
+  "aroclor_1254": {
+   "source": "odm2",
+   "odm2_term": "aroclor_1254"
+  },
+  "aroclor_1260": {
+   "source": "odm2",
+   "odm2_term": "aroclor_1260"
+  },
+  "arsenic": {
+   "source": "odm2",
+   "odm2_term": "arsenic"
+  },
+  "arsenic_dissolved": {
+   "source": "odm2",
+   "odm2_term": "arsenicDissolved"
+  },
+  "arsenic_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "arsenicDistributionCoefficient"
+  },
+  "arsenic_particulate": {
+   "source": "odm2",
+   "odm2_term": "arsenicParticulate"
+  },
+  "arsenic_total": {
+   "source": "odm2",
+   "odm2_term": "arsenicTotal"
+  },
+  "aspect": {
+   "source": "odm2",
+   "odm2_term": "aspect"
+  },
+  "asteridae_coverage": {
+   "source": "odm2",
+   "odm2_term": "asteridaeCoverage"
+  },
+  "augelite": {
+   "source": "odm2",
+   "odm2_term": "augelite"
+  },
+  "barium": {
+   "source": "odm2",
+   "odm2_term": "barium"
+  },
+  "barium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "bariumDissolved"
+  },
+  "barium_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "bariumDistributionCoefficient"
+  },
+  "barium_particulate": {
+   "source": "odm2",
+   "odm2_term": "bariumParticulate"
+  },
+  "barium_total": {
+   "source": "odm2",
+   "odm2_term": "bariumTotal"
+  },
+  "barometric_pressure": {
+   "source": "odm2",
+   "odm2_term": "barometricPressure",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "air_pressure",
+      "canonical_units": "Pa"
+     },
+     {
+      "standard_name": "air_pressure_at_mean_sea_level",
+      "canonical_units": "Pa"
+     }
+    ]
+   },
+   "notes": "air_pressure for station/instant pressure; override with air_pressure_at_mean_sea_level for MSL-reduced products."
+  },
+  "base_saturation": {
+   "source": "odm2",
+   "odm2_term": "baseSaturation"
+  },
+  "baseflow": {
+   "source": "odm2",
+   "odm2_term": "baseflow"
+  },
+  "batis_maritima_coverage": {
+   "source": "odm2",
+   "odm2_term": "batisMaritimaCoverage"
+  },
+  "battery_temperature": {
+   "source": "odm2",
+   "odm2_term": "batteryTemperature"
+  },
+  "battery_voltage": {
+   "source": "odm2",
+   "odm2_term": "batteryVoltage"
+  },
+  "bedrock_type": {
+   "source": "odm2",
+   "odm2_term": "bedrockType"
+  },
+  "benthos": {
+   "source": "odm2",
+   "odm2_term": "benthos"
+  },
+  "benz_a_anthracene": {
+   "source": "odm2",
+   "odm2_term": "benz_a_anthracene"
+  },
+  "benzene": {
+   "source": "odm2",
+   "odm2_term": "benzene"
+  },
+  "benzo_a_pyrene": {
+   "source": "odm2",
+   "odm2_term": "benzo_a_pyrene"
+  },
+  "benzo_b_fluoranthene": {
+   "source": "odm2",
+   "odm2_term": "benzo_b_fluoranthene"
+  },
+  "benzo_b_fluorene": {
+   "source": "odm2",
+   "odm2_term": "benzo_b_fluorene"
+  },
+  "benzo_e_pyrene": {
+   "source": "odm2",
+   "odm2_term": "benzo_e_pyrene"
+  },
+  "benzo_g_h_i_perylene": {
+   "source": "odm2",
+   "odm2_term": "benzo_g_h_i_perylene"
+  },
+  "benzo_k_fluoranthene": {
+   "source": "odm2",
+   "odm2_term": "benzo_k_fluoranthene"
+  },
+  "benzoic_acid": {
+   "source": "odm2",
+   "odm2_term": "benzoicAcid"
+  },
+  "benzyl_alcohol": {
+   "source": "odm2",
+   "odm2_term": "benzylAlcohol"
+  },
+  "berylium_10": {
+   "source": "odm2",
+   "odm2_term": "berylium_10"
+  },
+  "beryllium": {
+   "source": "odm2",
+   "odm2_term": "beryllium"
+  },
+  "beryllium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "berylliumDissolved"
+  },
+  "beryllium_total": {
+   "source": "odm2",
+   "odm2_term": "berylliumTotal"
+  },
+  "beta_glucosidase": {
+   "source": "odm2",
+   "odm2_term": "betaGlucosidase"
+  },
+  "bicarbonate": {
+   "source": "odm2",
+   "odm2_term": "bicarbonate"
+  },
+  "bifenthrin": {
+   "source": "odm2",
+   "odm2_term": "bifenthrin"
+  },
+  "biogenic_silica": {
+   "source": "odm2",
+   "odm2_term": "biogenicSilica"
+  },
+  "biomass": {
+   "source": "odm2",
+   "odm2_term": "biomass"
+  },
+  "biomass_above_ground": {
+   "source": "odm2",
+   "odm2_term": "biomassAboveGround"
+  },
+  "biomass_microbial": {
+   "source": "odm2",
+   "odm2_term": "biomassMicrobial"
+  },
+  "biomass_phytoplankton": {
+   "source": "odm2",
+   "odm2_term": "biomassPhytoplankton"
+  },
+  "biomass_soil_bacterial_deoxyribonucleic_acid": {
+   "source": "odm2",
+   "odm2_term": "biomassSoilBacterialDeoxyribonucleicAcid"
+  },
+  "biomass_total": {
+   "source": "odm2",
+   "odm2_term": "biomassTotal"
+  },
+  "biomass_vegetation": {
+   "source": "odm2",
+   "odm2_term": "biomassVegetation"
+  },
+  "biphenyl": {
+   "source": "odm2",
+   "odm2_term": "biphenyl"
+  },
+  "bis_2_chloroethoxy_methane": {
+   "source": "odm2",
+   "odm2_term": "bis_2_Chloroethoxy_Methane"
+  },
+  "bis_2_chloroethyl_ether": {
+   "source": "odm2",
+   "odm2_term": "bis_2_Chloroethyl_Ether"
+  },
+  "bis_2_chloroisopropyl_ether": {
+   "source": "odm2",
+   "odm2_term": "bis_2_ChloroisopropylEther"
+  },
+  "bis_2_ethylhexyl_phthalate": {
+   "source": "odm2",
+   "odm2_term": "bis_2_Ethylhexyl_Phthalate"
+  },
+  "bismuth": {
+   "source": "odm2",
+   "odm2_term": "bismuth"
+  },
+  "blue_green_algae_cyanobacteria_phycocyanin": {
+   "source": "odm2",
+   "odm2_term": "blue_GreenAlgae_Cyanobacteria_Phycocyanin"
+  },
+  "bod1": {
+   "source": "odm2",
+   "odm2_term": "BOD1"
+  },
+  "bod20": {
+   "source": "odm2",
+   "odm2_term": "BOD20"
+  },
+  "bod20_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD20Carbonaceous"
+  },
+  "bod20_nitrogenous": {
+   "source": "odm2",
+   "odm2_term": "BOD20Nitrogenous"
+  },
+  "bod2_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD2Carbonaceous"
+  },
+  "bod3_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD3Carbonaceous"
+  },
+  "bod4_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD4Carbonaceous"
+  },
+  "bod5": {
+   "source": "odm2",
+   "odm2_term": "BOD5"
+  },
+  "bod5_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD5Carbonaceous"
+  },
+  "bod5_nitrogenous": {
+   "source": "odm2",
+   "odm2_term": "BOD5Nitrogenous"
+  },
+  "bod6_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD6Carbonaceous"
+  },
+  "bod7_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BOD7Carbonaceous"
+  },
+  "bodu": {
+   "source": "odm2",
+   "odm2_term": "BODu"
+  },
+  "bodu_carbonaceous": {
+   "source": "odm2",
+   "odm2_term": "BODuCarbonaceous"
+  },
+  "bodu_nitrogenous": {
+   "source": "odm2",
+   "odm2_term": "BODuNitrogenous"
+  },
+  "body_length": {
+   "source": "odm2",
+   "odm2_term": "bodyLength"
+  },
+  "borehole_log_material_classification": {
+   "source": "odm2",
+   "odm2_term": "boreholeLogMaterialClassification"
+  },
+  "boron_dissolved": {
+   "source": "odm2",
+   "odm2_term": "boronDissolved"
+  },
+  "boron_total": {
+   "source": "odm2",
+   "odm2_term": "boronTotal"
+  },
+  "borrichia_frutescens_coverage": {
+   "source": "odm2",
+   "odm2_term": "borrichiaFrutescensCoverage"
+  },
+  "bromide": {
+   "source": "odm2",
+   "odm2_term": "bromide"
+  },
+  "bromide_dissolved": {
+   "source": "odm2",
+   "odm2_term": "bromideDissolved"
+  },
+  "bromide_total": {
+   "source": "odm2",
+   "odm2_term": "bromideTotal"
+  },
+  "bromine": {
+   "source": "odm2",
+   "odm2_term": "bromine"
+  },
+  "bromine_dissolved": {
+   "source": "odm2",
+   "odm2_term": "bromineDissolved"
+  },
+  "bromodichloromethane": {
+   "source": "odm2",
+   "odm2_term": "bromodichloromethane"
+  },
+  "bromoform": {
+   "source": "odm2",
+   "odm2_term": "bromoform"
+  },
+  "bromomethane_methyl_bromide": {
+   "source": "odm2",
+   "odm2_term": "bromomethane_MethylBromide"
+  },
+  "bulk_density": {
+   "source": "odm2",
+   "odm2_term": "bulkDensity"
+  },
+  "bulk_electrical_conductivity": {
+   "source": "odm2",
+   "odm2_term": "bulkElectricalConductivity"
+  },
+  "butane": {
+   "source": "odm2",
+   "odm2_term": "butane"
+  },
+  "butylbenzylphthalate": {
+   "source": "odm2",
+   "odm2_term": "butylbenzylphthalate"
+  },
+  "butyric_acid": {
+   "source": "odm2",
+   "odm2_term": "butyricAcid"
+  },
+  "cadmium": {
+   "source": "odm2",
+   "odm2_term": "cadmium"
+  },
+  "cadmium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "cadmiumDissolved"
+  },
+  "cadmium_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "cadmiumDistributionCoefficient"
+  },
+  "cadmium_particulate": {
+   "source": "odm2",
+   "odm2_term": "cadmiumParticulate"
+  },
+  "cadmium_total": {
+   "source": "odm2",
+   "odm2_term": "cadmiumTotal"
+  },
+  "calcium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "calciumDissolved"
+  },
+  "calcium_oxide": {
+   "source": "odm2",
+   "odm2_term": "calciumOxide"
+  },
+  "calcium_total": {
+   "source": "odm2",
+   "odm2_term": "calciumTotal"
+  },
+  "canopy_closure": {
+   "source": "odm2",
+   "odm2_term": "canopyClosure"
+  },
+  "canopy_height": {
+   "source": "odm2",
+   "odm2_term": "canopyHeight"
+  },
+  "canthaxanthin": {
+   "source": "odm2",
+   "odm2_term": "canthaxanthin"
+  },
+  "carbaryl": {
+   "source": "odm2",
+   "odm2_term": "carbaryl"
+  },
+  "carbazole": {
+   "source": "odm2",
+   "odm2_term": "carbazole"
+  },
+  "carbon": {
+   "source": "odm2",
+   "odm2_term": "carbon"
+  },
+  "carbon_13_stable_isotope_ratio_delta": {
+   "source": "odm2",
+   "odm2_term": "carbon_13StableIsotopeRatioDelta"
+  },
+  "carbon_14": {
+   "source": "odm2",
+   "odm2_term": "carbon_14"
+  },
+  "carbon_dioxide": {
+   "source": "odm2",
+   "odm2_term": "carbonDioxide"
+  },
+  "carbon_dioxide_dissolved": {
+   "source": "odm2",
+   "odm2_term": "carbonDioxideDissolved"
+  },
+  "carbon_dioxide_flux": {
+   "source": "odm2",
+   "odm2_term": "carbonDioxideFlux"
+  },
+  "carbon_dioxide_storage_flux": {
+   "source": "odm2",
+   "odm2_term": "carbonDioxideStorageFlux"
+  },
+  "carbon_dioxide_transducer_signal": {
+   "source": "odm2",
+   "odm2_term": "carbonDioxideTransducerSignal"
+  },
+  "carbon_dissolved_inorganic": {
+   "source": "odm2",
+   "odm2_term": "carbonDissolvedInorganic"
+  },
+  "carbon_dissolved_organic": {
+   "source": "odm2",
+   "odm2_term": "carbonDissolvedOrganic"
+  },
+  "carbon_dissolved_total": {
+   "source": "odm2",
+   "odm2_term": "carbonDissolvedTotal"
+  },
+  "carbon_disulfide": {
+   "source": "odm2",
+   "odm2_term": "carbonDisulfide"
+  },
+  "carbon_monoxide_dissolved": {
+   "source": "odm2",
+   "odm2_term": "carbonMonoxideDissolved"
+  },
+  "carbon_organic_extractable": {
+   "source": "odm2",
+   "odm2_term": "carbonOrganicExtractable"
+  },
+  "carbon_particulate_organic": {
+   "source": "odm2",
+   "odm2_term": "carbonParticulateOrganic"
+  },
+  "carbon_suspended_inorganic": {
+   "source": "odm2",
+   "odm2_term": "carbonSuspendedInorganic"
+  },
+  "carbon_suspended_organic": {
+   "source": "odm2",
+   "odm2_term": "carbonSuspendedOrganic"
+  },
+  "carbon_suspended_total": {
+   "source": "odm2",
+   "odm2_term": "carbonSuspendedTotal"
+  },
+  "carbon_tetrachloride": {
+   "source": "odm2",
+   "odm2_term": "carbonTetrachloride"
+  },
+  "carbon_to_nitrogen_mass_ratio": {
+   "source": "odm2",
+   "odm2_term": "carbonToNitrogenMassRatio"
+  },
+  "carbon_to_nitrogen_molar_ratio": {
+   "source": "odm2",
+   "odm2_term": "carbonToNitrogenMolarRatio"
+  },
+  "carbon_total": {
+   "source": "odm2",
+   "odm2_term": "carbonTotal"
+  },
+  "carbon_total_inorganic": {
+   "source": "odm2",
+   "odm2_term": "carbonTotalInorganic"
+  },
+  "carbon_total_organic": {
+   "source": "odm2",
+   "odm2_term": "carbonTotalOrganic"
+  },
+  "carbon_total_solid_phase": {
+   "source": "odm2",
+   "odm2_term": "carbonTotalSolidPhase"
+  },
+  "carbonate": {
+   "source": "odm2",
+   "odm2_term": "carbonate"
+  },
+  "cation_exchange_capacity": {
+   "source": "odm2",
+   "odm2_term": "cationExchangeCapacity"
+  },
+  "cellobiohydrolase": {
+   "source": "odm2",
+   "odm2_term": "cellobiohydrolase"
+  },
+  "cerium": {
+   "source": "odm2",
+   "odm2_term": "cerium"
+  },
+  "cerium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "ceriumDissolved"
+  },
+  "cesium": {
+   "source": "odm2",
+   "odm2_term": "cesium"
+  },
+  "cesium_137": {
+   "source": "odm2",
+   "odm2_term": "cesium_137"
+  },
+  "cesium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "cesiumDissolved"
+  },
+  "cesium_total": {
+   "source": "odm2",
+   "odm2_term": "cesiumTotal"
+  },
+  "chloride": {
+   "source": "odm2",
+   "odm2_term": "chloride"
+  },
+  "chloride_dissolved": {
+   "source": "odm2",
+   "odm2_term": "chlorideDissolved",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "CF has no chloride-in-water name (salinity is the ocean concept)."
+  },
+  "chloride_total": {
+   "source": "odm2",
+   "odm2_term": "chlorideTotal"
+  },
+  "chlorine": {
+   "source": "odm2",
+   "odm2_term": "chlorine"
+  },
+  "chlorine_dissolved": {
+   "source": "odm2",
+   "odm2_term": "chlorineDissolved"
+  },
+  "chlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "chlorobenzene"
+  },
+  "chlorobenzilate": {
+   "source": "odm2",
+   "odm2_term": "chlorobenzilate"
+  },
+  "chloroethane": {
+   "source": "odm2",
+   "odm2_term": "chloroethane"
+  },
+  "chloroethene": {
+   "source": "odm2",
+   "odm2_term": "chloroethene"
+  },
+  "chloroform": {
+   "source": "odm2",
+   "odm2_term": "chloroform"
+  },
+  "chloromethane": {
+   "source": "odm2",
+   "odm2_term": "chloromethane"
+  },
+  "chlorophyll_a": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_a"
+  },
+  "chlorophyll_a_allomer": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_a_Allomer"
+  },
+  "chlorophyll_a_b_c": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_a_b_c"
+  },
+  "chlorophyll_a_corrected_for_pheophytin": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_a_CorrectedForPheophytin"
+  },
+  "chlorophyll_a_uncorrected_for_pheophytin": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_a_UncorrectedForPheophytin"
+  },
+  "chlorophyll_b": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_b"
+  },
+  "chlorophyll_c": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_c"
+  },
+  "chlorophyll_c1_and_c2": {
+   "source": "odm2",
+   "odm2_term": "chlorophyll_c1_And_c2"
+  },
+  "chlorophyll_fluorescence": {
+   "source": "odm2",
+   "odm2_term": "chlorophyllFluorescence"
+  },
+  "chromium": {
+   "source": "odm2",
+   "odm2_term": "chromium"
+  },
+  "chromium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "chromiumDissolved"
+  },
+  "chromium_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "chromiumDistributionCoefficient"
+  },
+  "chromium_iii": {
+   "source": "odm2",
+   "odm2_term": "chromium_III"
+  },
+  "chromium_particulate": {
+   "source": "odm2",
+   "odm2_term": "chromiumParticulate"
+  },
+  "chromium_total": {
+   "source": "odm2",
+   "odm2_term": "chromiumTotal"
+  },
+  "chromium_vi": {
+   "source": "odm2",
+   "odm2_term": "chromium_VI"
+  },
+  "chromium_vi_dissolved": {
+   "source": "odm2",
+   "odm2_term": "chromium_VI_Dissolved"
+  },
+  "chrysene": {
+   "source": "odm2",
+   "odm2_term": "chrysene"
+  },
+  "circumference": {
+   "source": "odm2",
+   "odm2_term": "circumference"
+  },
+  "cis_1_2_dichloroethene": {
+   "source": "odm2",
+   "odm2_term": "cis_1_2_Dichloroethene"
+  },
+  "cis_1_3_dichloropropene": {
+   "source": "odm2",
+   "odm2_term": "cis_1_3_Dichloropropene"
+  },
+  "clay": {
+   "source": "odm2",
+   "odm2_term": "Clay"
+  },
+  "clinoptilolite": {
+   "source": "odm2",
+   "odm2_term": "clinoptilolite"
+  },
+  "cloud_cover": {
+   "source": "odm2",
+   "odm2_term": "cloudCover"
+  },
+  "cobalt": {
+   "source": "odm2",
+   "odm2_term": "cobalt"
+  },
+  "cobalt_60": {
+   "source": "odm2",
+   "odm2_term": "cobalt_60"
+  },
+  "cobalt_dissolved": {
+   "source": "odm2",
+   "odm2_term": "cobaltDissolved"
+  },
+  "cobalt_total": {
+   "source": "odm2",
+   "odm2_term": "cobaltTotal"
+  },
+  "cod": {
+   "source": "odm2",
+   "odm2_term": "COD"
+  },
+  "coliform_fecal": {
+   "source": "odm2",
+   "odm2_term": "coliformFecal",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   }
+  },
+  "coliform_total": {
+   "source": "odm2",
+   "odm2_term": "coliformTotal",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   }
+  },
+  "color": {
+   "source": "odm2",
+   "odm2_term": "color"
+  },
+  "colored_dissolved_organic_matter": {
+   "source": "odm2",
+   "odm2_term": "coloredDissolvedOrganicMatter"
+  },
+  "container_number": {
+   "source": "odm2",
+   "odm2_term": "containerNumber"
+  },
+  "copper": {
+   "source": "odm2",
+   "odm2_term": "copper"
+  },
+  "copper_dissolved": {
+   "source": "odm2",
+   "odm2_term": "copperDissolved"
+  },
+  "copper_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "copperDistributionCoefficient"
+  },
+  "copper_particulate": {
+   "source": "odm2",
+   "odm2_term": "copperParticulate"
+  },
+  "copper_total": {
+   "source": "odm2",
+   "odm2_term": "copperTotal"
+  },
+  "count_areal": {
+   "source": "odm2",
+   "odm2_term": "countAreal"
+  },
+  "counter": {
+   "source": "odm2",
+   "odm2_term": "counter"
+  },
+  "course_over_ground": {
+   "source": "odm2",
+   "odm2_term": "courseOverGround"
+  },
+  "cristobalite": {
+   "source": "odm2",
+   "odm2_term": "cristobalite"
+  },
+  "cryptophytes": {
+   "source": "odm2",
+   "odm2_term": "cryptophytes"
+  },
+  "curvature": {
+   "source": "odm2",
+   "odm2_term": "curvature"
+  },
+  "cuscuta_spp_coverage": {
+   "source": "odm2",
+   "odm2_term": "cuscutaSppCoverage"
+  },
+  "cyanide": {
+   "source": "odm2",
+   "odm2_term": "cyanide"
+  },
+  "cyclohexane": {
+   "source": "odm2",
+   "odm2_term": "cyclohexane"
+  },
+  "cytochrome_p450_family1_subfamily_apolypeptide1_delta_cycle_threshold": {
+   "source": "odm2",
+   "odm2_term": "cytochromeP450Family1SubfamilyAPolypeptide1DeltaCycleThreshold"
+  },
+  "cytosolic_protein": {
+   "source": "odm2",
+   "odm2_term": "cytosolicProtein"
+  },
+  "d_limonene": {
+   "source": "odm2",
+   "odm2_term": "d_Limonene"
+  },
+  "data_shuttle_attached": {
+   "source": "odm2",
+   "odm2_term": "dataShuttleAttached"
+  },
+  "data_shuttle_detached": {
+   "source": "odm2",
+   "odm2_term": "dataShuttleDetached"
+  },
+  "delta_13_cof_c2_h6": {
+   "source": "odm2",
+   "odm2_term": "delta_13COfC2H6"
+  },
+  "delta_13_cof_c3_h8": {
+   "source": "odm2",
+   "odm2_term": "delta_13COfC3H8"
+  },
+  "delta_13_cof_c4_h10": {
+   "source": "odm2",
+   "odm2_term": "delta_13COfC4H10"
+  },
+  "delta_13_cof_ch4": {
+   "source": "odm2",
+   "odm2_term": "delta_13COfCH4"
+  },
+  "delta_13_cof_co2": {
+   "source": "odm2",
+   "odm2_term": "delta_13COfCO2"
+  },
+  "delta_13_cof_dic": {
+   "source": "odm2",
+   "odm2_term": "delta_13COfDIC"
+  },
+  "delta_18_oof_h2_o": {
+   "source": "odm2",
+   "odm2_term": "delta_18OOfH2O"
+  },
+  "delta_dof_ch4": {
+   "source": "odm2",
+   "odm2_term": "delta_DOfCH4"
+  },
+  "delta_dof_h2_o": {
+   "source": "odm2",
+   "odm2_term": "delta_DOfH2O"
+  },
+  "density": {
+   "source": "odm2",
+   "odm2_term": "density"
+  },
+  "depth": {
+   "source": "odm2",
+   "odm2_term": "depth"
+  },
+  "depth_snow": {
+   "source": "odm2",
+   "odm2_term": "depthSnow"
+  },
+  "depth_unsaturated_zone": {
+   "source": "odm2",
+   "odm2_term": "depthUnsaturatedZone"
+  },
+  "deuterium": {
+   "source": "odm2",
+   "odm2_term": "deuterium"
+  },
+  "di_n_butylphthalate": {
+   "source": "odm2",
+   "odm2_term": "di_n_Butylphthalate"
+  },
+  "di_n_octyl_phthalate": {
+   "source": "odm2",
+   "odm2_term": "di_n_OctylPhthalate"
+  },
+  "diadinoxanthin": {
+   "source": "odm2",
+   "odm2_term": "diadinoxanthin"
+  },
+  "diallate_cis_or_trans": {
+   "source": "odm2",
+   "odm2_term": "diallate_CisOrTrans"
+  },
+  "diameter": {
+   "source": "odm2",
+   "odm2_term": "diameter"
+  },
+  "diameter_at_breast_height": {
+   "source": "odm2",
+   "odm2_term": "diameterAtBreastHeight"
+  },
+  "diatoxanthin": {
+   "source": "odm2",
+   "odm2_term": "diatoxanthin"
+  },
+  "dibenz_a_h_anthracene": {
+   "source": "odm2",
+   "odm2_term": "dibenz_a_h_anthracene"
+  },
+  "dibenzofuran": {
+   "source": "odm2",
+   "odm2_term": "dibenzofuran"
+  },
+  "dibenzothiophene": {
+   "source": "odm2",
+   "odm2_term": "dibenzothiophene"
+  },
+  "dibromochloromethane": {
+   "source": "odm2",
+   "odm2_term": "dibromochloromethane"
+  },
+  "dieldrin": {
+   "source": "odm2",
+   "odm2_term": "dieldrin"
+  },
+  "dielectric_constant": {
+   "source": "odm2",
+   "odm2_term": "dielectricConstant"
+  },
+  "diethyl_phthalate": {
+   "source": "odm2",
+   "odm2_term": "diethylPhthalate"
+  },
+  "diethylene_glycol": {
+   "source": "odm2",
+   "odm2_term": "diethyleneGlycol"
+  },
+  "diffraction_xray": {
+   "source": "odm2",
+   "odm2_term": "diffractionXRay"
+  },
+  "diisopropyl_ether": {
+   "source": "odm2",
+   "odm2_term": "diisopropylEther"
+  },
+  "dimethyl_phthalate": {
+   "source": "odm2",
+   "odm2_term": "dimethylPhthalate"
+  },
+  "dimethylphenanthrene": {
+   "source": "odm2",
+   "odm2_term": "dimethylphenanthrene"
+  },
+  "dinoflagellates": {
+   "source": "odm2",
+   "odm2_term": "dinoflagellates"
+  },
+  "dinoseb": {
+   "source": "odm2",
+   "odm2_term": "dinoseb"
+  },
+  "discharge": {
+   "source": "odm2",
+   "odm2_term": "discharge"
+  },
+  "distance": {
+   "source": "odm2",
+   "odm2_term": "distance"
+  },
+  "distichlis_spicata_coverage": {
+   "source": "odm2",
+   "odm2_term": "distichlisSpicataCoverage"
+  },
+  "disulfoton": {
+   "source": "odm2",
+   "odm2_term": "disulfoton"
+  },
+  "dnadamage_olive_dail_moment": {
+   "source": "odm2",
+   "odm2_term": "DNADamageOliveDailMoment"
+  },
+  "dnadamage_percent_tail_dna": {
+   "source": "odm2",
+   "odm2_term": "DNADamagePercentTailDNA"
+  },
+  "dnadamage_tail_length": {
+   "source": "odm2",
+   "odm2_term": "DNADamageTailLength"
+  },
+  "dysprosium": {
+   "source": "odm2",
+   "odm2_term": "dysprosium"
+  },
+  "dysprosium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "dysprosiumDissolved"
+  },
+  "e_coli": {
+   "source": "odm2",
+   "odm2_term": "e_coli",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "tethys migration: renamed from e-coli."
+  },
+  "effective_energy_and_mass_transfer": {
+   "source": "odm2",
+   "odm2_term": "effectiveEnergyAndMassTransfer"
+  },
+  "electric_current": {
+   "source": "odm2",
+   "odm2_term": "electricCurrent"
+  },
+  "electric_energy": {
+   "source": "odm2",
+   "odm2_term": "electricEnergy"
+  },
+  "electric_power": {
+   "source": "odm2",
+   "odm2_term": "electricPower"
+  },
+  "electrical_conductivity": {
+   "source": "odm2",
+   "odm2_term": "electricalConductivity",
+   "cf": {
+    "ocean": [
+     {
+      "standard_name": "sea_water_electrical_conductivity",
+      "canonical_units": "S m-1"
+     }
+    ],
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "Ocean-only rule R0: sea_water_electrical_conductivity applies only when feature=ocean."
+  },
+  "end_of_file": {
+   "source": "odm2",
+   "odm2_term": "endOfFile"
+  },
+  "endosulfan_i_alpha": {
+   "source": "odm2",
+   "odm2_term": "endosulfan_I_Alpha"
+  },
+  "endosulfan_ii_beta": {
+   "source": "odm2",
+   "odm2_term": "endosulfan_II_Beta"
+  },
+  "endosulfan_sulfate": {
+   "source": "odm2",
+   "odm2_term": "endosulfanSulfate"
+  },
+  "endrin": {
+   "source": "odm2",
+   "odm2_term": "endrin"
+  },
+  "endrin_aldehyde": {
+   "source": "odm2",
+   "odm2_term": "endrinAldehyde"
+  },
+  "endrin_ketone": {
+   "source": "odm2",
+   "odm2_term": "endrinKetone"
+  },
+  "enterococci": {
+   "source": "odm2",
+   "odm2_term": "enterococci"
+  },
+  "erbium": {
+   "source": "odm2",
+   "odm2_term": "erbium"
+  },
+  "erbium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "erbiumDissolved"
+  },
+  "erosion_rate": {
+   "source": "odm2",
+   "odm2_term": "erosionRate"
+  },
+  "ethane": {
+   "source": "odm2",
+   "odm2_term": "ethane"
+  },
+  "ethane_dissolved": {
+   "source": "odm2",
+   "odm2_term": "ethaneDissolved"
+  },
+  "ethanol": {
+   "source": "odm2",
+   "odm2_term": "ethanol"
+  },
+  "ethoxyresorufin_o_deethylase_activity": {
+   "source": "odm2",
+   "odm2_term": "ethoxyresorufin_O_DeethylaseActivity"
+  },
+  "ethyl_tert_butyl_ether": {
+   "source": "odm2",
+   "odm2_term": "ethylTert_ButylEther"
+  },
+  "ethylbenzene": {
+   "source": "odm2",
+   "odm2_term": "ethylbenzene"
+  },
+  "ethylene": {
+   "source": "odm2",
+   "odm2_term": "ethylene"
+  },
+  "ethylene_dissolved": {
+   "source": "odm2",
+   "odm2_term": "ethyleneDissolved"
+  },
+  "ethylene_glycol": {
+   "source": "odm2",
+   "odm2_term": "ethyleneGlycol"
+  },
+  "ethyne": {
+   "source": "odm2",
+   "odm2_term": "ethyne"
+  },
+  "europium": {
+   "source": "odm2",
+   "odm2_term": "europium"
+  },
+  "europium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "europiumDissolved"
+  },
+  "evaporation": {
+   "source": "odm2",
+   "odm2_term": "evaporation",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "lwe_thickness_of_water_evaporation_amount",
+      "canonical_units": "m"
+     }
+    ]
+   }
+  },
+  "evapotranspiration": {
+   "source": "odm2",
+   "odm2_term": "evapotranspiration"
+  },
+  "evapotranspiration_potential": {
+   "source": "odm2",
+   "odm2_term": "evapotranspirationPotential",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "water_potential_evapotranspiration_amount",
+      "canonical_units": "kg m-2"
+     }
+    ]
+   },
+   "notes": "tethys migration: renamed from potential_et."
+  },
+  "extracellular_enzyme_activity": {
+   "source": "odm2",
+   "odm2_term": "extracellularEnzymeActivity"
+  },
+  "fish_detections": {
+   "source": "odm2",
+   "odm2_term": "fishDetections"
+  },
+  "flash_memory_error_count": {
+   "source": "odm2",
+   "odm2_term": "flashMemoryErrorCount"
+  },
+  "fluoranthene": {
+   "source": "odm2",
+   "odm2_term": "fluoranthene"
+  },
+  "fluorene": {
+   "source": "odm2",
+   "odm2_term": "fluorene"
+  },
+  "fluorescence_dissolved_organic_carbon": {
+   "source": "odm2",
+   "odm2_term": "fluorescenceDissolvedOrganicCarbon"
+  },
+  "fluorescence_dissolved_organic_matter": {
+   "source": "odm2",
+   "odm2_term": "fluorescenceDissolvedOrganicMatter"
+  },
+  "fluorescence_index": {
+   "source": "odm2",
+   "odm2_term": "fluorescenceIndex"
+  },
+  "fluorescence_xray": {
+   "source": "odm2",
+   "odm2_term": "fluorescenceXRay"
+  },
+  "fluoride": {
+   "source": "odm2",
+   "odm2_term": "fluoride"
+  },
+  "fluoride_dissolved": {
+   "source": "odm2",
+   "odm2_term": "fluorideDissolved"
+  },
+  "fluorine": {
+   "source": "odm2",
+   "odm2_term": "fluorine"
+  },
+  "fluorine_dissolved": {
+   "source": "odm2",
+   "odm2_term": "fluorineDissolved"
+  },
+  "formate": {
+   "source": "odm2",
+   "odm2_term": "formate"
+  },
+  "formic_acid": {
+   "source": "odm2",
+   "odm2_term": "formicAcid"
+  },
+  "frequency_of_rotation": {
+   "source": "odm2",
+   "odm2_term": "frequencyOfRotation"
+  },
+  "friction_velocity": {
+   "source": "odm2",
+   "odm2_term": "frictionVelocity"
+  },
+  "gadolinium": {
+   "source": "odm2",
+   "odm2_term": "gadolinium"
+  },
+  "gadolinium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "gadoliniumDissolved"
+  },
+  "gage_height": {
+   "source": "odm2",
+   "odm2_term": "gageHeight",
+   "cf": {
+    "waterway": [
+     {
+      "standard_name": "water_surface_height_above_reference_datum",
+      "canonical_units": "m"
+     }
+    ]
+   }
+  },
+  "gallium": {
+   "source": "odm2",
+   "odm2_term": "gallium"
+  },
+  "gamma_counts": {
+   "source": "odm2",
+   "odm2_term": "gammaCounts"
+  },
+  "geologic_unit": {
+   "source": "odm2",
+   "odm2_term": "geologicUnit"
+  },
+  "germanium": {
+   "source": "odm2",
+   "odm2_term": "germanium"
+  },
+  "germanium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "germaniumDissolved"
+  },
+  "gibbsite": {
+   "source": "odm2",
+   "odm2_term": "gibbsite"
+  },
+  "global_radiation": {
+   "source": "odm2",
+   "odm2_term": "globalRadiation"
+  },
+  "glucosidase": {
+   "source": "odm2",
+   "odm2_term": "glucosidase"
+  },
+  "glutaraldehyde": {
+   "source": "odm2",
+   "odm2_term": "glutaraldehyde"
+  },
+  "glutathione_s_transferase_activity": {
+   "source": "odm2",
+   "odm2_term": "glutathione_S_TransferaseActivity"
+  },
+  "glutathione_s_transferase_delta_cycle_threshold": {
+   "source": "odm2",
+   "odm2_term": "glutathione_S_TransferaseDeltaCycleThreshold"
+  },
+  "gnssfix_mode": {
+   "source": "odm2",
+   "odm2_term": "GNSSFixMode"
+  },
+  "goethite": {
+   "source": "odm2",
+   "odm2_term": "goethite"
+  },
+  "grain_size": {
+   "source": "odm2",
+   "odm2_term": "grainSize"
+  },
+  "gross_alpha_radionuclides": {
+   "source": "odm2",
+   "odm2_term": "grossAlphaRadionuclides"
+  },
+  "gross_beta_radionuclides": {
+   "source": "odm2",
+   "odm2_term": "grossBetaRadionuclides"
+  },
+  "ground_heat_flux": {
+   "source": "odm2",
+   "odm2_term": "groundHeatFlux",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "downward_heat_flux_in_soil",
+      "canonical_units": "W m-2"
+     }
+    ]
+   }
+  },
+  "groundwater_depth": {
+   "source": "odm2",
+   "odm2_term": "groundwaterDepth",
+   "cf": {
+    "groundwater": [
+     {
+      "standard_name": "water_table_depth",
+      "canonical_units": "m"
+     }
+    ]
+   }
+  },
+  "hafnium": {
+   "source": "odm2",
+   "odm2_term": "hafnium"
+  },
+  "hail": {
+   "source": "odm2",
+   "odm2_term": "hail"
+  },
+  "halloysite": {
+   "source": "odm2",
+   "odm2_term": "halloysite"
+  },
+  "hardness_calcium": {
+   "source": "odm2",
+   "odm2_term": "hardnessCalcium"
+  },
+  "hardness_carbonate": {
+   "source": "odm2",
+   "odm2_term": "hardnessCarbonate"
+  },
+  "hardness_magnesium": {
+   "source": "odm2",
+   "odm2_term": "hardnessMagnesium"
+  },
+  "hardness_non_carbonate": {
+   "source": "odm2",
+   "odm2_term": "hardnessNonCarbonate"
+  },
+  "hardness_total": {
+   "source": "odm2",
+   "odm2_term": "hardnessTotal"
+  },
+  "heat_index": {
+   "source": "odm2",
+   "odm2_term": "heatIndex"
+  },
+  "height": {
+   "source": "odm2",
+   "odm2_term": "height"
+  },
+  "height_above_sea_floor": {
+   "source": "odm2",
+   "odm2_term": "heightAboveSeaFloor"
+  },
+  "helium": {
+   "source": "odm2",
+   "odm2_term": "helium"
+  },
+  "helium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "heliumDissolved"
+  },
+  "heptachlor": {
+   "source": "odm2",
+   "odm2_term": "heptachlor"
+  },
+  "heptachlor_epoxide": {
+   "source": "odm2",
+   "odm2_term": "heptachlorEpoxide"
+  },
+  "hexachlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "hexachlorobenzene"
+  },
+  "hexachlorobutadiene": {
+   "source": "odm2",
+   "odm2_term": "hexachlorobutadiene"
+  },
+  "hexachlorocyclopentadiene": {
+   "source": "odm2",
+   "odm2_term": "hexachlorocyclopentadiene"
+  },
+  "hexachloroethane": {
+   "source": "odm2",
+   "odm2_term": "hexachloroethane"
+  },
+  "hexane": {
+   "source": "odm2",
+   "odm2_term": "hexane"
+  },
+  "holmium": {
+   "source": "odm2",
+   "odm2_term": "holmium"
+  },
+  "holmium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "holmiumDissolved"
+  },
+  "horizontal_dilution_of_precision": {
+   "source": "odm2",
+   "odm2_term": "horizontalDilutionOfPrecision"
+  },
+  "hosphorus_phosphate_flux": {
+   "source": "odm2",
+   "odm2_term": "hosphorusPhosphateFlux"
+  },
+  "host_connected": {
+   "source": "odm2",
+   "odm2_term": "hostConnected"
+  },
+  "humification_index": {
+   "source": "odm2",
+   "odm2_term": "humificationIndex"
+  },
+  "hydraulic_conductivity": {
+   "source": "odm2",
+   "odm2_term": "hydraulicConductivity"
+  },
+  "hydrogen": {
+   "source": "odm2",
+   "odm2_term": "hydrogen"
+  },
+  "hydrogen_2_stable_isotope_ratio_delta": {
+   "source": "odm2",
+   "odm2_term": "hydrogen_2_StableIsotopeRatioDelta"
+  },
+  "hydrogen_dissolved": {
+   "source": "odm2",
+   "odm2_term": "hydrogenDissolved"
+  },
+  "hydrogen_sulfide": {
+   "source": "odm2",
+   "odm2_term": "hydrogenSulfide"
+  },
+  "imaginary_dielectric_constant": {
+   "source": "odm2",
+   "odm2_term": "imaginaryDielectricConstant"
+  },
+  "indeno_1_2_3_cd_pyrene": {
+   "source": "odm2",
+   "odm2_term": "indeno_1_2_3_cd_Pyrene"
+  },
+  "indicator": {
+   "source": "odm2",
+   "odm2_term": "indicator"
+  },
+  "indium": {
+   "source": "odm2",
+   "odm2_term": "indium"
+  },
+  "instrument_status_code": {
+   "source": "odm2",
+   "odm2_term": "instrumentStatusCode"
+  },
+  "intercept": {
+   "source": "odm2",
+   "odm2_term": "intercept"
+  },
+  "iodide_dissolved": {
+   "source": "odm2",
+   "odm2_term": "iodideDissolved"
+  },
+  "iron": {
+   "source": "odm2",
+   "odm2_term": "Iron"
+  },
+  "iron_dissolved": {
+   "source": "odm2",
+   "odm2_term": "ironDissolved"
+  },
+  "iron_ferric": {
+   "source": "odm2",
+   "odm2_term": "ironFerric"
+  },
+  "iron_ferrous": {
+   "source": "odm2",
+   "odm2_term": "ironFerrous"
+  },
+  "iron_particulate": {
+   "source": "odm2",
+   "odm2_term": "ironParticulate"
+  },
+  "iron_sulfide": {
+   "source": "odm2",
+   "odm2_term": "ironSulfide"
+  },
+  "iron_total": {
+   "source": "odm2",
+   "odm2_term": "ironTotal"
+  },
+  "isobutane": {
+   "source": "odm2",
+   "odm2_term": "isobutane"
+  },
+  "isobutyric_acid": {
+   "source": "odm2",
+   "odm2_term": "isobutyricAcid"
+  },
+  "isopentane": {
+   "source": "odm2",
+   "odm2_term": "isopentane"
+  },
+  "isophorone": {
+   "source": "odm2",
+   "odm2_term": "isophorone"
+  },
+  "isopropyl_alcohol": {
+   "source": "odm2",
+   "odm2_term": "isopropylAlcohol"
+  },
+  "isopropylbenzene": {
+   "source": "odm2",
+   "odm2_term": "isopropylbenzene"
+  },
+  "iva_frutescenscoverage": {
+   "source": "odm2",
+   "odm2_term": "ivaFrutescenscoverage"
+  },
+  "lactic_acid": {
+   "source": "odm2",
+   "odm2_term": "lacticAcid"
+  },
+  "land_classification": {
+   "source": "odm2",
+   "odm2_term": "landClassification"
+  },
+  "lanthanum": {
+   "source": "odm2",
+   "odm2_term": "lanthanum"
+  },
+  "lanthanum_dissolved": {
+   "source": "odm2",
+   "odm2_term": "lanthanumDissolved"
+  },
+  "latent_heat_flux": {
+   "source": "odm2",
+   "odm2_term": "latentHeatFlux",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "surface_upward_latent_heat_flux",
+      "canonical_units": "W m-2"
+     }
+    ]
+   }
+  },
+  "latitude": {
+   "source": "odm2",
+   "odm2_term": "latitude"
+  },
+  "lead": {
+   "source": "odm2",
+   "odm2_term": "lead"
+  },
+  "lead_208": {
+   "source": "odm2",
+   "odm2_term": "lead_208"
+  },
+  "lead_dissolved": {
+   "source": "odm2",
+   "odm2_term": "leadDissolved"
+  },
+  "lead_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "leadDistributionCoefficient"
+  },
+  "lead_particulate": {
+   "source": "odm2",
+   "odm2_term": "leadParticulate"
+  },
+  "lead_total": {
+   "source": "odm2",
+   "odm2_term": "leadTotal"
+  },
+  "leaf_area_index": {
+   "source": "odm2",
+   "odm2_term": "leafAreaIndex"
+  },
+  "leaf_wetness": {
+   "source": "odm2",
+   "odm2_term": "leafWetness"
+  },
+  "length": {
+   "source": "odm2",
+   "odm2_term": "length"
+  },
+  "light_attenuation_coefficient": {
+   "source": "odm2",
+   "odm2_term": "lightAttenuationCoefficient"
+  },
+  "limonium_nashii_coverage": {
+   "source": "odm2",
+   "odm2_term": "limoniumNashiiCoverage"
+  },
+  "lithium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "lithiumDissolved"
+  },
+  "lithium_total": {
+   "source": "odm2",
+   "odm2_term": "lithiumTotal"
+  },
+  "litter_plant": {
+   "source": "odm2",
+   "odm2_term": "litterPlant"
+  },
+  "liver_mass": {
+   "source": "odm2",
+   "odm2_term": "liverMass"
+  },
+  "load_suspended": {
+   "source": "odm2",
+   "odm2_term": "loadSuspended"
+  },
+  "logger_stopped": {
+   "source": "odm2",
+   "odm2_term": "loggerStopped"
+  },
+  "longitude": {
+   "source": "odm2",
+   "odm2_term": "longitude"
+  },
+  "loss_on_ignition": {
+   "source": "odm2",
+   "odm2_term": "lossOnIgnition"
+  },
+  "low_battery_count": {
+   "source": "odm2",
+   "odm2_term": "lowBatteryCount"
+  },
+  "lsi": {
+   "source": "odm2",
+   "odm2_term": "LSI"
+  },
+  "luminous_flux": {
+   "source": "odm2",
+   "odm2_term": "luminousFlux"
+  },
+  "lutetium": {
+   "source": "odm2",
+   "odm2_term": "lutetium"
+  },
+  "lutetium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "lutetiumDissolved"
+  },
+  "lycium_carolinianum_coverage": {
+   "source": "odm2",
+   "odm2_term": "lyciumCarolinianumCoverage"
+  },
+  "magnesium": {
+   "source": "odm2",
+   "odm2_term": "magnesium"
+  },
+  "magnesium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "magnesiumDissolved"
+  },
+  "magnesium_total": {
+   "source": "odm2",
+   "odm2_term": "magnesiumTotal"
+  },
+  "malathion": {
+   "source": "odm2",
+   "odm2_term": "malathion"
+  },
+  "manganese": {
+   "source": "odm2",
+   "odm2_term": "manganese"
+  },
+  "manganese_dissolved": {
+   "source": "odm2",
+   "odm2_term": "manganeseDissolved"
+  },
+  "manganese_particulate": {
+   "source": "odm2",
+   "odm2_term": "manganeseParticulate"
+  },
+  "manganese_total": {
+   "source": "odm2",
+   "odm2_term": "manganeseTotal"
+  },
+  "mass": {
+   "source": "odm2",
+   "odm2_term": "mass"
+  },
+  "melanovanadite": {
+   "source": "odm2",
+   "odm2_term": "melanovanadite"
+  },
+  "mercury_dissolved": {
+   "source": "odm2",
+   "odm2_term": "mercuryDissolved"
+  },
+  "mercury_total": {
+   "source": "odm2",
+   "odm2_term": "mercuryTotal"
+  },
+  "methane": {
+   "source": "odm2",
+   "odm2_term": "methane"
+  },
+  "methane_dissolved": {
+   "source": "odm2",
+   "odm2_term": "methaneDissolved"
+  },
+  "methanol": {
+   "source": "odm2",
+   "odm2_term": "methanol"
+  },
+  "methoxychlor": {
+   "source": "odm2",
+   "odm2_term": "methoxychlor"
+  },
+  "methyl_tert_butyl_ether_mtbe": {
+   "source": "odm2",
+   "odm2_term": "methylTert_ButylEther_MTBE"
+  },
+  "methylchrysene": {
+   "source": "odm2",
+   "odm2_term": "methylchrysene"
+  },
+  "methylene_blue_active_substances": {
+   "source": "odm2",
+   "odm2_term": "methyleneBlueActiveSubstances"
+  },
+  "methylene_chloride_dichloromethane": {
+   "source": "odm2",
+   "odm2_term": "methyleneChloride_Dichloromethane"
+  },
+  "methylfluoranthene": {
+   "source": "odm2",
+   "odm2_term": "methylfluoranthene"
+  },
+  "methylfluorene": {
+   "source": "odm2",
+   "odm2_term": "methylfluorene"
+  },
+  "methylmercury": {
+   "source": "odm2",
+   "odm2_term": "methylmercury"
+  },
+  "methylpyrene": {
+   "source": "odm2",
+   "odm2_term": "methylpyrene"
+  },
+  "mevinphos": {
+   "source": "odm2",
+   "odm2_term": "mevinphos"
+  },
+  "mica": {
+   "source": "odm2",
+   "odm2_term": "mica"
+  },
+  "michaelis_constant": {
+   "source": "odm2",
+   "odm2_term": "michaelisConstant"
+  },
+  "microsomal_protein": {
+   "source": "odm2",
+   "odm2_term": "microsomalProtein"
+  },
+  "molbydenum_dissolved": {
+   "source": "odm2",
+   "odm2_term": "molbydenumDissolved"
+  },
+  "molybdenum_dissolved": {
+   "source": "odm2",
+   "odm2_term": "molybdenumDissolved"
+  },
+  "molybdenum_total": {
+   "source": "odm2",
+   "odm2_term": "molybdenumTotal"
+  },
+  "momentum_flux": {
+   "source": "odm2",
+   "odm2_term": "momentumFlux"
+  },
+  "monanthochloe_littoralis_coverage": {
+   "source": "odm2",
+   "odm2_term": "monanthochloeLittoralisCoverage"
+  },
+  "n_alkane_c15": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C15"
+  },
+  "n_alkane_c16": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C16"
+  },
+  "n_alkane_c17": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C17"
+  },
+  "n_alkane_c18": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C18"
+  },
+  "n_alkane_c19": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C19"
+  },
+  "n_alkane_c20": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C20"
+  },
+  "n_alkane_c21": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C21"
+  },
+  "n_alkane_c22": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C22"
+  },
+  "n_alkane_c23": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C23"
+  },
+  "n_alkane_c24": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C24"
+  },
+  "n_alkane_c25": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C25"
+  },
+  "n_alkane_c26": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C26"
+  },
+  "n_alkane_c27": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C27"
+  },
+  "n_alkane_c28": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C28"
+  },
+  "n_alkane_c29": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C29"
+  },
+  "n_alkane_c30": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C30"
+  },
+  "n_alkane_c31": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C31"
+  },
+  "n_alkane_c32": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C32"
+  },
+  "n_alkane_c33": {
+   "source": "odm2",
+   "odm2_term": "n_Alkane_C33"
+  },
+  "n_alkane_long_chain": {
+   "source": "odm2",
+   "odm2_term": "n_AlkaneLongChain"
+  },
+  "n_alkane_short_chain": {
+   "source": "odm2",
+   "odm2_term": "n_AlkaneShortChain"
+  },
+  "n_alkane_total": {
+   "source": "odm2",
+   "odm2_term": "n_AlkaneTotal"
+  },
+  "n_nitrosodi_n_butylamine": {
+   "source": "odm2",
+   "odm2_term": "N_Nitrosodi_n_Butylamine"
+  },
+  "n_nitrosodi_n_propylamine": {
+   "source": "odm2",
+   "odm2_term": "N_Nitrosodi_n_Propylamine"
+  },
+  "n_nitrosodiethylamine": {
+   "source": "odm2",
+   "odm2_term": "N_Nitrosodiethylamine"
+  },
+  "n_nitrosodimethylamine": {
+   "source": "odm2",
+   "odm2_term": "N_Nitrosodimethylamine"
+  },
+  "n_nitrosodiphenylamine": {
+   "source": "odm2",
+   "odm2_term": "N_Nitrosodiphenylamine"
+  },
+  "n_nitrosomethylethylamine": {
+   "source": "odm2",
+   "odm2_term": "N_Nitrosomethylethylamine"
+  },
+  "nacrite": {
+   "source": "odm2",
+   "odm2_term": "nacrite"
+  },
+  "nalbuminoid": {
+   "source": "odm2",
+   "odm2_term": "NAlbuminoid"
+  },
+  "naphthalene": {
+   "source": "odm2",
+   "odm2_term": "naphthalene"
+  },
+  "ndvi": {
+   "source": "odm2",
+   "odm2_term": "NDVI"
+  },
+  "neodymium": {
+   "source": "odm2",
+   "odm2_term": "neodymium"
+  },
+  "neodymium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "neodymiumDissolved"
+  },
+  "net_heat_flux": {
+   "source": "odm2",
+   "odm2_term": "netHeatFlux"
+  },
+  "neutron_count": {
+   "source": "odm2",
+   "odm2_term": "neutronCount"
+  },
+  "nickel": {
+   "source": "odm2",
+   "odm2_term": "nickel"
+  },
+  "nickel_dissolved": {
+   "source": "odm2",
+   "odm2_term": "nickelDissolved"
+  },
+  "nickel_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "nickelDistributionCoefficient"
+  },
+  "nickel_particulate": {
+   "source": "odm2",
+   "odm2_term": "nickelParticulate"
+  },
+  "nickel_total": {
+   "source": "odm2",
+   "odm2_term": "nickelTotal"
+  },
+  "niobium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "niobiumDissolved"
+  },
+  "niobium_total": {
+   "source": "odm2",
+   "odm2_term": "niobiumTotal"
+  },
+  "nitrobenzene": {
+   "source": "odm2",
+   "odm2_term": "nitrobenzene"
+  },
+  "nitrogen": {
+   "source": "odm2",
+   "odm2_term": "nitrogen"
+  },
+  "nitrogen_15": {
+   "source": "odm2",
+   "odm2_term": "nitrogen_15"
+  },
+  "nitrogen_15_stable_isotope_ratio_delta": {
+   "source": "odm2",
+   "odm2_term": "nitrogen_15_StableIsotopeRatioDelta"
+  },
+  "nitrogen_ammonia": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolved_Free_Ionized_Ammonia_NH3_NH4",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "tethys migration: nitrogen_ammonia_+_ammonium merges into this variable (ruling R4). CF ammonium is mole-only."
+  },
+  "nitrogen_dissolved_inorganic": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolvedInorganic"
+  },
+  "nitrogen_dissolved_kjeldahl": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolvedKjeldahl"
+  },
+  "nitrogen_dissolved_nitrate_no3": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolvedNitrate_NO3"
+  },
+  "nitrogen_dissolved_nitrite_no2": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolvedNitrite_NO2"
+  },
+  "nitrogen_dissolved_nitrite_no2_nitrate_no3": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolvedNitrite_NO2_Nitrate_NO3"
+  },
+  "nitrogen_dissolved_organic": {
+   "source": "odm2",
+   "odm2_term": "nitrogenDissolvedOrganic"
+  },
+  "nitrogen_gas": {
+   "source": "odm2",
+   "odm2_term": "nitrogenGas"
+  },
+  "nitrogen_inorganic": {
+   "source": "odm2",
+   "odm2_term": "nitrogenInorganic"
+  },
+  "nitrogen_nh3": {
+   "source": "odm2",
+   "odm2_term": "nitrogen_NH3"
+  },
+  "nitrogen_nh3_nh4": {
+   "source": "odm2",
+   "odm2_term": "nitrogenNH3_NH4"
+  },
+  "nitrogen_nh4": {
+   "source": "odm2",
+   "odm2_term": "nitrogen_NH4"
+  },
+  "nitrogen_nitrate": {
+   "source": "odm2",
+   "odm2_term": "nitrogenNitrate_NO3",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "CF nitrate-in-water is mole-concentration only (mol m-3); council mg/l data is not UDUNITS-convertible to it."
+  },
+  "nitrogen_nitrite": {
+   "source": "odm2",
+   "odm2_term": "nitrogenNitrite_NO2",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "Same mole-only wall as nitrogen_nitrate."
+  },
+  "nitrogen_nitrite_no2_nitrate_no3": {
+   "source": "odm2",
+   "odm2_term": "nitrogenNitrite_NO2_Nitrate_NO3"
+  },
+  "nitrogen_organic": {
+   "source": "odm2",
+   "odm2_term": "nitrogenOrganic"
+  },
+  "nitrogen_organic_kjeldahl": {
+   "source": "odm2",
+   "odm2_term": "nitrogenOrganicKjeldahl"
+  },
+  "nitrogen_particulate_organic": {
+   "source": "odm2",
+   "odm2_term": "nitrogenParticulateOrganic"
+  },
+  "nitrogen_total": {
+   "source": "odm2",
+   "odm2_term": "nitrogenTotal",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "CF dissolved-N names are mole-concentration only (mol m-3), not UDUNITS-convertible from mg/l; CF inorganic-N is not total-N."
+  },
+  "nitrogen_total_dissolved": {
+   "source": "odm2",
+   "odm2_term": "nitrogenTotalDissolved"
+  },
+  "nitrogen_total_kjeldahl": {
+   "source": "odm2",
+   "odm2_term": "nitrogenTotalKjeldahl"
+  },
+  "nitrogen_total_nitrite": {
+   "source": "odm2",
+   "odm2_term": "nitrogenTotalNitrite"
+  },
+  "nitrogen_total_organic": {
+   "source": "odm2",
+   "odm2_term": "nitrogenTotalOrganic"
+  },
+  "nitrous_oxide": {
+   "source": "odm2",
+   "odm2_term": "nitrousOxide"
+  },
+  "no_vegetation_coverage": {
+   "source": "odm2",
+   "odm2_term": "noVegetationCoverage"
+  },
+  "o_xylene": {
+   "source": "odm2",
+   "odm2_term": "o_Xylene"
+  },
+  "odor": {
+   "source": "odm2",
+   "odm2_term": "odor"
+  },
+  "offset": {
+   "source": "odm2",
+   "odm2_term": "offset"
+  },
+  "oil_and_grease": {
+   "source": "odm2",
+   "odm2_term": "oilAndGrease"
+  },
+  "omega_aragonite": {
+   "source": "odm2",
+   "odm2_term": "omegaAragonite"
+  },
+  "organic_matter": {
+   "source": "odm2",
+   "odm2_term": "organicMatter"
+  },
+  "orientation": {
+   "source": "odm2",
+   "odm2_term": "orientation"
+  },
+  "orthoclase": {
+   "source": "odm2",
+   "odm2_term": "orthoclase"
+  },
+  "osmotic_pressure": {
+   "source": "odm2",
+   "odm2_term": "osmoticPressure"
+  },
+  "oxygen": {
+   "source": "odm2",
+   "odm2_term": "oxygen"
+  },
+  "oxygen_18": {
+   "source": "odm2",
+   "odm2_term": "oxygen_18"
+  },
+  "oxygen_18_stable_isotope_ratio_delta": {
+   "source": "odm2",
+   "odm2_term": "oxygen_18_StableIsotopeRatioDelta"
+  },
+  "oxygen_dissolved": {
+   "source": "odm2",
+   "odm2_term": "oxygenDissolved",
+   "cf": {
+    "ocean": [
+     {
+      "standard_name": "mass_concentration_of_oxygen_in_sea_water",
+      "canonical_units": "kg m-3"
+     },
+     {
+      "standard_name": "fractional_saturation_of_oxygen_in_sea_water",
+      "canonical_units": "1"
+     }
+    ],
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   }
+  },
+  "oxygen_dissolved_percent_of_saturation": {
+   "source": "odm2",
+   "odm2_term": "oxygenDissolvedPercentOfSaturation"
+  },
+  "oxygen_dissolved_transducer_signal": {
+   "source": "odm2",
+   "odm2_term": "oxygenDissolvedTransducerSignal"
+  },
+  "oxygen_flux": {
+   "source": "odm2",
+   "odm2_term": "oxygenFlux"
+  },
+  "oxygen_uptake": {
+   "source": "odm2",
+   "odm2_term": "oxygenUptake"
+  },
+  "ozone": {
+   "source": "odm2",
+   "odm2_term": "ozone"
+  },
+  "p_h": {
+   "source": "odm2",
+   "odm2_term": "pH"
+  },
+  "parameter": {
+   "source": "odm2",
+   "odm2_term": "parameter"
+  },
+  "parathion_ethyl": {
+   "source": "odm2",
+   "odm2_term": "parathion_Ethyl"
+  },
+  "particle_counts": {
+   "source": "odm2",
+   "odm2_term": "particleCounts"
+  },
+  "particulate_matter_10": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for PM10 mass concentration.",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "mass_concentration_of_pm10_ambient_aerosol_particles_in_air",
+      "canonical_units": "kg m-3"
+     }
+    ]
+   }
+  },
+  "particulate_matter_2.5": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for PM2.5 mass concentration.",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "mass_concentration_of_pm2p5_ambient_aerosol_particles_in_air",
+      "canonical_units": "kg m-3"
+     }
+    ]
+   }
+  },
+  "pentachlorobenzene": {
+   "source": "odm2",
+   "odm2_term": "pentachlorobenzene"
+  },
+  "pentachlorophenol": {
+   "source": "odm2",
+   "odm2_term": "pentachlorophenol"
+  },
+  "pentane": {
+   "source": "odm2",
+   "odm2_term": "pentane"
+  },
+  "percent_full_scale": {
+   "source": "odm2",
+   "odm2_term": "percentFullScale"
+  },
+  "peridinin": {
+   "source": "odm2",
+   "odm2_term": "peridinin"
+  },
+  "permethrin": {
+   "source": "odm2",
+   "odm2_term": "permethrin"
+  },
+  "permittivity": {
+   "source": "odm2",
+   "odm2_term": "permittivity"
+  },
+  "permittivity_electrical": {
+   "source": "odm2",
+   "odm2_term": "permittivityElectrical"
+  },
+  "perylene": {
+   "source": "odm2",
+   "odm2_term": "perylene"
+  },
+  "petroleum_hydrocarbon_total": {
+   "source": "odm2",
+   "odm2_term": "petroleumHydrocarbonTotal"
+  },
+  "phenanthrene": {
+   "source": "odm2",
+   "odm2_term": "phenanthrene"
+  },
+  "phenol": {
+   "source": "odm2",
+   "odm2_term": "phenol"
+  },
+  "phenolics_total": {
+   "source": "odm2",
+   "odm2_term": "phenolicsTotal"
+  },
+  "pheophytin": {
+   "source": "odm2",
+   "odm2_term": "pheophytin"
+  },
+  "phorate": {
+   "source": "odm2",
+   "odm2_term": "phorate"
+  },
+  "phosphorodithioic_acid": {
+   "source": "odm2",
+   "odm2_term": "phosphorodithioicAcid"
+  },
+  "phosphorus": {
+   "source": "odm2",
+   "odm2_term": "phosphorus"
+  },
+  "phosphorus_dissolved": {
+   "source": "odm2",
+   "odm2_term": "phosphorusDissolved"
+  },
+  "phosphorus_dissolved_organic": {
+   "source": "odm2",
+   "odm2_term": "phosphorusDissolvedOrganic"
+  },
+  "phosphorus_inorganic": {
+   "source": "odm2",
+   "odm2_term": "phosphorusInorganic"
+  },
+  "phosphorus_organic": {
+   "source": "odm2",
+   "odm2_term": "phosphorusOrganic"
+  },
+  "phosphorus_orthophosphate": {
+   "source": "odm2",
+   "odm2_term": "phosphorusOrthophosphate",
+   "cf": {
+    "ocean": [
+     {
+      "standard_name": "mass_concentration_of_phosphate_in_sea_water",
+      "canonical_units": "kg m-3"
+     }
+    ],
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   }
+  },
+  "phosphorus_orthophosphate_dissolved": {
+   "source": "odm2",
+   "odm2_term": "phosphorusOrthophosphateDissolved",
+   "cf": {
+    "ocean": [
+     {
+      "standard_name": "mass_concentration_of_phosphate_in_sea_water",
+      "canonical_units": "kg m-3"
+     }
+    ],
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   }
+  },
+  "phosphorus_orthophosphate_total": {
+   "source": "odm2",
+   "odm2_term": "phosphorusOrthophosphateTotal"
+  },
+  "phosphorus_particulate": {
+   "source": "odm2",
+   "odm2_term": "phosphorusParticulate"
+  },
+  "phosphorus_particulate_organic": {
+   "source": "odm2",
+   "odm2_term": "phosphorusParticulateOrganic"
+  },
+  "phosphorus_pentoxide": {
+   "source": "odm2",
+   "odm2_term": "phosphorusPentoxide"
+  },
+  "phosphorus_phosphate_po4": {
+   "source": "odm2",
+   "odm2_term": "phosphorusPhosphate_PO4"
+  },
+  "phosphorus_polyphosphate": {
+   "source": "odm2",
+   "odm2_term": "phosphorusPolyphosphate"
+  },
+  "phosphorus_total": {
+   "source": "odm2",
+   "odm2_term": "phosphorusTotal",
+   "cf": {
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "No CF total-P mass-concentration name."
+  },
+  "phosphorus_total_dissolved": {
+   "source": "odm2",
+   "odm2_term": "phosphorusTotalDissolved"
+  },
+  "photosynthetic_photon_flux_density": {
+   "source": "odm2",
+   "odm2_term": "photosyntheticPhotonFluxDensity"
+  },
+  "phytoplankton": {
+   "source": "odm2",
+   "odm2_term": "phytoplankton"
+  },
+  "piperonyl_butoxide": {
+   "source": "odm2",
+   "odm2_term": "piperonylButoxide"
+  },
+  "plagioclase": {
+   "source": "odm2",
+   "odm2_term": "plagioclase"
+  },
+  "polycyclic_aromatic_hydrocarbon_alkyl": {
+   "source": "odm2",
+   "odm2_term": "polycyclicAromaticHydrocarbonAlkyl"
+  },
+  "polycyclic_aromatic_hydrocarbon_parent": {
+   "source": "odm2",
+   "odm2_term": "polycyclicAromaticHydrocarbonParent"
+  },
+  "polycyclic_aromatic_hydrocarbon_total": {
+   "source": "odm2",
+   "odm2_term": "polycyclicAromaticHydrocarbonTotal"
+  },
+  "porosity": {
+   "source": "odm2",
+   "odm2_term": "porosity"
+  },
+  "position": {
+   "source": "odm2",
+   "odm2_term": "position"
+  },
+  "position_dilution_of_precision": {
+   "source": "odm2",
+   "odm2_term": "positionDilutionOfPrecision"
+  },
+  "potassium": {
+   "source": "odm2",
+   "odm2_term": "potassium"
+  },
+  "potassium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "potassiumDissolved"
+  },
+  "potassium_oxide": {
+   "source": "odm2",
+   "odm2_term": "potassiumOxide"
+  },
+  "potassium_total": {
+   "source": "odm2",
+   "odm2_term": "potassiumTotal"
+  },
+  "praseodymium": {
+   "source": "odm2",
+   "odm2_term": "praseodymium"
+  },
+  "praseodymium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "praseodymiumDissolved"
+  },
+  "precipitation": {
+   "source": "odm2",
+   "odm2_term": "precipitation",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "precipitation_amount",
+      "canonical_units": "kg m-2"
+     },
+     {
+      "standard_name": "lwe_thickness_of_precipitation_amount",
+      "canonical_units": "m"
+     }
+    ]
+   }
+  },
+  "pressure_absolute": {
+   "source": "odm2",
+   "odm2_term": "pressureAbsolute"
+  },
+  "pressure_gauge": {
+   "source": "odm2",
+   "odm2_term": "pressureGauge"
+  },
+  "primary_productivity": {
+   "source": "odm2",
+   "odm2_term": "primaryProductivity"
+  },
+  "primary_productivity_gross": {
+   "source": "odm2",
+   "odm2_term": "primaryProductivityGross"
+  },
+  "program_signature": {
+   "source": "odm2",
+   "odm2_term": "programSignature"
+  },
+  "pronamide": {
+   "source": "odm2",
+   "odm2_term": "pronamide"
+  },
+  "propane": {
+   "source": "odm2",
+   "odm2_term": "propane"
+  },
+  "propane_dissolved": {
+   "source": "odm2",
+   "odm2_term": "propaneDissolved"
+  },
+  "propanoic_acid": {
+   "source": "odm2",
+   "odm2_term": "propanoicAcid"
+  },
+  "propylene_glycol": {
+   "source": "odm2",
+   "odm2_term": "propyleneGlycol"
+  },
+  "pyrene": {
+   "source": "odm2",
+   "odm2_term": "pyrene"
+  },
+  "pyridine": {
+   "source": "odm2",
+   "odm2_term": "pyridine"
+  },
+  "quartz": {
+   "source": "odm2",
+   "odm2_term": "quartz"
+  },
+  "radiation_incoming": {
+   "source": "odm2",
+   "odm2_term": "radiationIncoming"
+  },
+  "radiation_incoming_longwave": {
+   "source": "odm2",
+   "odm2_term": "radiationIncomingLongwave",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "surface_downwelling_longwave_flux_in_air",
+      "canonical_units": "W m-2"
+     }
+    ]
+   }
+  },
+  "radiation_incoming_par": {
+   "source": "odm2",
+   "odm2_term": "radiationIncomingPAR"
+  },
+  "radiation_incoming_shortwave": {
+   "source": "odm2",
+   "odm2_term": "radiationIncomingShortwave",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "surface_downwelling_shortwave_flux_in_air",
+      "canonical_units": "W m-2"
+     }
+    ]
+   }
+  },
+  "radiation_incoming_uv_a": {
+   "source": "odm2",
+   "odm2_term": "radiationIncomingUV_A"
+  },
+  "radiation_incoming_uv_b": {
+   "source": "odm2",
+   "odm2_term": "radiationIncomingUV_B"
+  },
+  "radiation_net": {
+   "source": "odm2",
+   "odm2_term": "radiationNet"
+  },
+  "radiation_net_longwave": {
+   "source": "odm2",
+   "odm2_term": "radiationNetLongwave"
+  },
+  "radiation_net_par": {
+   "source": "odm2",
+   "odm2_term": "radiationNetPAR"
+  },
+  "radiation_net_shortwave": {
+   "source": "odm2",
+   "odm2_term": "radiationNetShortwave"
+  },
+  "radiation_outgoing_longwave": {
+   "source": "odm2",
+   "odm2_term": "radiationOutgoingLongwave"
+  },
+  "radiation_outgoing_par": {
+   "source": "odm2",
+   "odm2_term": "radiationOutgoingPAR"
+  },
+  "radiation_outgoing_shortwave": {
+   "source": "odm2",
+   "odm2_term": "radiationOutgoingShortwave"
+  },
+  "radiation_total_incoming": {
+   "source": "odm2",
+   "odm2_term": "radiationTotalIncoming"
+  },
+  "radiation_total_outgoing": {
+   "source": "odm2",
+   "odm2_term": "radiationTotalOutgoing"
+  },
+  "radiation_total_shortwave": {
+   "source": "odm2",
+   "odm2_term": "radiationTotalShortwave"
+  },
+  "radium_226": {
+   "source": "odm2",
+   "odm2_term": "radium_226"
+  },
+  "radium_228": {
+   "source": "odm2",
+   "odm2_term": "radium_228"
+  },
+  "radon_222": {
+   "source": "odm2",
+   "odm2_term": "radon_222"
+  },
+  "rainfall_rate": {
+   "source": "odm2",
+   "odm2_term": "rainfallRate"
+  },
+  "real_dielectric_constant": {
+   "source": "odm2",
+   "odm2_term": "realDielectricConstant"
+  },
+  "received_signal_strenght_indication": {
+   "source": "odm2",
+   "odm2_term": "receivedSignalStrenghtIndication"
+  },
+  "recharge_groundwater": {
+   "source": "odm2",
+   "odm2_term": "rechargeGroundwater",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "subsurface_runoff_amount",
+      "canonical_units": "kg m-2"
+     }
+    ]
+   },
+   "notes": "subsurface_runoff_amount accepted as the land-model-drainage proxy (ruling R5)."
+  },
+  "recorder_code": {
+   "source": "odm2",
+   "odm2_term": "recorderCode"
+  },
+  "reduction_potential": {
+   "source": "odm2",
+   "odm2_term": "reductionPotential"
+  },
+  "reflectivity": {
+   "source": "odm2",
+   "odm2_term": "reflectivity"
+  },
+  "relative_humidity": {
+   "source": "odm2",
+   "odm2_term": "relativeHumidity",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "relative_humidity",
+      "canonical_units": "1"
+     }
+    ]
+   }
+  },
+  "remark": {
+   "source": "odm2",
+   "odm2_term": "remark"
+  },
+  "reservoir_storage": {
+   "source": "odm2",
+   "odm2_term": "reservoirStorage"
+  },
+  "resistivity_electrical": {
+   "source": "odm2",
+   "odm2_term": "resistivityElectrical"
+  },
+  "respiration_ecosystem": {
+   "source": "odm2",
+   "odm2_term": "respirationEcosystem"
+  },
+  "respiration_net": {
+   "source": "odm2",
+   "odm2_term": "respirationNet"
+  },
+  "retene": {
+   "source": "odm2",
+   "odm2_term": "retene"
+  },
+  "rhenium_total": {
+   "source": "odm2",
+   "odm2_term": "rheniumTotal"
+  },
+  "roundness": {
+   "source": "odm2",
+   "odm2_term": "roundness"
+  },
+  "rubidium": {
+   "source": "odm2",
+   "odm2_term": "rubidium"
+  },
+  "runoff": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for runoff (land-model quantity).",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "runoff_amount",
+      "canonical_units": "kg m-2"
+     }
+    ]
+   }
+  },
+  "ruthenium_106": {
+   "source": "odm2",
+   "odm2_term": "ruthenium_106"
+  },
+  "salicornia_bigelovii_coverage": {
+   "source": "odm2",
+   "odm2_term": "salicorniaBigeloviiCoverage"
+  },
+  "salicornia_virginica_coverage": {
+   "source": "odm2",
+   "odm2_term": "salicorniaVirginicaCoverage"
+  },
+  "salinity": {
+   "source": "odm2",
+   "odm2_term": "salinity"
+  },
+  "samarium": {
+   "source": "odm2",
+   "odm2_term": "samarium"
+  },
+  "samarium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "samariumDissolved"
+  },
+  "sand": {
+   "source": "odm2",
+   "odm2_term": "Sand"
+  },
+  "sap_flow": {
+   "source": "odm2",
+   "odm2_term": "sapFlow"
+  },
+  "satellites_in_view": {
+   "source": "odm2",
+   "odm2_term": "satellitesInView"
+  },
+  "scandium": {
+   "source": "odm2",
+   "odm2_term": "scandium"
+  },
+  "scatter_anti_stokes": {
+   "source": "odm2",
+   "odm2_term": "scatterAntiStokes"
+  },
+  "scatter_stokes": {
+   "source": "odm2",
+   "odm2_term": "scatterStokes"
+  },
+  "secchi_depth": {
+   "source": "odm2",
+   "odm2_term": "secchiDepth"
+  },
+  "sediment_passing_sieve": {
+   "source": "odm2",
+   "odm2_term": "sedimentPassingSieve"
+  },
+  "sediment_retained_on_sieve": {
+   "source": "odm2",
+   "odm2_term": "sedimentRetainedOnSieve"
+  },
+  "sediment_suspended": {
+   "source": "odm2",
+   "odm2_term": "sedimentSuspended"
+  },
+  "seismic_refraction": {
+   "source": "odm2",
+   "odm2_term": "seismicRefraction"
+  },
+  "selenium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "seleniumDissolved"
+  },
+  "selenium_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "seleniumDistributionCoefficient"
+  },
+  "selenium_particulate": {
+   "source": "odm2",
+   "odm2_term": "seleniumParticulate"
+  },
+  "selenium_total": {
+   "source": "odm2",
+   "odm2_term": "seleniumTotal"
+  },
+  "sensible_heat_flux": {
+   "source": "odm2",
+   "odm2_term": "sensibleHeatFlux"
+  },
+  "sequence_number": {
+   "source": "odm2",
+   "odm2_term": "sequenceNumber"
+  },
+  "shannon_diversity_index": {
+   "source": "odm2",
+   "odm2_term": "shannonDiversityIndex"
+  },
+  "shannon_evenness_index": {
+   "source": "odm2",
+   "odm2_term": "shannonEvennessIndex"
+  },
+  "sigma_t": {
+   "source": "odm2",
+   "odm2_term": "sigma_t"
+  },
+  "signal_quality": {
+   "source": "odm2",
+   "odm2_term": "signalQuality"
+  },
+  "signal_to_noise_ratio": {
+   "source": "odm2",
+   "odm2_term": "signalToNoiseRatio"
+  },
+  "silica": {
+   "source": "odm2",
+   "odm2_term": "silica"
+  },
+  "silica_dissolved": {
+   "source": "odm2",
+   "odm2_term": "silicaDissolved"
+  },
+  "silicate": {
+   "source": "odm2",
+   "odm2_term": "silicate"
+  },
+  "silicic_acid": {
+   "source": "odm2",
+   "odm2_term": "silicicAcid"
+  },
+  "silicic_acid_flux": {
+   "source": "odm2",
+   "odm2_term": "silicicAcidFlux"
+  },
+  "silicon": {
+   "source": "odm2",
+   "odm2_term": "silicon"
+  },
+  "silicon_dissolved": {
+   "source": "odm2",
+   "odm2_term": "siliconDissolved"
+  },
+  "silicon_total": {
+   "source": "odm2",
+   "odm2_term": "siliconTotal"
+  },
+  "silt": {
+   "source": "odm2",
+   "odm2_term": "Silt"
+  },
+  "silver": {
+   "source": "odm2",
+   "odm2_term": "silver"
+  },
+  "silver_dissolved": {
+   "source": "odm2",
+   "odm2_term": "silverDissolved"
+  },
+  "silver_total": {
+   "source": "odm2",
+   "odm2_term": "silverTotal"
+  },
+  "slope": {
+   "source": "odm2",
+   "odm2_term": "slope"
+  },
+  "snow_cover": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for snow-cover fraction (model/grid quantity).",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "surface_snow_area_fraction",
+      "canonical_units": "1"
+     }
+    ]
+   }
+  },
+  "snow_depth": {
+   "source": "odm2",
+   "odm2_term": "snowDepth"
+  },
+  "snow_layer_hardness": {
+   "source": "odm2",
+   "odm2_term": "snowLayerHardness"
+  },
+  "snow_water_equivalent": {
+   "source": "odm2",
+   "odm2_term": "snowWaterEquivalent"
+  },
+  "snowfall": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "ODM2 snowDepth means snowpack depth, not snowfall accumulation; no ODM2 snowfall term. tethys migration: renamed from the misnamed snow_depth (source is WRF SNOWNC accumulated snowfall, ruling R3).",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "lwe_thickness_of_snowfall_amount",
+      "canonical_units": "m"
+     }
+    ]
+   }
+  },
+  "sodium": {
+   "source": "odm2",
+   "odm2_term": "sodium"
+  },
+  "sodium_adsorption_ratio": {
+   "source": "odm2",
+   "odm2_term": "sodiumAdsorptionRatio"
+  },
+  "sodium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "sodiumDissolved"
+  },
+  "sodium_fraction_of_cations": {
+   "source": "odm2",
+   "odm2_term": "sodiumFractionOfCations"
+  },
+  "sodium_plus_potassium": {
+   "source": "odm2",
+   "odm2_term": "sodiumPlusPotassium"
+  },
+  "sodium_total": {
+   "source": "odm2",
+   "odm2_term": "sodiumTotal"
+  },
+  "soil_aggregate_stability": {
+   "source": "odm2",
+   "odm2_term": "soilAggregateStability"
+  },
+  "soil_classification": {
+   "source": "odm2",
+   "odm2_term": "soilClassification"
+  },
+  "soil_coarse_fraction": {
+   "source": "odm2",
+   "odm2_term": "soilCoarseFraction"
+  },
+  "soil_depth": {
+   "source": "odm2",
+   "odm2_term": "soilDepth"
+  },
+  "soil_horizon": {
+   "source": "odm2",
+   "odm2_term": "soilHorizon"
+  },
+  "soil_organic_matter": {
+   "source": "odm2",
+   "odm2_term": "soilOrganicMatter"
+  },
+  "soil_organic_matter_density_fractionation": {
+   "source": "odm2",
+   "odm2_term": "soilOrganicMatterDensityFractionation"
+  },
+  "soil_respiration": {
+   "source": "odm2",
+   "odm2_term": "soilRespiration"
+  },
+  "soil_texture": {
+   "source": "odm2",
+   "odm2_term": "soilTexture"
+  },
+  "solids_fixed_suspended": {
+   "source": "odm2",
+   "odm2_term": "solidsFixedSuspended"
+  },
+  "solids_rixed_dissolved": {
+   "source": "odm2",
+   "odm2_term": "solidsRixedDissolved"
+  },
+  "solids_total": {
+   "source": "odm2",
+   "odm2_term": "solidsTotal"
+  },
+  "solids_total_dissolved": {
+   "source": "odm2",
+   "odm2_term": "solidsTotalDissolved"
+  },
+  "solids_total_fixed": {
+   "source": "odm2",
+   "odm2_term": "solidsTotalFixed"
+  },
+  "solids_total_suspended": {
+   "source": "odm2",
+   "odm2_term": "solidsTotalSuspended"
+  },
+  "solids_total_volatile": {
+   "source": "odm2",
+   "odm2_term": "solidsTotalVolatile"
+  },
+  "solids_volatile_dissolved": {
+   "source": "odm2",
+   "odm2_term": "solidsVolatileDissolved"
+  },
+  "solids_volatile_suspended": {
+   "source": "odm2",
+   "odm2_term": "solidsVolatileSuspended"
+  },
+  "spartina_alterniflora_coverage": {
+   "source": "odm2",
+   "odm2_term": "spartinaAlternifloraCoverage"
+  },
+  "spartina_spartinea_coverage": {
+   "source": "odm2",
+   "odm2_term": "spartinaSpartineaCoverage"
+  },
+  "specific_conductance": {
+   "source": "odm2",
+   "odm2_term": "specificConductance"
+  },
+  "specific_humidity": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for specific humidity (model/grid quantity).",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "specific_humidity",
+      "canonical_units": "1"
+     }
+    ]
+   }
+  },
+  "speed_of_sound": {
+   "source": "odm2",
+   "odm2_term": "speedOfSound"
+  },
+  "speed_over_ground": {
+   "source": "odm2",
+   "odm2_term": "speedOverGround"
+  },
+  "squalene": {
+   "source": "odm2",
+   "odm2_term": "squalene"
+  },
+  "streamflow": {
+   "source": "odm2",
+   "odm2_term": "streamflow",
+   "cf": {
+    "waterway": [
+     {
+      "standard_name": "water_volume_transport_in_river_channel",
+      "canonical_units": "m3 s-1"
+     }
+    ]
+   },
+   "notes": "tethys migration: naturalised_streamflow also maps here, with the naturalisation carried in product_code/method."
+  },
+  "streptococci_fecal": {
+   "source": "odm2",
+   "odm2_term": "streptococciFecal"
+  },
+  "strontium": {
+   "source": "odm2",
+   "odm2_term": "strontium"
+  },
+  "strontium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "strontiumDissolved"
+  },
+  "strontium_total": {
+   "source": "odm2",
+   "odm2_term": "strontiumTotal"
+  },
+  "styrene": {
+   "source": "odm2",
+   "odm2_term": "styrene"
+  },
+  "suaeda_linearis_coverage": {
+   "source": "odm2",
+   "odm2_term": "suaedaLinearisCoverage"
+  },
+  "suaeda_maritima_coverage": {
+   "source": "odm2",
+   "odm2_term": "suaedaMaritimaCoverage"
+  },
+  "sulfate": {
+   "source": "odm2",
+   "odm2_term": "sulfate"
+  },
+  "sulfate_dissolved": {
+   "source": "odm2",
+   "odm2_term": "sulfateDissolved"
+  },
+  "sulfate_total": {
+   "source": "odm2",
+   "odm2_term": "sulfateTotal"
+  },
+  "sulfide_dissolved": {
+   "source": "odm2",
+   "odm2_term": "sulfideDissolved"
+  },
+  "sulfide_total": {
+   "source": "odm2",
+   "odm2_term": "sulfideTotal"
+  },
+  "sulfur": {
+   "source": "odm2",
+   "odm2_term": "sulfur"
+  },
+  "sulfur_dioxide": {
+   "source": "odm2",
+   "odm2_term": "sulfurDioxide"
+  },
+  "sulfur_dissolved": {
+   "source": "odm2",
+   "odm2_term": "sulfurDissolved"
+  },
+  "sulfur_organic": {
+   "source": "odm2",
+   "odm2_term": "sulfurOrganic"
+  },
+  "sulfur_pyritic": {
+   "source": "odm2",
+   "odm2_term": "sulfurPyritic"
+  },
+  "sunshine_duration": {
+   "source": "odm2",
+   "odm2_term": "sunshineDuration"
+  },
+  "superoxide_dismutase_activity": {
+   "source": "odm2",
+   "odm2_term": "superoxideDismutaseActivity"
+  },
+  "superoxide_dismutase_delta_cycle_threshold": {
+   "source": "odm2",
+   "odm2_term": "superoxideDismutaseDeltaCycleThreshold"
+  },
+  "surface_emissivity": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "No ODM2 variablename for surface emissivity (model/grid quantity).",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "surface_longwave_emissivity",
+      "canonical_units": "1"
+     }
+    ]
+   }
+  },
+  "suva254": {
+   "source": "odm2",
+   "odm2_term": "SUVA254"
+  },
+  "suva280": {
+   "source": "odm2",
+   "odm2_term": "SUVA280"
+  },
+  "table_overrun_error_count": {
+   "source": "odm2",
+   "odm2_term": "tableOverrunErrorCount"
+  },
+  "tantalum": {
+   "source": "odm2",
+   "odm2_term": "tantalum"
+  },
+  "taxa_count": {
+   "source": "odm2",
+   "odm2_term": "taxaCount"
+  },
+  "tdrwaveform_relative_length": {
+   "source": "odm2",
+   "odm2_term": "TDRWaveformRelativeLength"
+  },
+  "technetium": {
+   "source": "odm2",
+   "odm2_term": "technetium"
+  },
+  "temperature": {
+   "source": "odm2",
+   "odm2_term": "temperature",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "air_temperature",
+      "canonical_units": "K"
+     }
+    ],
+    "soil": [
+     {
+      "standard_name": "soil_temperature",
+      "canonical_units": "K"
+     }
+    ],
+    "ocean": [
+     {
+      "standard_name": "sea_water_temperature",
+      "canonical_units": "K"
+     }
+    ],
+    "waterway": [],
+    "still_water": [],
+    "groundwater": []
+   },
+   "notes": "Freshwater bodies curate to none: CF water-body temperature exists only as sea_water_temperature (ocean-only rule R0)."
+  },
+  "temperature_change": {
+   "source": "odm2",
+   "odm2_term": "temperatureChange"
+  },
+  "temperature_datalogger": {
+   "source": "odm2",
+   "odm2_term": "temperatureDatalogger"
+  },
+  "temperature_dew_point": {
+   "source": "odm2",
+   "odm2_term": "temperatureDewPoint",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "dew_point_temperature",
+      "canonical_units": "K"
+     }
+    ]
+   }
+  },
+  "temperature_initial": {
+   "source": "odm2",
+   "odm2_term": "temperatureInitial"
+  },
+  "temperature_sensor": {
+   "source": "odm2",
+   "odm2_term": "temperatureSensor"
+  },
+  "temperature_transducer_signal": {
+   "source": "odm2",
+   "odm2_term": "temperatureTransducerSignal"
+  },
+  "terbium": {
+   "source": "odm2",
+   "odm2_term": "terbium"
+  },
+  "terbium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "terbiumDissolved"
+  },
+  "terbufos": {
+   "source": "odm2",
+   "odm2_term": "terbufos"
+  },
+  "terpineol": {
+   "source": "odm2",
+   "odm2_term": "terpineol"
+  },
+  "tert_amyl_methyl_ether": {
+   "source": "odm2",
+   "odm2_term": "tertAmylMethylEther"
+  },
+  "tertiary_butyl_alcohol": {
+   "source": "odm2",
+   "odm2_term": "tertiaryButylAlcohol"
+  },
+  "tetracene": {
+   "source": "odm2",
+   "odm2_term": "tetracene"
+  },
+  "tetrachloroethene": {
+   "source": "odm2",
+   "odm2_term": "tetrachloroethene"
+  },
+  "tetraethylene_glycol": {
+   "source": "odm2",
+   "odm2_term": "tetraethyleneGlycol"
+  },
+  "tetrahydrofuran": {
+   "source": "odm2",
+   "odm2_term": "tetrahydrofuran"
+  },
+  "tetramethylnaphthalene": {
+   "source": "odm2",
+   "odm2_term": "tetramethylnaphthalene"
+  },
+  "thallium": {
+   "source": "odm2",
+   "odm2_term": "thallium"
+  },
+  "thallium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "thalliumDissolved"
+  },
+  "thallium_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "thalliumDistributionCoefficient"
+  },
+  "thallium_particulate": {
+   "source": "odm2",
+   "odm2_term": "thalliumParticulate"
+  },
+  "thallium_total": {
+   "source": "odm2",
+   "odm2_term": "thalliumTotal"
+  },
+  "thorium": {
+   "source": "odm2",
+   "odm2_term": "thorium"
+  },
+  "thorium_228": {
+   "source": "odm2",
+   "odm2_term": "thorium_228"
+  },
+  "thorium_230": {
+   "source": "odm2",
+   "odm2_term": "thorium_230"
+  },
+  "thorium_232": {
+   "source": "odm2",
+   "odm2_term": "thorium_232"
+  },
+  "thorium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "thoriumDissolved"
+  },
+  "threshold": {
+   "source": "odm2",
+   "odm2_term": "threshold"
+  },
+  "throughfall": {
+   "source": "odm2",
+   "odm2_term": "throughfall"
+  },
+  "thswindex": {
+   "source": "odm2",
+   "odm2_term": "THSWIndex"
+  },
+  "thulium": {
+   "source": "odm2",
+   "odm2_term": "thulium"
+  },
+  "thulium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "thuliumDissolved"
+  },
+  "thwindex": {
+   "source": "odm2",
+   "odm2_term": "THWIndex"
+  },
+  "tide_stage": {
+   "source": "odm2",
+   "odm2_term": "tideStage"
+  },
+  "time_elapsed": {
+   "source": "odm2",
+   "odm2_term": "timeElapsed"
+  },
+  "time_stamp": {
+   "source": "odm2",
+   "odm2_term": "timeStamp"
+  },
+  "tin_dissolved": {
+   "source": "odm2",
+   "odm2_term": "tinDissolved"
+  },
+  "tin_total": {
+   "source": "odm2",
+   "odm2_term": "tinTotal"
+  },
+  "titanium": {
+   "source": "odm2",
+   "odm2_term": "titanium"
+  },
+  "titanium_dioxide": {
+   "source": "odm2",
+   "odm2_term": "titaniumDioxide"
+  },
+  "titanium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "titaniumDissolved"
+  },
+  "titanium_total": {
+   "source": "odm2",
+   "odm2_term": "titaniumTotal"
+  },
+  "toluene": {
+   "source": "odm2",
+   "odm2_term": "toluene"
+  },
+  "topographic_wetness_index": {
+   "source": "odm2",
+   "odm2_term": "topographicWetnessIndex"
+  },
+  "trans_1_2_dichloroethene": {
+   "source": "odm2",
+   "odm2_term": "trans_1_2_Dichloroethene"
+  },
+  "trans_1_3_dichloropropene": {
+   "source": "odm2",
+   "odm2_term": "trans_1_3_Dichloropropene"
+  },
+  "transient_species_coverage": {
+   "source": "odm2",
+   "odm2_term": "transientSpeciesCoverage"
+  },
+  "transpiration": {
+   "source": "odm2",
+   "odm2_term": "transpiration"
+  },
+  "tributoxyethyl_phosphate": {
+   "source": "odm2",
+   "odm2_term": "tributoxyethylPhosphate"
+  },
+  "trichloroethene": {
+   "source": "odm2",
+   "odm2_term": "trichloroethene"
+  },
+  "triethylene_glycol": {
+   "source": "odm2",
+   "odm2_term": "triethyleneGlycol"
+  },
+  "trifluralin": {
+   "source": "odm2",
+   "odm2_term": "trifluralin"
+  },
+  "triphenylene": {
+   "source": "odm2",
+   "odm2_term": "triphenylene"
+  },
+  "tritium_3_h_delta_tof_h2_o": {
+   "source": "odm2",
+   "odm2_term": "tritium_3H_DeltaTOfH2O"
+  },
+  "tsi": {
+   "source": "odm2",
+   "odm2_term": "TSI"
+  },
+  "turbidity": {
+   "source": "odm2",
+   "odm2_term": "turbidity",
+   "cf": {
+    "ocean": [
+     {
+      "standard_name": "sea_water_turbidity",
+      "canonical_units": "1"
+     }
+    ],
+    "waterway": [],
+    "still_water": []
+   }
+  },
+  "ultraviolet_radiation_dose": {
+   "source": "odm2",
+   "odm2_term": "ultravioletRadiationDose"
+  },
+  "ultraviolet_radiation_index": {
+   "source": "odm2",
+   "odm2_term": "ultravioletRadiationIndex"
+  },
+  "uranium": {
+   "source": "odm2",
+   "odm2_term": "uranium"
+  },
+  "uranium_234": {
+   "source": "odm2",
+   "odm2_term": "uranium_234"
+  },
+  "uranium_235": {
+   "source": "odm2",
+   "odm2_term": "uranium_235"
+  },
+  "uranium_238": {
+   "source": "odm2",
+   "odm2_term": "uranium_238"
+  },
+  "uranium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "uraniumDissolved"
+  },
+  "urea": {
+   "source": "odm2",
+   "odm2_term": "urea"
+  },
+  "urea_flux": {
+   "source": "odm2",
+   "odm2_term": "ureaFlux"
+  },
+  "vanadium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "vanadiumDissolved"
+  },
+  "vanadium_particulate": {
+   "source": "odm2",
+   "odm2_term": "vanadiumParticulate"
+  },
+  "vanadium_total": {
+   "source": "odm2",
+   "odm2_term": "vanadiumTotal"
+  },
+  "vapor_pressure": {
+   "source": "odm2",
+   "odm2_term": "vaporPressure"
+  },
+  "vapor_pressure_deficit": {
+   "source": "odm2",
+   "odm2_term": "vaporPressureDeficit"
+  },
+  "vegetation_type": {
+   "source": "odm2",
+   "odm2_term": "vegetationType"
+  },
+  "velocity": {
+   "source": "odm2",
+   "odm2_term": "velocity",
+   "cf": {
+    "waterway": []
+   },
+   "notes": "sea_water_speed / flood_water_speed are ocean/flood-scoped; no river velocity CF name."
+  },
+  "vermiculite": {
+   "source": "odm2",
+   "odm2_term": "vermiculite"
+  },
+  "vertical_dilution_of_precision": {
+   "source": "odm2",
+   "odm2_term": "verticalDilutionOfPrecision"
+  },
+  "visibility": {
+   "source": "odm2",
+   "odm2_term": "visibility"
+  },
+  "voltage": {
+   "source": "odm2",
+   "odm2_term": "voltage"
+  },
+  "volume": {
+   "source": "odm2",
+   "odm2_term": "volume"
+  },
+  "volumetric_water_content": {
+   "source": "odm2",
+   "odm2_term": "volumetricWaterContent",
+   "cf": {
+    "soil": [
+     {
+      "standard_name": "volume_fraction_of_condensed_water_in_soil",
+      "canonical_units": "1"
+     }
+    ]
+   }
+  },
+  "watchdog_error_count": {
+   "source": "odm2",
+   "odm2_term": "watchdogErrorCount"
+  },
+  "water_column_equivalent_height_absolute": {
+   "source": "odm2",
+   "odm2_term": "waterColumnEquivalentHeightAbsolute"
+  },
+  "water_column_equivalent_height_barometric": {
+   "source": "odm2",
+   "odm2_term": "waterColumnEquivalentHeightBarometric"
+  },
+  "water_content": {
+   "source": "odm2",
+   "odm2_term": "waterContent"
+  },
+  "water_depth": {
+   "source": "odm2",
+   "odm2_term": "waterDepth"
+  },
+  "water_depth_averaged": {
+   "source": "odm2",
+   "odm2_term": "waterDepthAveraged"
+  },
+  "water_flux": {
+   "source": "odm2",
+   "odm2_term": "waterFlux"
+  },
+  "water_level": {
+   "source": "odm2",
+   "odm2_term": "waterLevel",
+   "cf": {
+    "groundwater": [
+     {
+      "standard_name": "water_table_depth",
+      "canonical_units": "m"
+     },
+     {
+      "standard_name": "water_surface_height_above_reference_datum",
+      "canonical_units": "m"
+     }
+    ]
+   },
+   "notes": "water_table_depth for depth-to-water datasets; override with water_surface_height_above_reference_datum for elevation datasets."
+  },
+  "water_potential": {
+   "source": "odm2",
+   "odm2_term": "waterPotential"
+  },
+  "water_use": {
+   "source": "envlib",
+   "odm2_term": null,
+   "rationale": "ODM2 has only sector-specific waterUse<Sector> terms; envlib uses the sector-neutral quantity.",
+   "cf": {
+    "waterway": [],
+    "groundwater": []
+   }
+  },
+  "water_use_agriculture": {
+   "source": "odm2",
+   "odm2_term": "waterUseAgriculture"
+  },
+  "water_use_commercial_industrial_power": {
+   "source": "odm2",
+   "odm2_term": "waterUseCommercialIndustrialPower"
+  },
+  "water_use_domestic_wells": {
+   "source": "odm2",
+   "odm2_term": "waterUseDomesticWells"
+  },
+  "water_use_public_supply": {
+   "source": "odm2",
+   "odm2_term": "waterUsePublicSupply"
+  },
+  "water_use_recreation": {
+   "source": "odm2",
+   "odm2_term": "waterUseRecreation"
+  },
+  "water_vapor_concentration": {
+   "source": "odm2",
+   "odm2_term": "waterVaporConcentration"
+  },
+  "water_vapor_density": {
+   "source": "odm2",
+   "odm2_term": "waterVaporDensity"
+  },
+  "wave_height": {
+   "source": "odm2",
+   "odm2_term": "waveHeight"
+  },
+  "weather_conditions": {
+   "source": "odm2",
+   "odm2_term": "weatherConditions"
+  },
+  "well_flow_rate": {
+   "source": "odm2",
+   "odm2_term": "wellFlowRate"
+  },
+  "wellhead_pressure": {
+   "source": "odm2",
+   "odm2_term": "wellheadPressure"
+  },
+  "wind_chill": {
+   "source": "odm2",
+   "odm2_term": "windChill"
+  },
+  "wind_direction": {
+   "source": "odm2",
+   "odm2_term": "windDirection",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "wind_from_direction",
+      "canonical_units": "degree"
+     }
+    ]
+   }
+  },
+  "wind_gust_direction": {
+   "source": "odm2",
+   "odm2_term": "windGustDirection"
+  },
+  "wind_gust_speed": {
+   "source": "odm2",
+   "odm2_term": "windGustSpeed"
+  },
+  "wind_run": {
+   "source": "odm2",
+   "odm2_term": "windRun"
+  },
+  "wind_speed": {
+   "source": "odm2",
+   "odm2_term": "windSpeed",
+   "cf": {
+    "atmosphere": [
+     {
+      "standard_name": "wind_speed",
+      "canonical_units": "m s-1"
+     }
+    ]
+   }
+  },
+  "wind_stress": {
+   "source": "odm2",
+   "odm2_term": "windStress"
+  },
+  "wrack_coverage": {
+   "source": "odm2",
+   "odm2_term": "wrackCoverage"
+  },
+  "xylenes_total": {
+   "source": "odm2",
+   "odm2_term": "xylenesTotal"
+  },
+  "xylosidase": {
+   "source": "odm2",
+   "odm2_term": "xylosidase"
+  },
+  "ytterbium": {
+   "source": "odm2",
+   "odm2_term": "ytterbium"
+  },
+  "ytterbium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "ytterbiumDissolved"
+  },
+  "yttrium": {
+   "source": "odm2",
+   "odm2_term": "yttrium"
+  },
+  "yttrium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "yttriumDissolved"
+  },
+  "zeaxanthin": {
+   "source": "odm2",
+   "odm2_term": "zeaxanthin"
+  },
+  "zinc": {
+   "source": "odm2",
+   "odm2_term": "zinc"
+  },
+  "zinc_dissolved": {
+   "source": "odm2",
+   "odm2_term": "zincDissolved"
+  },
+  "zinc_distribution_coefficient": {
+   "source": "odm2",
+   "odm2_term": "zincDistributionCoefficient"
+  },
+  "zinc_particulate": {
+   "source": "odm2",
+   "odm2_term": "zincParticulate"
+  },
+  "zinc_total": {
+   "source": "odm2",
+   "odm2_term": "zincTotal"
+  },
+  "zircon_dissolved": {
+   "source": "odm2",
+   "odm2_term": "zirconDissolved"
+  },
+  "zirconium": {
+   "source": "odm2",
+   "odm2_term": "zirconium"
+  },
+  "zirconium_95": {
+   "source": "odm2",
+   "odm2_term": "zirconium_95"
+  },
+  "zirconium_dissolved": {
+   "source": "odm2",
+   "odm2_term": "zirconiumDissolved"
+  },
+  "zooplankton": {
+   "source": "odm2",
+   "odm2_term": "zooplankton"
+  }
+ }
+}
