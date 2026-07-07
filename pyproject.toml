@@ -130,8 +130,8 @@ requires = ["hatchling>=1.26.1"]
 build-backend = "hatchling.build"
 
 [project.urls]
-Documentation = "https://mullenkamp.github.io/envlib/"
-Source = "https://github.com/envlib"
+Documentation = "https://envlib.github.io/envlib/"
+Source = "https://github.com/envlib/envlib"
 
 [tool.hatch.build.targets.sdist]
 include = [

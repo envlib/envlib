@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Mapping
 from hashlib import blake2b
 from typing import cast
 
@@ -503,7 +504,7 @@ class Metadata:
         return out
 
     @classmethod
-    def from_attrs(cls, attrs, *, validate_cv: bool = True) -> Metadata:
+    def from_attrs(cls, attrs: Mapping, *, validate_cv: bool = True) -> Metadata:
         """Rebuild Metadata from ``envlib_``-prefixed attrs (``ds.attrs`` or a dict).
 
         Non-envlib keys are ignored. When ``envlib_dataset_version_id`` /

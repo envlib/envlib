@@ -293,7 +293,7 @@ def _refresh_variable(target_dir: pathlib.Path) -> dict:
     }
 
 
-def refresh(field: str | None = None, _target_dir=None) -> dict:
+def refresh(field: str | None = None, _target_dir: str | pathlib.Path | None = None) -> dict:
     """Refresh upstream-sourced vocabularies from their APIs.
 
     Fetches the ODM2 variablename list and/or the current CF standard-name table

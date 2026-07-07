@@ -368,7 +368,7 @@ def _decide_standard_name(ds, meta: Metadata) -> dict:
 
 
 def _validate_dataset(ds, *, validate_cv: bool) -> dict:
-    """Validate an open cfdb dataset against envlib requirements; extract everything.
+    """Validate an open cfdb file against envlib requirements; extract everything.
 
     Returns {'metadata', 'dataset_version_id', 'dataset_id', 'state', 'standard_name'}.
     Raises ValidationError on any failure. Never modifies the dataset.
@@ -443,7 +443,7 @@ def _apply_derived_attrs(ds, result: dict) -> bool:
 
 
 class DatasetRef:
-    """A catalogue entry: metadata plus how to open the dataset."""
+    """A catalogue entry: one dataset version's metadata, plus how to open its cfdb file."""
 
     def __init__(self, dataset_version_id: str, entry: dict, cache_dir: pathlib.Path):
         self._dataset_id = dataset_version_id
@@ -473,7 +473,7 @@ class DatasetRef:
         return repr(self.metadata)
 
     def open(self, file_path=None, access_key_id=None, access_key=None):
-        """Open the dataset as a cfdb EDataset (read-only).
+        """Open this dataset version's cfdb file as a read-only EDataset.
 
         Entries never store credentials. Public-HTTPS datasets open via their
         ``data_url`` with no credentials; for private buckets inject
@@ -516,6 +516,13 @@ class Catalogue:
     to re-pull after new registrations. When a remote is unreachable and a
     previously pulled local index exists, the catalogue degrades to the cached
     copy (with a warning) instead of failing.
+
+    Example:
+        >>> cat = Catalogue(remotes=['https://s3.example.com/bucket/catalogue.rcg'])
+        >>> cat.variables
+        ['streamflow', 'temperature']
+        >>> refs = cat.query(variable='temperature', feature='atmosphere')
+        >>> ds = refs[0].open()
     """
 
     def __init__(self, remotes=None, cache: str = DEFAULT_CACHE_DIR, *, include_public: bool = False):
@@ -776,7 +783,7 @@ class Catalogue:
         return result
 
     def register(self, remote_conn, rcg_remote_conn, **open_kwargs) -> dict:
-        """Register an already-remote cfdb dataset in the catalogue (no data push).
+        """Register an already-remote cfdb file in the catalogue (no data push).
 
         ``remote_conn`` must be writable (credentials): first registration
         writes the self-identification attrs (and any auto-populated
