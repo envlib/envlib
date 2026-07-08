@@ -35,8 +35,6 @@ envlib is a distributed database and catalogue for environmental datasets — gr
 pip install envlib
 ```
 
-(Not yet released to PyPI — install from source until 0.1.0 lands.)
-
 ## Quick example
 
 ```python

@@ -12,13 +12,6 @@ or with [uv](https://docs.astral.sh/uv/):
 uv add envlib
 ```
 
-!!! note
-    envlib has not been released to PyPI yet — until 0.1.0 lands, install from source:
-
-    ```bash
-    pip install git+https://github.com/envlib/envlib.git
-    ```
-
 ## What comes with it
 
 Installing envlib brings in the storage stack it is built on: [cfdb](https://github.com/mullenkamp/cfdb) (the CF-conventions array database each dataset is stored as), [ebooklet](https://github.com/mullenkamp/ebooklet)/[booklet](https://github.com/mullenkamp/booklet) (local + S3-synced key-value storage underneath cfdb and the catalogue index), plus [shapely](https://shapely.readthedocs.io/) and [pyproj](https://pyproj4.github.io/pyproj/) for geometry and reprojection.
