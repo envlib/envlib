@@ -15,7 +15,7 @@ Internally, in order: validate → write the derived attributes into the file (`
 - `rcg_conn` is the catalogue's own S3 location. A catalogue that doesn't exist yet is created on first publish.
 - `num_groups` tunes the S3 object layout for a **new** remote dataset (see [cfdb's S3 guide](https://mullenkamp.github.io/cfdb/guide/s3-remote/)); it's ignored for existing ones. **It's best to use a prime number**.
 
-**Failure handling**: if publish dies between the data push and the catalogue push, just run it again — the data push is idempotent and the entry write is an upsert.
+**Failure handling**: if publish dies between the data push and the catalogue push, just run it again — the data push is idempotent and the entry write is an upsert. If a push *partially* fails (some objects could not be transferred), publish raises a `RuntimeError` naming the failed keys rather than claiming success; the pending changes are retained, so fixing the cause and re-running completes the push. A `RemoteIntegrityError` means the remote store contradicts its own index (not a connectivity problem) — see the ebooklet changelog for the recovery recipe.
 
 **Updating a dataset** is the same call: append new time steps to your local file, `publish()` again. The catalogue entry's extents refresh; `modified_at` bumps *only if something actually changed* (a byte-identical re-publish is a no-op and leaves `modified_at` alone, so it stays a meaningful recency signal). `created_at` is set once, at first registration, forever.
 

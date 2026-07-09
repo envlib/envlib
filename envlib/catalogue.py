@@ -51,7 +51,24 @@ _QUERYABLE_FIELDS = frozenset(IDENTITY_FIELDS) | {'license', 'dataset_type', 'da
 # Errors that indicate the remote endpoint is unreachable (offline), as opposed
 # to a well-formed remote answer like 404: urllib3 raises MaxRetryError and
 # friends (all HTTPError subclasses) on DNS/connect/timeout failures.
+# CAUTION: ebooklet.RemoteIntegrityError also subclasses HTTPError but means
+# the remote CONTRADICTS ITS OWN INDEX (broken, not unreachable) - every
+# handler catching this tuple must re-raise it first.
 _OFFLINE_ERRORS = (urllib3.exceptions.HTTPError, ConnectionError, TimeoutError)
+
+
+def _raise_on_push_failure(result, context: str):
+    """ebooklet's push() returns True/False for updated/no-op, or a dict of
+    failed keys on partial failure (the pending changes are retained by
+    ebooklet for retry). A partial failure must never pass silently: publish/
+    deregister would claim success while the remote is not fully updated."""
+    if isinstance(result, dict) and result:
+        msg = (
+            f'{context}: the push partially failed and the remote was NOT fully updated. '
+            f'Failed keys: {result}. The pending changes are retained - fix the cause '
+            '(see the ebooklet changelog for the missing-object recovery recipe) and retry.'
+        )
+        raise RuntimeError(msg)
 
 
 def _public_rcg_url() -> str | None:
@@ -568,13 +585,30 @@ class Catalogue:
                 with ebooklet.open_rcg(source, path, flag='r') as rcg:
                     source_entries = {k: v for k, v in rcg.items() if _HEX24_RE.fullmatch(str(k))}
             except ValueError as err:
-                # ebooklet raises ValueError when the RCG does not exist on the
-                # remote yet (and no local copy exists) — the bootstrap case: a
-                # producer constructs the Catalogue before the first publish
-                # creates the RCG. Treat as an empty source, loudly.
-                warnings.warn(f'RCG source not readable yet ({err}); treating as empty.', stacklevel=2)
+                if 'UUID' in str(err):
+                    # The local cache identifies a DIFFERENT database than the
+                    # remote - the remote was likely deleted and recreated.
+                    # Distinct from the bootstrap case: the fix is deleting the
+                    # stale cache file, so say so instead of a generic warning.
+                    warnings.warn(
+                        f'RCG source identity mismatch ({err}); the remote was likely deleted and '
+                        f'recreated. Delete the stale cache at {path} to adopt the new remote. '
+                        'Treating this source as empty for now.',
+                        stacklevel=2,
+                    )
+                else:
+                    # ebooklet raises ValueError when the RCG does not exist on the
+                    # remote yet (and no local copy exists) — the bootstrap case: a
+                    # producer constructs the Catalogue before the first publish
+                    # creates the RCG. Treat as an empty source, loudly.
+                    warnings.warn(f'RCG source not readable yet ({err}); treating as empty.', stacklevel=2)
                 source_entries = {}
             except _OFFLINE_ERRORS as err:
+                if isinstance(err, ebooklet.RemoteIntegrityError):
+                    # The remote contradicts its own index (confirmed by ebooklet's
+                    # re-check) - this is a broken store, NOT connectivity trouble;
+                    # falling back to the cache would mask it as "offline" forever.
+                    raise
                 if not path.exists():
                     raise
                 warnings.warn(
@@ -777,7 +811,7 @@ class Catalogue:
             first_time = eds.attrs.get('envlib_dataset_version_id') is None
             result = _validate_dataset(eds, validate_cv=first_time)
             _apply_derived_attrs(eds, result)
-            eds.push()
+            _raise_on_push_failure(eds.push(), 'publish: pushing the dataset data')
 
         self._upsert_entry(rcg_remote_conn, member_conn, result)
         return result
@@ -854,7 +888,7 @@ class Catalogue:
                 with member_conn.open('w') as session:
                     session.delete_remote()
             del rcg[dataset_version_id]
-            rcg.changes().push()
+            _raise_on_push_failure(rcg.changes().push(), 'deregister: pushing the catalogue entry removal')
         self.refresh()
 
     # -- entry construction ----------------------------------------------------
@@ -878,7 +912,7 @@ class Catalogue:
 
             user_meta['modified_at'] = now
             rcg.add(member_conn, key=dataset_version_id, user_meta=user_meta)
-            rcg.changes().push()
+            _raise_on_push_failure(rcg.changes().push(), 'publish/register: pushing the catalogue entry')
         self.refresh()
 
 

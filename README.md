@@ -63,6 +63,8 @@ temp = ds['temperature']
 
 Producing data is the same library in the other direction: build a cfdb file, attach `envlib.Metadata`, and `cat.publish(...)` it — see the [documentation](https://envlib.github.io/envlib/) for the full guide.
 
+Changes between releases are tracked in the [changelog](https://envlib.github.io/envlib/changelog/).
+
 ## Development
 
 ### Setup environment
