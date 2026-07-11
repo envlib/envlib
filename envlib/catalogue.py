@@ -217,12 +217,6 @@ def _bbox_within_radius(stored, lon: float, lat: float, radius_km: float) -> boo
 # Dataset validation + State Metadata extraction
 
 
-def _sys_dataset_type(ds) -> str:
-    # cfdb 0.9.0 has no public dataset_type property (and open_edataset always
-    # returns the EGrid class), so the sys-metadata slot is the reliable source.
-    return ds._sys_meta.dataset_type.value
-
-
 def _coord_by_axis(ds, axis: str):
     for coord in ds.coords:
         ax = coord.axis
@@ -244,7 +238,7 @@ def _reproject_points(points, crs) -> list:
 
 def _extract_state(ds, meta: Metadata) -> dict:
     """Extract State Metadata (bbox, time range, steps, dataset_type) from an open dataset."""
-    dataset_type = _sys_dataset_type(ds)
+    dataset_type = ds.dataset_type
     crs = ds.crs
 
     time_coord = ds.get('time') if 'time' in ds.coord_names else None
@@ -419,7 +413,7 @@ def _validate_dataset(ds, *, validate_cv: bool) -> dict:
                 msg = f'declared ancillary variable {name!r} is not a data variable in the dataset.'
                 raise ValidationError(msg)
 
-    if _sys_dataset_type(ds) == 'ts_ortho':
+    if ds.dataset_type == 'ts_ortho':
         _check_stations(ds)
 
     state = _extract_state(ds, meta)

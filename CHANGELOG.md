@@ -5,7 +5,11 @@ envlib does not promise SemVer before 1.0 — minor versions may change behavior
 
 ## 0.1.1 (unreleased)
 
-Companion to ebooklet 0.9.3 (now required):
+Companion to ebooklet 0.9.3 and cfdb 0.9.1 (both now required):
+
+- **Station-time-series remotes now open as their real class**: cfdb 0.9.1 fixes
+  `open_edataset` for ts_ortho datasets, and envlib reads the new public
+  `dataset_type` property instead of cfdb's private sys-metadata.
 
 - **Publish/register/deregister raise on partial push failure** instead of silently
   claiming success: ebooklet's `push()` can return a dict of failed keys (the pending
