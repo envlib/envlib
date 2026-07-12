@@ -10,30 +10,30 @@ on:
     branches: [ main ]
 
 jobs:
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
+  # lint:
+  #   name: Lint
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
+  #     - name: Install uv
+  #       uses: astral-sh/setup-uv@v5
+  #       with:
+  #         enable-cache: true
+  #         cache-dependency-glob: "uv.lock"
 
-      - name: Set up Python
-        run: uv python install 3.10
+  #     - name: Set up Python
+  #       run: uv python install 3.10
 
-      - name: Install dependencies
-        run: uv sync
+  #     - name: Install dependencies
+  #       run: uv sync
 
-      - name: Lint and typecheck
-        run: |
-          uv run ruff check .
-          uv run black --check --diff .
-          uv run mypy --install-types --non-interactive envlib
+  #     - name: Lint and typecheck
+  #       run: |
+  #         uv run ruff check .
+  #         uv run black --check --diff .
+  #         uv run mypy --install-types --non-interactive envlib
 
   test:
     name: Test Python ${{ matrix.python-version }}

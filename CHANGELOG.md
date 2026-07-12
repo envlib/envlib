@@ -5,8 +5,14 @@ envlib does not promise SemVer before 1.0 — minor versions may change behavior
 
 ## 0.1.1 (unreleased)
 
-Companion to ebooklet 0.9.3 and cfdb 0.9.1 (both now required):
+Companion to ebooklet 0.9.6 and cfdb 0.9.1 (both now required):
 
+- **Requires ebooklet >= 0.9.6** for its critical delete-safety fixes:
+  previously, deleting data that emptied a storage group could destroy unrelated
+  sibling groups in the same dataset (reachable through cfdb chunk deletion),
+  deleting a remote whose key is a prefix of another's could destroy the sibling
+  (both 0.9.5), and deleting then re-creating the same key in one session silently
+  lost the key on push (0.9.6 — reachable through delete-then-republish flows).
 - **Station-time-series remotes now open as their real class**: cfdb 0.9.1 fixes
   `open_edataset` for ts_ortho datasets, and envlib reads the new public
   `dataset_type` property instead of cfdb's private sys-metadata.
