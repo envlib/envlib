@@ -426,20 +426,13 @@ def _write_fake_index(path, entries):
             blt[key] = value
 
 
-def test_read_cached_index_skips_non_entry_keys(tmp_path):
-    path = tmp_path / 'index.rcg'
-    entry = make_entry(_grid_meta())
-    _write_fake_index(path, {'a' * 24: entry, 'internal_meta_key': {'not': 'an entry'}})
-    result = cat_mod._read_cached_index(path)
-    assert list(result) == ['a' * 24]
-    assert result['a' * 24]['user_meta']['variable'] == 'temperature'
-
-
 def test_catalogue_offline_fallback(tmp_path):
+    """An unreachable remote with a cached index serves the cache offline
+    (ebooklet's offline='auto' fallback), applying the 24-hex entry filter."""
     url = 'https://envlib-test-nonexistent.invalid/rcg'
     cache_path = tmp_path / f'{cat_mod._conn_cache_key(url)}.rcg'
-    _write_fake_index(cache_path, {'a' * 24: make_entry(_grid_meta())})
-    with pytest.warns(UserWarning, match='operating offline'):
+    _write_fake_index(cache_path, {'a' * 24: make_entry(_grid_meta()), 'internal_meta_key': {'not': 'an entry'}})
+    with pytest.warns(UserWarning, match='unreachable'):
         cat = Catalogue(remotes=[url], cache=str(tmp_path))
     assert len(cat.datasets) == 1
     assert cat.datasets[0].variable == 'temperature'
@@ -447,14 +440,16 @@ def test_catalogue_offline_fallback(tmp_path):
 
 def test_catalogue_offline_without_cache_raises(tmp_path):
     url = 'https://envlib-test-nonexistent.invalid/rcg'
-    with pytest.raises(Exception, match=r'invalid|resolve|failed'):
-        Catalogue(remotes=[url], cache=str(tmp_path))
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        with pytest.raises(ebooklet.OfflineError):
+            Catalogue(remotes=[url], cache=str(tmp_path))
 
 
 def test_refresh_reraises_integrity_error_despite_cache(tmp_path, monkeypatch):
-    # ebooklet.RemoteIntegrityError subclasses HTTPError (an _OFFLINE_ERRORS
-    # member) but means the remote contradicts its own index - the offline-cache
-    # fallback must NOT swallow it (it would masquerade as 'operating offline').
+    # ebooklet.RemoteIntegrityError subclasses HTTPError but means the remote
+    # contradicts its own index - neither envlib's dispatch nor ebooklet's
+    # offline='auto' classifier may swallow it into the cache fallback.
     url = 'https://example.com/rcg'
     cache_path = tmp_path / f'{cat_mod._conn_cache_key(url)}.rcg'
     _write_fake_index(cache_path, {'a' * 24: make_entry(_grid_meta())})
@@ -471,7 +466,7 @@ def test_refresh_uuid_mismatch_warns_identity_not_bootstrap(tmp_path, monkeypatc
     url = 'https://example.com/rcg'
 
     def raise_uuid(*args, **kwargs):
-        raise ValueError('The local file has a different UUID than the remote file.')
+        raise ebooklet.UUIDMismatchError('The local file has a different UUID than the remote file.')
 
     monkeypatch.setattr(cat_mod.ebooklet, 'open_rcg', raise_uuid)
     with pytest.warns(UserWarning, match='identity mismatch'):
@@ -479,10 +474,26 @@ def test_refresh_uuid_mismatch_warns_identity_not_bootstrap(tmp_path, monkeypatc
     assert cat.datasets == []
 
 
+def test_refresh_unsupported_format_propagates(tmp_path, monkeypatch):
+    # PRE-FIX regression: the old blanket `except ValueError` swallowed
+    # UnsupportedFormatError (a ValueError subclass) and mislabeled it
+    # "RCG source not readable yet". A too-new remote format must raise loudly.
+    url = 'https://example.com/rcg'
+
+    def raise_format(*args, **kwargs):
+        raise ebooklet.UnsupportedFormatError("The remote's format_version 99 is newer than this ebooklet supports.")
+
+    monkeypatch.setattr(cat_mod.ebooklet, 'open_rcg', raise_format)
+    with pytest.raises(ebooklet.UnsupportedFormatError):
+        Catalogue(remotes=[url], cache=str(tmp_path))
+
+
 def test_raise_on_push_failure():
-    # True/False/empty-dict pass silently; a non-empty failure dict raises.
-    cat_mod._raise_on_push_failure(True, 'ctx')
-    cat_mod._raise_on_push_failure(False, 'ctx')
-    cat_mod._raise_on_push_failure({}, 'ctx')
+    # Clean results pass silently; any failures raise.
+    cat_mod._raise_on_push_failure(ebooklet.PushResult(updated=True, failures={}), 'ctx')
+    cat_mod._raise_on_push_failure(ebooklet.PushResult(updated=False, failures={}), 'ctx')
     with pytest.raises(RuntimeError, match='partially failed'):
-        cat_mod._raise_on_push_failure({'_group_3': 'injected'}, 'publish: pushing the dataset data')
+        cat_mod._raise_on_push_failure(
+            ebooklet.PushResult(updated=True, failures={'_group_3': 'HTTPError: injected'}),
+            'publish: pushing the dataset data',
+        )
