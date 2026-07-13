@@ -10,8 +10,11 @@ import pathlib
 
 try:
     import tomllib
-except ImportError:  # py3.10: no tomllib; live tests are dev-machine-only anyway
-    tomllib = None  # type: ignore[assignment]
+except ImportError:  # py3.10: no stdlib tomllib - fall back to tomli like the
+    try:              # other stack repos' tests (a silent None here made the
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ImportError:  # live tier silently skip on a 3.10 venv, 2026-07-09)
+        tomllib = None  # type: ignore[assignment]
 
 import cfdb
 import numpy as np

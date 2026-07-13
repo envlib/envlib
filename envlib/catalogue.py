@@ -10,7 +10,6 @@ is the authoritative metadata store; RCG entries are a derived index.
 from __future__ import annotations
 
 import datetime
-import json
 import os
 import pathlib
 import re
@@ -18,12 +17,10 @@ import urllib.parse
 import warnings
 from hashlib import blake2b
 
-import booklet
 import cfdb
 import ebooklet
 import pyproj
 import shapely
-import urllib3
 
 from envlib import vocabularies
 from envlib.metadata import (
@@ -48,10 +45,20 @@ _FULL_CIRCLE_DEG = 360.0
 
 _QUERYABLE_FIELDS = frozenset(IDENTITY_FIELDS) | {'license', 'dataset_type', 'dataset_version_id', 'dataset_id'}
 
-# Errors that indicate the remote endpoint is unreachable (offline), as opposed
-# to a well-formed remote answer like 404: urllib3 raises MaxRetryError and
-# friends (all HTTPError subclasses) on DNS/connect/timeout failures.
-_OFFLINE_ERRORS = (urllib3.exceptions.HTTPError, ConnectionError, TimeoutError)
+
+def _raise_on_push_failure(result, context: str):
+    """ebooklet's push() returns a PushResult; result.failures maps failed
+    keys to error strings (the pending changes are retained by ebooklet for
+    retry). A partial failure must never pass silently: publish/deregister
+    would claim success while the remote is not fully updated."""
+    if result.failures:
+        msg = (
+            f'{context}: the push partially failed and the remote was NOT fully updated. '
+            f'Failed keys: {result.failures}. The pending changes are retained - fix the '
+            'cause (see the ebooklet operations guide, docs/ops.md, for the recovery '
+            'recipes) and retry.'
+        )
+        raise RuntimeError(msg)
 
 
 def _public_rcg_url() -> str | None:
@@ -200,12 +207,6 @@ def _bbox_within_radius(stored, lon: float, lat: float, radius_km: float) -> boo
 # Dataset validation + State Metadata extraction
 
 
-def _sys_dataset_type(ds) -> str:
-    # cfdb 0.9.0 has no public dataset_type property (and open_edataset always
-    # returns the EGrid class), so the sys-metadata slot is the reliable source.
-    return ds._sys_meta.dataset_type.value
-
-
 def _coord_by_axis(ds, axis: str):
     for coord in ds.coords:
         ax = coord.axis
@@ -227,7 +228,7 @@ def _reproject_points(points, crs) -> list:
 
 def _extract_state(ds, meta: Metadata) -> dict:
     """Extract State Metadata (bbox, time range, steps, dataset_type) from an open dataset."""
-    dataset_type = _sys_dataset_type(ds)
+    dataset_type = ds.dataset_type
     crs = ds.crs
 
     time_coord = ds.get('time') if 'time' in ds.coord_names else None
@@ -402,7 +403,7 @@ def _validate_dataset(ds, *, validate_cv: bool) -> dict:
                 msg = f'declared ancillary variable {name!r} is not a data variable in the dataset.'
                 raise ValidationError(msg)
 
-    if _sys_dataset_type(ds) == 'ts_ortho':
+    if ds.dataset_type == 'ts_ortho':
         _check_stations(ds)
 
     state = _extract_state(ds, meta)
@@ -565,23 +566,34 @@ class Catalogue:
         for source in self._sources:
             path = self._rcg_cache_path(source)
             try:
-                with ebooklet.open_rcg(source, path, flag='r') as rcg:
+                # offline='auto': ebooklet falls back to the cached local index
+                # (with its own UserWarning) ONLY on transport-level
+                # unreachability. Everything else raises typed: a broken store
+                # (RemoteIntegrityError), an incompatible format
+                # (UnsupportedFormatError - pre-0.10 this was silently
+                # mislabeled "not readable yet" by a blanket ValueError catch),
+                # and unreachable-with-no-cache (OfflineError) all propagate.
+                with ebooklet.open_rcg(source, path, flag='r', offline='auto') as rcg:
                     source_entries = {k: v for k, v in rcg.items() if _HEX24_RE.fullmatch(str(k))}
-            except ValueError as err:
-                # ebooklet raises ValueError when the RCG does not exist on the
-                # remote yet (and no local copy exists) — the bootstrap case: a
-                # producer constructs the Catalogue before the first publish
-                # creates the RCG. Treat as an empty source, loudly.
-                warnings.warn(f'RCG source not readable yet ({err}); treating as empty.', stacklevel=2)
-                source_entries = {}
-            except _OFFLINE_ERRORS as err:
-                if not path.exists():
-                    raise
+            except ebooklet.UUIDMismatchError as err:
+                # The local cache identifies a DIFFERENT database than the
+                # remote - the remote was likely deleted and recreated.
+                # Distinct from the bootstrap case: the fix is deleting the
+                # stale cache file, so say so instead of a generic warning.
                 warnings.warn(
-                    f'RCG remote unreachable ({err!r}); operating offline from the cached index at {path}.',
+                    f'RCG source identity mismatch ({err}); the remote was likely deleted and '
+                    f'recreated. Delete the stale cache at {path} to adopt the new remote. '
+                    'Treating this source as empty for now.',
                     stacklevel=2,
                 )
-                source_entries = _read_cached_index(path)
+                source_entries = {}
+            except ebooklet.RemoteMissingError as err:
+                # The RCG does not exist on the remote yet (and no local copy
+                # exists) — the bootstrap case: a producer constructs the
+                # Catalogue before the first publish creates the RCG. Treat as
+                # an empty source, loudly.
+                warnings.warn(f'RCG source not readable yet ({err}); treating as empty.', stacklevel=2)
+                source_entries = {}
             for key, entry in source_entries.items():
                 entries.setdefault(key, entry)  # first configured source wins on duplicates
         self._entries = entries
@@ -777,7 +789,7 @@ class Catalogue:
             first_time = eds.attrs.get('envlib_dataset_version_id') is None
             result = _validate_dataset(eds, validate_cv=first_time)
             _apply_derived_attrs(eds, result)
-            eds.push()
+            _raise_on_push_failure(eds.push(), 'publish: pushing the dataset data')
 
         self._upsert_entry(rcg_remote_conn, member_conn, result)
         return result
@@ -795,7 +807,7 @@ class Catalogue:
             first_time = eds.attrs.get('envlib_dataset_version_id') is None
             result = _validate_dataset(eds, validate_cv=first_time)
             if _apply_derived_attrs(eds, result):
-                eds.push()
+                _raise_on_push_failure(eds.push(), 'register: pushing the self-identification attrs')
 
         self._upsert_entry(rcg_remote_conn, member_conn, result)
         return result
@@ -827,8 +839,7 @@ class Catalogue:
                 target_conn = entry.get('remote_conn') or {}
                 target = (target_conn.get('endpoint_url'), target_conn.get('bucket'), target_conn.get('db_key'))
                 # list() first: fetching entries while iterating keys() would
-                # deadlock on the underlying booklet thread lock (see
-                # _read_cached_index).
+                # deadlock on the underlying booklet thread lock.
                 for other_key in list(rcg.keys()):
                     if other_key == dataset_version_id or not _HEX24_RE.fullmatch(str(other_key)):
                         continue
@@ -854,7 +865,7 @@ class Catalogue:
                 with member_conn.open('w') as session:
                     session.delete_remote()
             del rcg[dataset_version_id]
-            rcg.changes().push()
+            _raise_on_push_failure(rcg.changes().push(), 'deregister: pushing the catalogue entry removal')
         self.refresh()
 
     # -- entry construction ----------------------------------------------------
@@ -878,7 +889,7 @@ class Catalogue:
 
             user_meta['modified_at'] = now
             rcg.add(member_conn, key=dataset_version_id, user_meta=user_meta)
-            rcg.changes().push()
+            _raise_on_push_failure(rcg.changes().push(), 'publish/register: pushing the catalogue entry')
         self.refresh()
 
 
@@ -944,34 +955,3 @@ def _created_at(ref: DatasetRef) -> datetime.datetime:
     if value is None:
         return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
     return _parse_iso(value)
-
-
-def _read_cached_index(path: pathlib.Path) -> dict:
-    """Offline fallback: read a previously pulled RCG index directly with booklet.
-
-    Booklet files are self-describing (serializers stored in-file), so entries
-    decode without parameters. envlib entries are keyed by 24-hex dataset_ids;
-    everything else (ebooklet-internal keys) is skipped. Values that fail to
-    decode as entry dicts are skipped too.
-    """
-    entries: dict = {}
-    with booklet.open(path, 'r') as blt:
-        # materialize keys() BEFORE fetching: booklet's keys() generator holds
-        # the file's thread lock across yields, so a get() inside the loop
-        # deadlocks (single-threaded) — found via the hung offline test.
-        for key in list(blt.keys()):
-            key_str = key.decode() if isinstance(key, bytes) else str(key)
-            if not _HEX24_RE.fullmatch(key_str):
-                continue
-            try:
-                value = blt[key]
-            except (KeyError, ValueError):
-                continue
-            if isinstance(value, bytes):
-                try:
-                    value = json.loads(value)
-                except ValueError:
-                    continue
-            if isinstance(value, dict) and 'remote_conn' in value:
-                entries[key_str] = value
-    return entries
