@@ -11,7 +11,7 @@ cat = envlib.Catalogue()
 ```
 
 !!! note
-    The public commons is **not hosted yet**; until it is, a bare `Catalogue()` raises with instructions, and the `ENVLIB_PUBLIC_RCG_URL` environment variable can point at any stand-in.
+    A bare `Catalogue()` connects to the public envlib commons (read-only, no credentials) at `https://b2.envlib.xyz/file/envlib/envlib-commons/catalogue`. The `ENVLIB_PUBLIC_RCG_URL` environment variable overrides the default — useful for stand-ins, testing, or mirrors.
 
 Any other catalogue — an agency's, a research group's, your own — is addressed by location. For a publicly hosted index that's just its HTTPS URL, still credential-free:
 

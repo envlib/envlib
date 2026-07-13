@@ -3,6 +3,14 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
+## 0.1.2 (2026-07-13)
+
+- **The public envlib commons is live, and a bare `Catalogue()` now connects to it** —
+  read-only, credential-less, at `https://b2.envlib.xyz/file/envlib/envlib-commons/catalogue`
+  (baked in as the default; the `ENVLIB_PUBLIC_RCG_URL` environment variable still
+  overrides it for stand-ins, testing, or mirrors). The catalogue starts empty — the
+  tethys production datasets migrate in next.
+
 ## 0.1.1 (2026-07-13)
 
 Companion to ebooklet 0.10.0 and cfdb 0.9.1 (both now required):

@@ -408,14 +408,26 @@ def test_datasetref_open_requires_url_or_credentials(query_cat, tmp_path):
 # public RCG default + offline fallback
 
 
-def test_bare_catalogue_without_public_rcg_raises(monkeypatch):
+def test_public_rcg_default_and_override(monkeypatch):
+    # The commons URL is baked in; the env var overrides it.
     monkeypatch.delenv(cat_mod.PUBLIC_RCG_ENV_VAR, raising=False)
+    assert cat_mod._public_rcg_url() == cat_mod.PUBLIC_RCG_URL
+    assert cat_mod.PUBLIC_RCG_URL.startswith('https://')
+    monkeypatch.setenv(cat_mod.PUBLIC_RCG_ENV_VAR, 'https://example.com/standin')
+    assert cat_mod._public_rcg_url() == 'https://example.com/standin'
+
+
+def test_bare_catalogue_without_public_rcg_raises(monkeypatch):
+    # Guard path: only reachable with the baked default nulled out.
+    monkeypatch.delenv(cat_mod.PUBLIC_RCG_ENV_VAR, raising=False)
+    monkeypatch.setattr(cat_mod, 'PUBLIC_RCG_URL', None)
     with pytest.raises(ValueError, match='public envlib RCG'):
         Catalogue()
 
 
 def test_include_public_without_public_rcg_raises(monkeypatch, tmp_path):
     monkeypatch.delenv(cat_mod.PUBLIC_RCG_ENV_VAR, raising=False)
+    monkeypatch.setattr(cat_mod, 'PUBLIC_RCG_URL', None)
     with pytest.raises(ValueError, match='include_public'):
         Catalogue(remotes=['https://example.com/rcg'], cache=str(tmp_path), include_public=True)
 
