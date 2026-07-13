@@ -31,9 +31,10 @@ from envlib.metadata import (
     compute_station_id,
 )
 
-# The hardcoded public RCG URL. None until the public commons is hosted —
-# overridable (and currently only usable) via the env var below.
-PUBLIC_RCG_URL: str | None = None
+# The public envlib commons catalogue (read-only, credential-less HTTPS; a
+# custom domain fronting the hosting bucket, so the URL outlives any bucket
+# move). The env var below overrides it (stand-ins, testing, mirrors).
+PUBLIC_RCG_URL: str | None = 'https://b2.envlib.xyz/file/envlib/envlib-commons/catalogue'
 PUBLIC_RCG_ENV_VAR = 'ENVLIB_PUBLIC_RCG_URL'
 DEFAULT_CACHE_DIR = '~/.envlib/cache'
 
@@ -535,7 +536,7 @@ class Catalogue:
             public = _public_rcg_url()
             if public is None:
                 msg = (
-                    'the public envlib RCG is not hosted yet — pass remotes=[...] '
+                    'no public envlib RCG is configured — pass remotes=[...] '
                     f'or set the {PUBLIC_RCG_ENV_VAR} environment variable.'
                 )
                 raise ValueError(msg)
