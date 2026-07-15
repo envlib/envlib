@@ -19,6 +19,14 @@ Internally, in order: validate → write the derived attributes into the file (`
 
 **Updating a dataset** is the same call: append new time steps to your local file, `publish()` again. The catalogue entry's extents refresh; `modified_at` bumps *only if something actually changed* (a byte-identical re-publish is a no-op and leaves `modified_at` alone, so it stays a meaningful recency signal). `created_at` is set once, at first registration, forever.
 
+**Watching a large push** (ebooklet ≥ 0.10.1): the upload narrates itself on the `ebooklet.push` logger — per-group records with cumulative rate and ETA, plus exact upfront totals. Opt in before calling `publish()`:
+
+```python
+import logging
+logging.basicConfig()
+logging.getLogger('ebooklet.push').setLevel(logging.INFO)
+```
+
 ## register() — data pushed outside envlib
 
 If a pipeline already manages the S3 side (or you're cataloguing legacy remote data), `register()` does everything publish does *except* the data push:
