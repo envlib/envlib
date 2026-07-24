@@ -9,15 +9,25 @@ cat = envlib.Catalogue(remotes=[rcg_conn])
 cat.publish('era5_temp_v1.cfdb', data_conn, rcg_conn, num_groups=101)
 ```
 
-Internally, in order: validate → write the derived attributes into the file (`envlib_dataset_id`, `envlib_dataset_version_id`, and the auto-populated `standard_name`) → push the cfdb data → write the catalogue entry → push the catalogue. The data goes up **before** the entry, so the catalogue never references incomplete data.
+Internally, in order: validate → write the derived attributes into the file (`envlib_dataset_id`, `envlib_dataset_version_id`, and the auto-populated `standard_name`) → push the cfdb data → verify the pushed objects → write the catalogue entry → push the catalogue. The data goes up **before** the entry, so the catalogue never references incomplete data.
 
 - `data_conn` is where the dataset lives (an `ebooklet.S3Connection` with your credentials). Set its `db_url` to the dataset's public HTTPS location if you host it publicly — that URL rides into the entry as `data_url` so consumers can open the dataset credential-free. It must be a *plain* public URL: no `user:pass@`, no query string (presigned URLs are rejected — their signatures must never land in a catalogue).
 - `rcg_conn` is the catalogue's own S3 location. A catalogue that doesn't exist yet is created on first publish.
 - `num_groups` tunes the S3 object layout for a **new** remote dataset (see [cfdb's S3 guide](https://mullenkamp.github.io/cfdb/guide/s3-remote/)); it's ignored for existing ones. **It's best to use a prime number**.
 
-**Failure handling**: if publish dies between the data push and the catalogue push, just run it again — the data push is idempotent and the entry write is an upsert. If a push *partially* fails (some objects could not be transferred), publish raises a `RuntimeError` naming the failed keys rather than claiming success; the pending changes are retained, so fixing the cause and re-running completes the push. A `RemoteIntegrityError` means the remote store contradicts its own index (not a connectivity problem) — see the ebooklet changelog for the recovery recipe.
+**Failure handling & object verification**: if publish dies between the data push and the catalogue write, just run it again — the data push is idempotent and the entry write is an upsert. A *partial* push failure (some objects could not be transferred) raises a `RuntimeError` naming the failed keys rather than claiming success; the pending changes are retained, so fixing the cause and re-running completes it.
+
+By default (`verify_objects=True`), publish also **verifies the pushed remote before writing the catalogue entry** — it fscks the member store and raises `PublishIntegrityError` if the committed index references objects that aren't actually there (a *silent over-claim*: e.g. a storage layer that reported success for an upload that never durably landed). This keeps a broken dataset from ever being advertised. Unlike a partial-push `RuntimeError`, this is **not** healed by a plain re-run (the push changelog is a timestamp diff, empty once the bad generation is committed) — recover by retracting (`deregister(..., delete_data=True)`) and doing a full republish. Because the check **lists** the member store, the member credentials must allow **LIST** (`ListBucket` on S3, `listFiles` on B2) alongside PUT/GET/HEAD/DELETE — a write-only key fails loud here. Pass `verify_objects=False` to skip it. (A reader that opens a still-inconsistent remote gets `RemoteIntegrityError`; the verify is what stops most of those from being published in the first place.)
 
 **Updating a dataset** is the same call: append new time steps to your local file, `publish()` again. The catalogue entry's extents refresh; `modified_at` bumps *only if something actually changed* (a byte-identical re-publish is a no-op and leaves `modified_at` alone, so it stays a meaningful recency signal). `created_at` is set once, at first registration, forever.
+
+**Watching a large push** (ebooklet ≥ 0.10.1): the upload narrates itself on the `ebooklet.push` logger — per-group records with cumulative rate and ETA, plus exact upfront totals. Opt in before calling `publish()`:
+
+```python
+import logging
+logging.basicConfig()
+logging.getLogger('ebooklet.push').setLevel(logging.INFO)
+```
 
 ## register() — data pushed outside envlib
 

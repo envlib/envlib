@@ -27,6 +27,7 @@ from envlib.metadata import (
     GENERAL_FIELDS,
     IDENTITY_FIELDS,
     Metadata,
+    PublishIntegrityError,
     ValidationError,
     compute_station_id,
 )
@@ -60,6 +61,34 @@ def _raise_on_push_failure(result, context: str):
             'recipes) and retry.'
         )
         raise RuntimeError(msg)
+
+
+def _verify_remote_objects(member_conn: ebooklet.S3Connection) -> None:
+    """Confirm the just-pushed remote's committed index matches the objects
+    actually in the store, BEFORE the catalogue entry is written.
+
+    A push can report success while some objects never durably landed (a
+    2xx-without-persist), leaving the index referencing objects the store does
+    not have - a silent over-claim that only surfaces later as a reader's
+    RemoteIntegrityError. fsck lists the remote and compares it to the index; any
+    mismatch means we must NOT advertise the dataset. Raises PublishIntegrityError
+    (a plain re-run does NOT heal it - see the message)."""
+    rep = ebooklet.fsck(member_conn, check_objects=True)
+    problems = []
+    if not rep.db_object_exists:
+        problems.append('no db object was committed')
+    if rep.claimed_but_missing:
+        problems.append(f'{len(rep.claimed_but_missing)} referenced object(s) missing from the store')
+    if rep.unmanifested_group_ids:
+        problems.append(f'{len(rep.unmanifested_group_ids)} index group(s) absent from the manifest')
+    if problems:
+        raise PublishIntegrityError(
+            f'refusing to register {member_conn.db_key!r}: the pushed remote is inconsistent '
+            f'({"; ".join(problems)}). A plain re-run will NOT heal this - the push changelog is a '
+            'timestamp diff (empty once the bad generation is committed) and a fresh rebuild raises '
+            'UUIDMismatchError; recover by retracting the dataset (deregister with delete_data=True) '
+            f'and doing a full republish. Missing sample: {list(rep.claimed_but_missing)[:10]}'
+        )
 
 
 def _public_rcg_url() -> str | None:
@@ -768,12 +797,19 @@ class Catalogue:
         with cfdb.open_dataset(local_cfdb_path) as ds:
             return _validate_dataset(ds, validate_cv=True)
 
-    def publish(self, local_cfdb_path, remote_conn, rcg_remote_conn, num_groups=None, **open_kwargs) -> dict:
-        """Validate, push the cfdb data to its S3 remote, then register it in the RCG.
+    def publish(
+        self, local_cfdb_path, remote_conn, rcg_remote_conn, num_groups=None, verify_objects: bool = True, **open_kwargs
+    ) -> dict:
+        """Validate, push the cfdb data to its S3 remote, verify it, then register it in the RCG.
 
         The cfdb data is pushed BEFORE the RCG entry so the catalogue never
-        references incomplete remote data. Re-running after a partial failure
-        is safe (the push is idempotent; the entry write is an upsert).
+        references incomplete remote data. With ``verify_objects`` (default True),
+        after the push and before the entry is written the remote is fsck'd, and a
+        silent over-claim (the committed index references objects the store does not
+        actually hold) raises ``PublishIntegrityError`` so a broken dataset is never
+        advertised. A re-run after a LOUD push failure is safe (idempotent push,
+        upsert entry); a re-run after a SILENT over-claim does NOT heal it - recover
+        by retract + full republish (see ``_verify_remote_objects``).
         """
         member_conn = _as_connection(remote_conn)
         edataset_kwargs = dict(open_kwargs)
@@ -792,10 +828,12 @@ class Catalogue:
             _apply_derived_attrs(eds, result)
             _raise_on_push_failure(eds.push(), 'publish: pushing the dataset data')
 
+        if verify_objects:
+            _verify_remote_objects(member_conn)
         self._upsert_entry(rcg_remote_conn, member_conn, result)
         return result
 
-    def register(self, remote_conn, rcg_remote_conn, **open_kwargs) -> dict:
+    def register(self, remote_conn, rcg_remote_conn, verify_objects: bool = True, **open_kwargs) -> dict:
         """Register an already-remote cfdb file in the catalogue (no data push).
 
         ``remote_conn`` must be writable (credentials): first registration
@@ -810,6 +848,8 @@ class Catalogue:
             if _apply_derived_attrs(eds, result):
                 _raise_on_push_failure(eds.push(), 'register: pushing the self-identification attrs')
 
+        if verify_objects:
+            _verify_remote_objects(member_conn)
         self._upsert_entry(rcg_remote_conn, member_conn, result)
         return result
 

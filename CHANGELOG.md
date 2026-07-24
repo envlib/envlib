@@ -3,6 +3,24 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
+## 0.1.3 (2026-07-25)
+
+- **Publish now verifies the pushed objects before advertising the dataset.** `publish()`
+  and `register()` fsck the member remote between the data push and the catalogue entry
+  write (default `verify_objects=True`), and raise the new `PublishIntegrityError` if the
+  committed index references objects that are not actually in the store — a *silent
+  over-claim* (e.g. a storage layer that reported success for an upload that never durably
+  landed). This closes a gap where such a dataset was advertised and served broken until a
+  reader hit `RemoteIntegrityError`. The check runs on **every** publish (a broken remote
+  must never be registered on any path) and adds one object listing per publish.
+  `PublishIntegrityError` is a `ValidationError` (a `ValueError`), deliberately **not**
+  ebooklet's `urllib3.HTTPError`-based `RemoteIntegrityError`, so a transport-retry wrapper
+  cannot mistake a permanent integrity fault for a transient one. Recovery from an
+  over-claim is **retract + full republish** (`deregister(..., delete_data=True)` then
+  publish) — a plain re-run does **not** heal it. **Member credentials now need LIST**
+  (`ListBucket` on S3, `listFiles` on B2) in addition to PUT/GET/HEAD/DELETE; a write-only
+  key fails loud on the verify. Pass `verify_objects=False` to opt out.
+
 ## 0.1.2 (2026-07-13)
 
 - **The public envlib commons is live, and a bare `Catalogue()` now connects to it** —
