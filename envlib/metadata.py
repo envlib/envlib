@@ -72,6 +72,18 @@ class ValidationError(ValueError):
     """
 
 
+class PublishIntegrityError(ValidationError):
+    """Raised when a just-pushed remote is internally inconsistent — its committed
+    index references objects that are not actually in the store (a silent
+    over-claim). A publish refuses to register such a dataset, so the catalogue
+    never advertises broken data.
+
+    Deliberately NOT an ``ebooklet.RemoteIntegrityError`` (which subclasses
+    ``urllib3.exceptions.HTTPError``): a transport-retry wrapper must not mistake
+    this permanent integrity fault for a transient network error and retry it.
+    """
+
+
 ###################################################
 # Field validators (pure functions; return the normalized value or raise)
 
