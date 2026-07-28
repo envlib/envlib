@@ -602,7 +602,7 @@ dev = [
 requires-dist = [
     { name = "booklet", specifier = ">=0.12.6" },
     { name = "cfdb", specifier = ">=0.9.1" },
-    { name = "ebooklet", specifier = ">=0.10.0" },
+    { name = "ebooklet", specifier = ">=0.10.3" },
     { name = "pyproj" },
     { name = "shapely", specifier = ">=2.0" },
     { name = "urllib3" },
