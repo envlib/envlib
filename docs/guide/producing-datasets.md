@@ -118,7 +118,9 @@ meta = envlib.Metadata(
     license='CC-BY-4.0', attribution='Environment Canterbury',
 )
 
-points = [shapely.Point(172.5, -43.5), shapely.Point(171.9, -43.1)]     # EPSG:4326
+# CANONICALIZE before storing — never append raw source coordinates    # (2)
+points = [envlib.canonical_station_point(p) for p in                    # EPSG:4326
+          (shapely.Point(172.5, -43.5), shapely.Point(171.9, -43.1))]
 times = np.arange('2020-01-01T00', '2020-01-02T00', dtype='datetime64[h]')
 
 with cfdb.open_dataset('ecan_flow_v1.cfdb', flag='n', dataset_type='ts_ortho') as ds:
@@ -139,6 +141,8 @@ with cfdb.open_dataset('ecan_flow_v1.cfdb', flag='n', dataset_type='ts_ortho') a
 ```
 
 **(1)** `compute_station_id` rounds the point to 5 decimal places (~1 m) and hashes it; `validate()` recomputes and compares, so a wrong or stale id fails loudly. Points must be 2D shapely Points in EPSG:4326 (envlib reprojects for you at validation if the dataset's CRS differs; a z coordinate is ignored for identity).
+
+**(2)** **Store the canonical point, not the raw one.** `validate()` re-derives each id from the geometry *as stored*, and cfdb re-rounds a point when it writes it — it encodes with `shapely.to_wkt(..., rounding_precision=5)`, which rounds the shortest decimal *string* half-to-even, whereas `compute_station_id` rounds the underlying *binary* value. On roughly 9% of coordinates given to 6 decimal places the two disagree, and the dataset then fails validation forever with `'station_id' values do not match the envlib derivation` — the id is right, the stored geometry moved. `canonical_station_point` returns exactly the point the id hashes, so once it is stored the round-trip is stable. It is idempotent and never changes an id, so applying it to points that are already 5 dp (or fewer) costs nothing. Added in envlib 0.1.4, after a live publish failed this way.
 
 Optional station attribute variables envlib recognizes (all shaped `(point,)`): `station_name`, `surface_altitude` (the ground level at the station — distinct from a vertical *measurement* axis, which is a cfdb coord named `altitude`/`height`/`depth`), and `operator` (when it differs from the dataset `owner`). Add any others you need; envlib doesn't constrain them.
 

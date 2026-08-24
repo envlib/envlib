@@ -362,10 +362,16 @@ def _check_stations(ds):
     stored = [str(v) for v in sid_var.data]
     if stored != expected:
         first_bad = next(i for i, (s, e) in enumerate(zip(stored, expected, strict=True)) if s != e)
+        bad_point = points[first_bad]
         msg = (
             f'{STATION_ID_VAR!r} values do not match the envlib derivation (first mismatch at index '
-            f'{first_bad}: stored {stored[first_bad]!r}, derived {expected[first_bad]!r}). '
-            f'Use envlib.compute_station_id on the EPSG:4326 station points.'
+            f'{first_bad}: stored {stored[first_bad]!r}, derived {expected[first_bad]!r} from the '
+            f'STORED geometry ({bad_point.x}, {bad_point.y})). The stored GEOMETRY is the usual '
+            f'culprit here, not the id: a store may re-round a point as it writes it (cfdb encodes '
+            f'point coordinates at 5 decimal places), so a point that derived the stored id before '
+            f'the write no longer derives it after. Pass station points through '
+            f'envlib.canonical_station_point BEFORE writing them to the geometry coordinate, so '
+            f'what is stored is already canonical and the round-trip is stable.'
         )
         raise ValidationError(msg)
 

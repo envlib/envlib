@@ -11,7 +11,7 @@ import shapely
 
 from envlib import catalogue as cat_mod
 from envlib.catalogue import Catalogue, ValidationError
-from envlib.metadata import compute_station_id
+from envlib.metadata import canonical_station_point, compute_station_id
 from envlib.tests.conftest import DEFAULT_POINTS, build_grid, build_ts
 
 
@@ -155,6 +155,33 @@ def test_validate_ts_wrong_station_id(tmp_path):
     build_ts(tmp_path / 't.cfdb', station_ids=sids)
     with pytest.raises(ValidationError, match='do not match'):
         make_catalogue().validate(tmp_path / 't.cfdb')
+
+
+# A 6-dp coordinate on which cfdb's WKT writer and compute_station_id round the 5th decimal
+# in opposite directions (ECan site 68839; a live publish failed on it 2026-08-24). Every
+# other point fixture here is 1-2 dp, hence exactly representable at 5 dp and blind to this.
+SIXDP_POINTS = [shapely.Point(171.1091, -43.631905)]
+
+
+def test_validate_ts_raw_six_dp_point_is_rejected(tmp_path):
+    # the defect itself, at the layer that catches it: storing the RAW point means cfdb
+    # re-rounds it on write, and the stored geometry no longer derives the stored id.
+    build_ts(tmp_path / 't.cfdb', points=SIXDP_POINTS)
+    with pytest.raises(ValidationError, match='do not match'):
+        make_catalogue().validate(tmp_path / 't.cfdb')
+
+
+def test_validate_ts_canonicalised_six_dp_point_is_accepted(tmp_path):
+    # ...and the fix: a producer that canonicalises before writing round-trips cleanly.
+    canonical = [canonical_station_point(p) for p in SIXDP_POINTS]
+    build_ts(tmp_path / 't.cfdb', points=canonical)
+    result = make_catalogue().validate(tmp_path / 't.cfdb')
+    assert result['state']['dataset_type'] == 'ts_ortho'
+    # the id is unchanged by canonicalisation — that is what makes this fix a no-op for
+    # every station already published
+    assert compute_station_id(canonical[0]) == compute_station_id(SIXDP_POINTS[0])
+    # bbox comes back CANONICAL, not raw: -43.63191, never the -43.631905 that went in
+    assert result['state']['bbox'][1] == pytest.approx(-43.63191, abs=1e-9)
 
 
 def test_validate_ts_spatial_resolution_must_be_point(tmp_path):

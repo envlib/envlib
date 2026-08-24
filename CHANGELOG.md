@@ -3,6 +3,36 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
+## 0.1.4 (2026-08-25)
+
+- **New `envlib.canonical_station_point()` — producers must store the point it returns, not
+  the raw one.** A store that re-rounds a geometry as it writes it will hold a point that no
+  longer derives the `station_id` written beside it, and the dataset then fails `validate()`
+  forever with `'station_id' values do not match the envlib derivation`. cfdb is such a
+  store: it encodes point coordinates with `shapely.to_wkt(..., rounding_precision=5)`,
+  whose `trim=True` default rounds the shortest decimal **string** half-to-even, while
+  `compute_station_id` rounds the underlying **binary** value via `wkt.dumps` (`trim=False`).
+  The two disagree on roughly 9% of coordinates supplied to 6 decimal places — in every case
+  an ordinate whose shortest representation ends in a trailing `5` past the 5th decimal, for
+  which the decimal string is exactly halfway and the binary value is not. A canonical point
+  has no 6th decimal left to round, so the store's round-trip becomes a fixed point. Verified
+  over 2.42 M exhaustive lattice values plus poles, antimeridian, signed zero, subnormals and
+  magnitudes to 1e300: zero round-trip failures. Found when a live ECan station at
+  `(171.1091, -43.631905)` blocked a publish on 2026-08-24.
+
+- **No ids changed.** `compute_station_id` is now `blake2b` over `canonical_station_point`'s
+  WKB — a pure extraction of what it already did. Confirmed against 0.1.3 over ~143,000
+  points (global lattices at 1–15 dp, every documented edge case, and the error contract)
+  with zero differences in either ids or exception types and messages. Nothing needs
+  republishing, and `canonical_station_point` is idempotent, so applying it to points that
+  are already canonical costs nothing.
+
+- **`_check_stations`' failure message now points at the real cause.** It previously ended
+  "Use `envlib.compute_station_id` on the EPSG:4326 station points" — which is exactly what
+  the broken producer had already done. It now reports the *stored* geometry alongside the
+  two ids, says the stored geometry is the usual culprit rather than the id, and directs you
+  to `canonical_station_point`.
+
 ## 0.1.3 (2026-07-25)
 
 - **Publish now verifies the pushed objects before advertising the dataset.** `publish()`

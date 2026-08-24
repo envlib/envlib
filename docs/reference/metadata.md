@@ -16,6 +16,10 @@
     options:
       show_root_heading: true
 
+::: envlib.metadata.canonical_station_point
+    options:
+      show_root_heading: true
+
 ::: envlib.metadata.ValidationError
     options:
       show_root_heading: true
