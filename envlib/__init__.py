@@ -1,10 +1,10 @@
 """envlib: a distributed database and catalogue for environmental data."""
 
 from envlib import vocabularies
-from envlib.catalogue import Catalogue, DatasetRef
+from envlib.catalogue import Catalogue, DatasetRef, validate_dataset
 from envlib.metadata import Metadata, ValidationError, canonical_station_point, compute_station_id
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 __all__ = [
     'Catalogue',
@@ -13,5 +13,6 @@ __all__ = [
     'ValidationError',
     'canonical_station_point',
     'compute_station_id',
+    'validate_dataset',
     'vocabularies',
 ]

@@ -618,6 +618,47 @@ def _apply_derived_attrs(ds, result: dict) -> bool:
 
 
 ###################################################
+# Public validation (no catalogue, no remote)
+
+
+def validate_dataset(dataset, *, validate_cv: bool = True) -> dict:
+    """Validate a cfdb dataset against envlib's requirements. No RCG, no S3, no network.
+
+    This is the catalogue's own validation, exposed for producers that build envlib-shaped
+    datasets WITHOUT publishing them to a commons -- a private ``EDataset`` archive, say. Every
+    structural guard the catalogue applies lives in :func:`_validate_dataset`, so a dataset that
+    never reaches :meth:`Catalogue.publish` would otherwise never be checked at all: the
+    ``method``/``dataset_type`` cross-checks, the time-range extraction, and -- the one that
+    usually matters -- ``_check_stations``, which recomputes every ``station_id`` from the
+    geometry stored beside it.
+
+    ``Catalogue`` cannot serve that need: constructing one requires a public RCG and performs a
+    network refresh, neither of which a local build has or wants.
+
+    Args:
+        dataset: a path to a local cfdb file, or an ALREADY-OPEN cfdb ``Dataset``/``EDataset``.
+            Prefer passing the open object when you have one -- reopening a file that is linked
+            to a remote starts a second session against it, and for an ``EDataset`` the open
+            object also pulls transparently, so extents are read from the whole dataset rather
+            than from whatever chunks happen to be local.
+        validate_cv: check controlled-vocabulary membership. Leave True for a first validation;
+            False re-reads already-registered metadata without re-checking vocabularies (the
+            validation-on-change-only rule -- vocabulary drift must never orphan a dataset that
+            was valid when it was written).
+
+    Returns:
+        ``{'metadata', 'dataset_version_id', 'dataset_id', 'state', 'standard_name'}``.
+
+    Raises:
+        ValidationError: on any failure. Never modifies the dataset.
+    """
+    if isinstance(dataset, (str, os.PathLike)):
+        with cfdb.open_dataset(str(dataset)) as ds:
+            return _validate_dataset(ds, validate_cv=validate_cv)
+    return _validate_dataset(dataset, validate_cv=validate_cv)
+
+
+###################################################
 # DatasetRef
 
 
@@ -941,9 +982,11 @@ class Catalogue:
 
         Returns a summary dict ({'metadata', 'dataset_version_id', 'dataset_id', 'state',
         'standard_name'}); raises ValidationError on invalid input.
+
+        Thin wrapper over the module-level :func:`validate_dataset`, which needs no Catalogue
+        and no network -- prefer that one when you are not publishing.
         """
-        with cfdb.open_dataset(local_cfdb_path) as ds:
-            return _validate_dataset(ds, validate_cv=True)
+        return validate_dataset(local_cfdb_path)
 
     def publish(
         self, local_cfdb_path, remote_conn, rcg_remote_conn, num_groups=None, verify_objects: bool = True, **open_kwargs

@@ -3,6 +3,27 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
+## 0.1.6 (2026-08-25)
+
+- **New public `envlib.validate_dataset(dataset, *, validate_cv=True)`** — the catalogue's own
+  validation, without a catalogue, a remote, or a network call. It accepts either a path or an
+  already-open cfdb `Dataset`/`EDataset`.
+
+  This exists for producers that build envlib-shaped datasets and deliberately do **not** publish
+  them — a private `EDataset` archive, for instance. Every structural guard envlib applies lives
+  inside `Catalogue.publish`'s call to the private `_validate_dataset`, so such a dataset was
+  previously never checked at all. The guard that usually matters is `_check_stations`, which
+  recomputes each `station_id` from the geometry stored beside it — the entire basis of joining a
+  forecast series to its measured counterpart.
+
+  `Catalogue.validate` could not serve this: constructing a `Catalogue` requires a public RCG and
+  performs a network refresh, neither of which a local build has or wants. `Catalogue.validate` is
+  now a thin wrapper over the new function, so there is one implementation.
+
+  Prefer passing an already-open dataset when you have one: reopening a remote-linked file starts
+  a second session against the remote, and an open `EDataset` pulls transparently, so extents come
+  from the whole dataset rather than from whichever chunks happen to be local.
+
 ## 0.1.5 (2026-08-25)
 
 Support for cfdb's two forecast dataset types. **Requires cfdb >= 0.9.6** (a hard floor — the

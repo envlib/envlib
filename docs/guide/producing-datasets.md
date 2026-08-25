@@ -1,10 +1,10 @@
 # Producing Datasets
 
-A dataset is a cfdb file that satisfies envlib's requirements. You build it with the [cfdb API](https://mullenkamp.github.io/cfdb/), describe it with `envlib.Metadata`, and hand it to `cat.validate()` / `cat.publish()`. This page covers the envlib-specific parts; for cfdb itself (chunk shapes, dtypes, appending, compression) use [cfdb's docs](https://mullenkamp.github.io/cfdb/).
+A dataset is a cfdb file that satisfies envlib's requirements. You build it with the [cfdb API](https://mullenkamp.github.io/cfdb/), describe it with `envlib.Metadata`, and hand it to `envlib.validate_dataset()` / `cat.publish()`. This page covers the envlib-specific parts; for cfdb itself (chunk shapes, dtypes, appending, compression) use [cfdb's docs](https://mullenkamp.github.io/cfdb/).
 
 ## The requirements checklist
 
-`validate()` and `publish()` enforce all of these:
+`validate_dataset()` and `publish()` enforce all of these:
 
 - **Complete Identity metadata** (all 11 fields) plus `license` and `attribution`, stored in the file's attributes via `meta.to_dict()`.
 - **Exactly one primary data variable, named after `meta.variable`** — if `variable='temperature'`, the file must contain `ds['temperature']`. Ancillary variables (QC flags, uncertainties) are welcome alongside it, declared via the CF `ancillary_variables` attribute on the primary variable.
@@ -164,8 +164,19 @@ Because `station_id` is deterministic, consumers can correlate stations *across*
 ## Validate early, validate often
 
 ```python
-cat = envlib.Catalogue(remotes=[])
-result = cat.validate('era5_temp_v1.cfdb')     # raises ValidationError with a specific message
+result = envlib.validate_dataset('era5_temp_v1.cfdb')   # raises ValidationError with a specific message
 ```
 
-`validate()` is pure local inspection (no S3, no catalogue changes) — suitable for CI. When it passes, you're ready for [Publishing & Registration](publishing.md).
+`validate_dataset()` is pure local inspection — **no catalogue, no S3, no network at all** — so it suits CI, and it suits a producer that builds an envlib-shaped dataset and never publishes it (a private `EDataset` archive, say). Without it, such a dataset is never checked: every structural guard here lives inside `publish()`, including the `station_id` recomputation that a forecast↔measured join depends on. Added in envlib 0.1.6.
+
+It also accepts an **already-open** cfdb `Dataset`/`EDataset`, which is what you want inside a builder:
+
+```python
+with cfdb.open_dataset(path, flag='w') as ds:
+    ...                                        # write the data
+    result = envlib.validate_dataset(ds)       # check before closing
+```
+
+Prefer that form when you have the dataset open — reopening a remote-linked file starts a second session against the remote, and an open `EDataset` pulls transparently, so extents come from the whole dataset rather than whichever chunks happen to be local.
+
+`Catalogue.validate()` is a thin wrapper over the same function and remains available (`envlib.Catalogue(remotes=[]).validate(path)` also works offline). When validation passes, you're ready for [Publishing & Registration](publishing.md).
