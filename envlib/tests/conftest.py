@@ -165,3 +165,101 @@ def build_ts(path, meta_kwargs=None, points=None, times=None, station_ids='auto'
             sid_var[:] = np.array(station_ids)
         ds.attrs.update(meta.to_dict())
     return meta
+
+
+TS_FORECAST_META = {
+    'feature': 'atmosphere',
+    'variable': 'precipitation',
+    'method': 'forecast',
+    'product_code': 'wrf-4km',
+    'processing_level': 'raw',
+    'owner': 'metservice',
+    'aggregation_statistic': 'sum',
+    'frequency_interval': '1h',
+    'utc_offset': '+00:00',
+    'spatial_resolution': 'point',
+    'version': '1',
+    'license': 'CC-BY-4.0',
+    'attribution': 'MetService',
+}
+
+GRID_FORECAST_META = {**TS_FORECAST_META, 'spatial_resolution': '0.25deg'}
+
+DEFAULT_FRT = np.array(['2024-01-01T00', '2024-01-01T03', '2024-01-01T06'], dtype='datetime64[m]')
+DEFAULT_LEAD = np.arange(1, 5, dtype='int32')
+
+
+def build_ts_forecast(
+    path,
+    meta_kwargs=None,
+    points=None,
+    frt=None,
+    lead=None,
+    station_ids='auto',
+    *,
+    period_units='h',
+    period_dtype='int32',
+):
+    """(point, forecast_reference_time, forecast_period). period_units=None omits the units attr."""
+    kwargs = dict(TS_FORECAST_META)
+    kwargs.update(meta_kwargs or {})
+    meta = Metadata(**kwargs)
+    points = DEFAULT_POINTS if points is None else points
+    frt = DEFAULT_FRT if frt is None else frt
+    lead = DEFAULT_LEAD if lead is None else lead
+    with cfdb.open_dataset(path, flag='n', dataset_type='ts_forecast') as ds:
+        ds.create.coord.point()
+        ds['point'].append(points)
+        ds.create.coord.forecast_reference_time(data=frt, step=180)
+        lead = np.asarray(lead, dtype=period_dtype)
+        lead_step = int(lead[1] - lead[0]) if len(lead) > 1 else 1
+        if period_dtype == 'int32':
+            pc = ds.create.coord.forecast_period(data=lead, step=lead_step)
+        else:
+            pc = ds.create.coord.generic(
+                'forecast_period', data=lead, dtype=cfdb.dtypes.dtype(period_dtype),
+                step=lead_step,
+            )
+        # units is NOT defaulted by cfdb-vars (deliberately) -- the producer declares it.
+        if period_units is not None:
+            pc.attrs['units'] = period_units
+        ds.create.crs.from_user_input(4326, xy_coord='point')
+        dv = ds.create.data_var.generic(
+            meta.variable, ('point', 'forecast_reference_time', 'forecast_period'), dtype='float32'
+        )
+        dv.attrs['units'] = 'mm'
+        dv[:] = np.ones((len(points), len(frt), len(lead)), dtype='float32')
+        if station_ids is not None:
+            if station_ids == 'auto':
+                station_ids = [compute_station_id(p) for p in points]
+            sid_var = ds.create.data_var.generic('station_id', ('point',), dtype='str')
+            sid_var[:] = np.array(station_ids)
+        ds.attrs.update(meta.to_dict())
+    return meta
+
+
+def build_grid_forecast(path, meta_kwargs=None, frt=None, lead=None):
+    """(longitude, latitude, forecast_reference_time, forecast_period)."""
+    kwargs = dict(GRID_FORECAST_META)
+    kwargs.update(meta_kwargs or {})
+    meta = Metadata(**kwargs)
+    frt = DEFAULT_FRT if frt is None else frt
+    lead = DEFAULT_LEAD if lead is None else lead
+    lons = np.linspace(170.0, 172.0, 5, dtype='float64')
+    lats = np.linspace(-44.0, -42.0, 5, dtype='float64')
+    with cfdb.open_dataset(path, flag='n', dataset_type='grid_forecast') as ds:
+        ds.create.coord.lat(data=lats, chunk_shape=(len(lats),))
+        ds.create.coord.lon(data=lons, chunk_shape=(len(lons),))
+        ds.create.coord.forecast_reference_time(data=frt, step=180)
+        pc = ds.create.coord.forecast_period(data=lead, step=1)
+        pc.attrs['units'] = 'h'
+        ds.create.crs.from_user_input(4326, x_coord='longitude', y_coord='latitude')
+        dv = ds.create.data_var.generic(
+            meta.variable,
+            ('latitude', 'longitude', 'forecast_reference_time', 'forecast_period'),
+            dtype='float32',
+        )
+        dv.attrs['units'] = 'mm'
+        dv[:] = np.ones((len(lats), len(lons), len(frt), len(lead)), dtype='float32')
+        ds.attrs.update(meta.to_dict())
+    return meta

@@ -3,6 +3,50 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
+## 0.1.5 (2026-08-25)
+
+Support for cfdb's two forecast dataset types. **Requires cfdb >= 0.9.6** (a hard floor — the
+types do not exist before it). Designed and dual-blind reviewed as round `ecan-theta-1`.
+
+- **`ts_forecast` and `grid_forecast` validate and register.** Their axes are
+  `(forecast_reference_time, forecast_period)` — init and lead — rather than `time`, so the
+  long-standing "every envlib dataset must have a time coordinate" rule is now scoped to the
+  non-forecast types.
+- **`time_start` / `time_end` for a forecast dataset are the VALID range**: first init through
+  *last init + longest lead*. That is what a consumer asking "does this cover my period?" means,
+  and it keeps the catalogue semantically uniform with measured data, where valid time is
+  observation time. Note `time_end` therefore sits in the future and corresponds to no coordinate
+  value in the file — it is a bound, not an index.
+- **`forecast_period` must declare a CF `units` attribute** and validation refuses a dataset
+  without one. cfdb has no timedelta dtype, so lead is a bare integer; the units attr is the only
+  thing that says what it means. (Adding a bare integer to a `datetime64[m]` axis silently adds
+  *minutes*.) Bare `'m'` is refused as ambiguous — in CF it means metres; write `'min'`.
+- **`forecast_period` must be an integer dtype.** A float lead used to truncate through `int()`,
+  understating the range with no warning.
+- **Both ends of the valid range come from the leads**: `first_init + min(lead)` through
+  `last_init + max(lead)`. Deriving the start from the init alone was wrong twice over — a negative
+  lead (an assimilation window) *inverted* the range, and a day-2-only product claimed a full extra
+  day of coverage that does not exist in the file.
+- **Forecast types must declare `method='forecast'`.** `dataset_type` is not one of the 11 hashed
+  identity fields, so without this a forecast dataset and its measured counterpart produce the same
+  `dataset_version_id`. `method` is an identity field and its vocabulary already carried `forecast`.
+- **`_check_stations` now runs for `ts_forecast`**, not only `ts_ortho`. It is the guarantee that a
+  station's stored id is reproducible from the geometry stored beside it — and the forecast↔measured
+  join is nothing but those two hashes colliding at 5 decimal places.
+
+### Fixed
+
+- **Publishing a dataset whose `dataset_type` differs from an existing entry's is now refused
+  instead of silently overwriting it.** Because `dataset_type` is not an identity field, two
+  datasets that differ only in shape share a `dataset_version_id`, and the upsert replaced the
+  first entry's `user_meta` — type, bbox and time range — with no warning. **This was reachable
+  before the forecast types existed**, with a plain `grid`/`ts_ortho` pair. A genuine type change
+  now requires deregistering first, or changing an identity field.
+- The bounding-box branch keyed on exact `dataset_type == 'grid'` with a catch-all `else` that
+  assumed station geometry, so `grid_forecast` was routed into the station branch and failed with a
+  message about `ts_ortho`. Grid-shaped types now take the grid branch.
+- Validation error messages no longer hardcode "ts_ortho" on paths reachable by other types.
+
 ## 0.1.4 (2026-08-25)
 
 - **New `envlib.canonical_station_point()` — producers must store the point it returns, not

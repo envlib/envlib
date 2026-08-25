@@ -19,6 +19,7 @@ from hashlib import blake2b
 
 import cfdb
 import ebooklet
+import numpy as np
 import pyproj
 import shapely
 
@@ -40,6 +41,15 @@ PUBLIC_RCG_ENV_VAR = 'ENVLIB_PUBLIC_RCG_URL'
 DEFAULT_CACHE_DIR = '~/.envlib/cache'
 
 STATION_ID_VAR = 'station_id'
+
+# cfdb dataset types, grouped by the structure envlib cares about. Defined once because every
+# check below used exact string equality against a single value, which is how a new dataset type
+# silently skips a guard -- most dangerously _check_stations.
+GRID_TYPES = ('grid', 'grid_forecast')
+TS_TYPES = ('ts_ortho', 'ts_forecast')
+FORECAST_TYPES = ('ts_forecast', 'grid_forecast')
+FORECAST_REF_COORD = 'forecast_reference_time'
+FORECAST_PERIOD_COORD = 'forecast_period'
 
 _HEX24_RE = re.compile(r'[0-9a-f]{24}')
 _EPSG_4326 = pyproj.CRS.from_epsg(4326)
@@ -256,27 +266,142 @@ def _reproject_points(points, crs) -> list:
     return out
 
 
+# CF time-unit names -> numpy datetime64/timedelta64 unit codes. CF's canonical unit for
+# forecast_period is seconds, but any of these is legal and producers use whatever matches
+# their lead resolution.
+#
+# Bare 'm' is deliberately ABSENT: in CF/udunits it means metres, so accepting it as minutes
+# would silently misread a lead by 60x. Producers must write 'min'.
+#
+# Month and year are absent because numpy refuses to add them to a datetime64[m] at all
+# (UFuncTypeError) -- they are not fixed-length. Week IS fixed-length and numpy supports it;
+# it is omitted only because no forecast product uses weekly leads, and the refusal is loud.
+_CF_TIME_UNITS = {
+    'second': 's', 'seconds': 's', 'sec': 's', 'secs': 's', 's': 's',
+    'minute': 'm', 'minutes': 'm', 'min': 'm', 'mins': 'm',
+    'hour': 'h', 'hours': 'h', 'hr': 'h', 'hrs': 'h', 'h': 'h',
+    'day': 'D', 'days': 'D', 'd': 'D',
+}
+
+
+def _cf_unit_to_np(units: str) -> str:
+    """Map a CF time-unit name to a numpy timedelta64 unit code."""
+    key = str(units).strip().lower()
+    if key not in _CF_TIME_UNITS:
+        msg = (
+            f'unsupported time unit {units!r}; expected one of '
+            f'{sorted(set(_CF_TIME_UNITS))}.'
+        )
+        raise ValueError(msg)
+    return _CF_TIME_UNITS[key]
+
+
+def _forecast_time_range(ds) -> tuple:
+    """
+    VALID-time bounds for a forecast dataset: first init -> last init + longest lead.
+
+    Valid rather than init range because these two fields feed exactly one consumer --
+    _time_overlaps, behind Catalogue.query(start_date=, end_date=) -- and a user asking "does
+    this cover my period?" means valid time. For measured data valid time IS observation time,
+    so the catalogue stays semantically uniform. (Consequence: time_end sits in the future and
+    corresponds to no coordinate value in the file; it is a bound, not an index.)
+
+    WARNING -- the arithmetic below must NOT be written as `frt[-1] + lead.max()`. cfdb has no
+    timedelta dtype, so forecast_period is a bare integer and numpy evaluates the sum in the
+    DATETIME's storage unit: against a datetime64[m] axis that silently adds minutes instead of
+    hours. The units attr is the only thing that says what a lead value means.
+    """
+    for name in (FORECAST_REF_COORD, FORECAST_PERIOD_COORD):
+        if name not in ds.coord_names:
+            msg = (
+                f'{ds.dataset_type!r} datasets must have a {name!r} coordinate; '
+                f'got {tuple(ds.coord_names)}.'
+            )
+            raise ValidationError(msg)
+
+    frt = ds[FORECAST_REF_COORD]
+    if frt.dtype.kind != 'M':
+        msg = f'{FORECAST_REF_COORD!r} must be datetime64, not {frt.dtype.name!r}.'
+        raise ValidationError(msg)
+    frt_values = frt.data
+    if len(frt_values) == 0:
+        msg = f'{FORECAST_REF_COORD!r} must have at least one value.'
+        raise ValidationError(msg)
+
+    period = ds[FORECAST_PERIOD_COORD]
+    period_values = period.data
+    if len(period_values) == 0:
+        msg = f'{FORECAST_PERIOD_COORD!r} must have at least one value.'
+        raise ValidationError(msg)
+
+    units = period.attrs.get('units')
+    if not units:
+        msg = (
+            f'{FORECAST_PERIOD_COORD!r} must declare a CF "units" attribute (e.g. "h"). '
+            f'Without it the lead time is a dimensionless integer and the valid-time range '
+            f'cannot be computed.'
+        )
+        raise ValidationError(msg)
+
+    ## Integer only. A float lead silently truncates through int() -- a 1.5 h lead becomes
+    ## 1 h and the catalogue understates the range by 30 minutes with no warning. cfdb-vars
+    ## declares this coordinate int32; a producer using the generic constructor can still
+    ## make it float, so refuse loudly rather than round.
+    if period_values.dtype.kind not in ('i', 'u'):
+        msg = (
+            f'{FORECAST_PERIOD_COORD!r} must be an integer dtype, not '
+            f'{period_values.dtype.name!r}. A fractional lead cannot be represented exactly '
+            f'against the {FORECAST_REF_COORD!r} axis and would be silently truncated.'
+        )
+        raise ValidationError(msg)
+
+    try:
+        np_unit = _cf_unit_to_np(units)
+        min_lead = np.timedelta64(int(np.min(period_values)), np_unit)
+        max_lead = np.timedelta64(int(np.max(period_values)), np_unit)
+    except (TypeError, ValueError) as err:
+        msg = f'could not interpret {FORECAST_PERIOD_COORD!r} units {units!r}: {err}'
+        raise ValidationError(msg) from err
+
+    ## BOTH ends come from the leads, not just the end. Using frt[0] alone was wrong in two
+    ## ways: a negative lead (an assimilation window) INVERTED the range -- start > end, which
+    ## _time_overlaps then answers nonsensically -- and a day-2-only product (leads 24-48 h)
+    ## claimed a full extra day of coverage that does not exist in the file.
+    return (
+        _dt64_to_iso(frt_values[0] + min_lead),
+        _dt64_to_iso(frt_values[-1] + max_lead),
+    )
+
+
 def _extract_state(ds, meta: Metadata) -> dict:
     """Extract State Metadata (bbox, time range, steps, dataset_type) from an open dataset."""
     dataset_type = ds.dataset_type
     crs = ds.crs
 
-    time_coord = ds.get('time') if 'time' in ds.coord_names else None
-    if time_coord is None or len(time_coord.data) == 0:
-        msg = 'every envlib dataset must have a time coordinate with at least one value.'
-        raise ValidationError(msg)
-    if time_coord.dtype.kind != 'M':
-        msg = f'the time coordinate must be datetime64, not {time_coord.dtype.name!r}.'
-        raise ValidationError(msg)
-    time_values = time_coord.data
+    if dataset_type in FORECAST_TYPES:
+        time_start, time_end = _forecast_time_range(ds)
+    else:
+        time_coord = ds.get('time') if 'time' in ds.coord_names else None
+        if time_coord is None or len(time_coord.data) == 0:
+            msg = 'every envlib dataset must have a time coordinate with at least one value.'
+            raise ValidationError(msg)
+        if time_coord.dtype.kind != 'M':
+            msg = f'the time coordinate must be datetime64, not {time_coord.dtype.name!r}.'
+            raise ValidationError(msg)
+        time_values = time_coord.data
+        time_start = _dt64_to_iso(time_values[0])
+        time_end = _dt64_to_iso(time_values[-1])
+
     state: dict = {
         'dataset_type': dataset_type,
-        'time_start': _dt64_to_iso(time_values[0]),
-        'time_end': _dt64_to_iso(time_values[-1]),
+        'time_start': time_start,
+        'time_end': time_end,
     }
 
     x_step = y_step = None
-    if dataset_type == 'grid':
+    ## Both grid types: the else-branch below assumes a station geometry coordinate, so exact
+    ## equality here would route grid_forecast into it and fail with a message about ts_ortho.
+    if dataset_type in GRID_TYPES:
         x_coord = _coord_by_axis(ds, 'x')
         y_coord = _coord_by_axis(ds, 'y')
         if x_coord is None or y_coord is None:
@@ -297,7 +422,7 @@ def _extract_state(ds, meta: Metadata) -> dict:
         geom_coord = _geometry_coord(ds)
         points = geom_coord.data
         if len(points) == 0:
-            msg = 'ts_ortho datasets must have at least one station point.'
+            msg = f'{dataset_type} datasets must have at least one station point.'
             raise ValidationError(msg)
         xs = [p.x for p in points]
         ys = [p.y for p in points]
@@ -324,8 +449,22 @@ def _extract_state(ds, meta: Metadata) -> dict:
         state['y_step'] = y_step
 
     # identity cross-checks that involve state
-    if dataset_type == 'ts_ortho' and meta.spatial_resolution != 'point':
-        msg = "ts_ortho datasets must use spatial_resolution='point'."
+    if dataset_type in TS_TYPES and meta.spatial_resolution != 'point':
+        msg = f"{dataset_type} datasets must use spatial_resolution='point'."
+        raise ValidationError(msg)
+
+    ## dataset_type is STATE metadata, not identity -- it is not one of the 11 hashed fields,
+    ## so it cannot distinguish two datasets on its own. method IS an identity field and the
+    ## vocabulary already carries 'forecast', so requiring it here is what stops a forecast
+    ## dataset from hashing to the same dataset_version_id as its measured counterpart.
+    ## (It does NOT separate ts_forecast from grid_forecast -- that is handled at the write
+    ## path, in Catalogue._upsert_entry.)
+    if dataset_type in FORECAST_TYPES and meta.method != 'forecast':
+        msg = (
+            f"{dataset_type} datasets must use method='forecast' (got {meta.method!r}); "
+            f"otherwise a forecast dataset and its measured counterpart collide on "
+            f"dataset_version_id."
+        )
         raise ValidationError(msg)
     return state
 
@@ -334,8 +473,8 @@ def _geometry_coord(ds):
     coord = _coord_by_axis(ds, 'xy')
     if coord is None:
         msg = (
-            "ts_ortho datasets must have a point geometry coordinate with the 'xy' axis "
-            '(create.coord.point + create.crs.from_user_input(xy_coord=...)).'
+            f"{ds.dataset_type} datasets must have a point geometry coordinate with the 'xy' "
+            'axis (create.coord.point + create.crs.from_user_input(xy_coord=...)).'
         )
         raise ValidationError(msg)
     if coord.dtype.kind != 'G':
@@ -345,10 +484,10 @@ def _geometry_coord(ds):
 
 
 def _check_stations(ds):
-    """ts_ortho: station_id attribute variable must exist and match recomputation."""
+    """ts_ortho / ts_forecast: station_id must exist and match recomputation from the stored geometry."""
     geom_coord = _geometry_coord(ds)
     if STATION_ID_VAR not in ds.data_var_names:
-        msg = f'ts_ortho datasets must carry a {STATION_ID_VAR!r} station attribute variable (shape (geometry,)).'
+        msg = f'{ds.dataset_type} datasets must carry a {STATION_ID_VAR!r} station attribute variable (shape (geometry,)).'
         raise ValidationError(msg)
     sid_var = ds[STATION_ID_VAR]
     if tuple(sid_var.coord_names) != (geom_coord.name,):
@@ -439,7 +578,10 @@ def _validate_dataset(ds, *, validate_cv: bool) -> dict:
                 msg = f'declared ancillary variable {name!r} is not a data variable in the dataset.'
                 raise ValidationError(msg)
 
-    if ds.dataset_type == 'ts_ortho':
+    ## Both ts types. This is the guard the forecast<->measured join depends on: it verifies
+    ## each station_id is reproducible from the geometry stored beside it, and that join is
+    ## nothing but those two hashes colliding at 5 dp.
+    if ds.dataset_type in TS_TYPES:
         _check_stations(ds)
 
     state = _extract_state(ds, meta)
@@ -923,6 +1065,23 @@ class Catalogue:
         with ebooklet.open_rcg(rcg_conn, self._rcg_cache_path(rcg_conn), flag='c') as rcg:
             existing = rcg.get(dataset_version_id)
             existing_meta = (existing or {}).get('user_meta') or {}
+            ## dataset_type is not an identity field, so two datasets differing ONLY by type
+            ## hash to the same key and this upsert would silently replace one with the other
+            ## -- bbox, time range and all. Reachable today with a plain grid and ts_ortho
+            ## pair, not just with the forecast types. Refuse instead: a genuine type change
+            ## is a different dataset and should be deregistered first.
+            existing_type = existing_meta.get('dataset_type')
+            incoming_type = result['state'].get('dataset_type')
+            if existing is not None and existing_type and existing_type != incoming_type:
+                msg = (
+                    f'catalogue entry {dataset_version_id} is already registered with '
+                    f'dataset_type {existing_type!r}, but this dataset is {incoming_type!r}. '
+                    f'These share a dataset_version_id because dataset_type is not an identity '
+                    f'field. Deregister the existing entry first, or change an identity field '
+                    f'(method, product_code or version) so the two are distinct.'
+                )
+                raise ValidationError(msg)
+
             now = _utc_now_iso()
             user_meta = _build_user_meta(result, member_conn)
             user_meta['created_at'] = existing_meta.get('created_at') or now

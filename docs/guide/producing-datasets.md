@@ -11,6 +11,19 @@ A dataset is a cfdb file that satisfies envlib's requirements. You build it with
 - **`units` on the primary variable.** Units describe *your* stored data and are never auto-populated.
 - **A CRS**, set with `ds.create.crs.from_user_input(...)`.
 - **A `time` coordinate with at least one value.** Every envlib dataset is a time series — quasi-static data (a DEM, a soil map) carries a single timestamp marking the start of its validity, with revisions appended as new time slices.
+    - **Exception — the forecast types.** `ts_forecast` and `grid_forecast` carry
+      `forecast_reference_time` (init) and `forecast_period` (lead) instead of `time`. Their
+      catalogue time range is the **valid** range: *first init + shortest lead* through *last
+      init + longest lead* — both ends come from the leads, so a day-2-only product does not
+      claim coverage it lacks and a negative lead cannot invert the range. Three requirements,
+      each refused loudly if unmet:
+        - `forecast_period` must declare a CF `units` attribute. There is **no default**: cfdb
+          has no timedelta dtype, so a bare integer lead added to a `datetime64[m]` axis
+          silently adds *minutes*. Bare `'m'` is refused as ambiguous (it means metres in CF) —
+          write `'min'`.
+        - `forecast_period` must be an **integer** dtype; a float lead would truncate silently.
+        - `method='forecast'` is mandatory. `dataset_type` is not an identity field, so without
+          it a forecast dataset collides with its measured counterpart on `dataset_version_id`.
 - For station datasets: a **`station_id` variable** matching envlib's derivation (below).
 
 Two conventions to know:

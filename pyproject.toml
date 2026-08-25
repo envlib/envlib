@@ -11,7 +11,12 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-  "cfdb>=0.9.1",
+  # HARD floor, not hygiene: the forecast dataset types (ts_forecast / grid_forecast) do not
+  # exist before cfdb 0.9.6, so _extract_state's forecast branch is unreachable and any such
+  # file fails to open at all. No runtime guard accompanies this one, deliberately -- unlike
+  # the packed-encoder floor in envlib-ingest-base, an older cfdb cannot silently mis-handle a
+  # forecast dataset; it raises TypeError before touching data.
+  "cfdb>=0.9.6",
   "ebooklet>=0.10.3",
   "booklet>=0.12.6",
   "pyproj",
