@@ -17,7 +17,7 @@ dependencies = [
   # the packed-encoder floor in envlib-ingest-base, an older cfdb cannot silently mis-handle a
   # forecast dataset; it raises TypeError before touching data.
   "cfdb>=0.9.6",
-  "ebooklet>=0.10.3",
+  "ebooklet>=0.10.5",
   "booklet>=0.12.6",
   "pyproj",
   "shapely>=2.0",
