@@ -3,6 +3,13 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
+## 0.1.7 (unreleased)
+
+- **Requires cfdb >= 0.10.0.** cfdb 0.10 compresses new datasets with a byte-shuffle filter
+  (`zstd_shuffle`, its new default), and an older cfdb cannot open them: it fails at open with
+  `Invalid enum value 'zstd_shuffle'`. Datasets published from now on can be shuffled, so envlib
+  requires the cfdb that reads them. Existing datasets are unaffected and read as before.
+
 ## 0.1.6 (2026-08-25)
 
 - **New public `envlib.validate_dataset(dataset, *, validate_cv=True)`** — the catalogue's own

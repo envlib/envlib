@@ -4,7 +4,7 @@ from envlib import vocabularies
 from envlib.catalogue import Catalogue, DatasetRef, validate_dataset
 from envlib.metadata import Metadata, ValidationError, canonical_station_point, compute_station_id
 
-__version__ = '0.1.6'
+__version__ = '0.1.7'
 
 __all__ = [
     'Catalogue',

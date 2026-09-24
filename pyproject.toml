@@ -16,7 +16,11 @@ dependencies = [
   # file fails to open at all. No runtime guard accompanies this one, deliberately -- unlike
   # the packed-encoder floor in envlib-ingest-base, an older cfdb cannot silently mis-handle a
   # forecast dataset; it raises TypeError before touching data.
-  "cfdb>=0.9.6",
+  # >=0.10.0: cfdb 0.10 writes new datasets with byte-shuffled compression (zstd_shuffle), which an
+  # older cfdb refuses at open with a bare "Invalid enum value 'zstd_shuffle'" naming no remedy.
+  # Readers must be able to open anything a current producer publishes, so envlib floors the
+  # version that can. (It needs no other 0.10 feature.)
+  "cfdb>=0.10.0",
   "ebooklet>=0.10.5",
   "booklet>=0.12.6",
   "pyproj",
