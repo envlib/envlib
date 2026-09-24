@@ -250,13 +250,30 @@ def _hash_fields(field_values) -> str:
     return blake2b(joined.encode('utf-8'), digest_size=12).hexdigest()
 
 
-def compute_station_id(geometry) -> str:
-    """Deterministic station id from a shapely Point in EPSG:4326.
+def canonical_station_point(geometry) -> shapely.Point:
+    """The canonical EPSG:4326 Point whose WKB :func:`compute_station_id` hashes.
 
-    tethys-compatible derivation: z stripped if present; WKT round-trip with
-    ``rounding_precision=5`` (~1 m at the equator); signed zero collapsed
-    (``-0.0`` -> ``0.0``, reachable after reprojection); explicit little-endian
-    WKB; keyless blake2b-12 hex. Same x/y at different z share a station_id.
+    z stripped if present; WKT round-trip with ``rounding_precision=5`` (~1 m at
+    the equator); signed zero collapsed (``-0.0`` -> ``0.0``, reachable after
+    reprojection). Same validation, and the same ``ValidationError``, as
+    :func:`compute_station_id` — a producer wants a bad geometry rejected here
+    rather than one step later.
+
+    **Producers must STORE this point, not the raw one.** A store that re-rounds
+    the geometry its own way will otherwise hold a point that no longer derives
+    the ``station_id`` stored beside it, and the dataset becomes unpublishable.
+    cfdb is exactly such a store: it encodes point coordinates with
+    ``shapely.to_wkt(..., rounding_precision=5)``, whose ``trim=True`` default
+    rounds the shortest decimal *string* half-to-even, while the derivation here
+    uses ``wkt.dumps`` (``trim=False``), which rounds the underlying *binary*
+    value. The two disagree on roughly 9% of coordinates given to 6 decimal
+    places — every case being an ordinate whose shortest representation ends in
+    a trailing '5' past the 5th decimal. Passing a point through this function
+    first makes the round-trip a fixed point, because a canonical point has no
+    6th decimal left to round. (envlib 0.1.4; found on a live publish failure,
+    2026-08-24.)
+
+    Idempotent: ``canonical_station_point(canonical_station_point(p))`` is ``p``.
     """
     if not isinstance(geometry, shapely.Point):
         msg = f'station geometry must be a shapely Point (v1 supports Points only), not {type(geometry).__name__}.'
@@ -272,7 +289,22 @@ def compute_station_id(geometry) -> str:
     if geometry.has_z:
         geometry = shapely.Point(geometry.x, geometry.y)
     rounded = cast('shapely.Point', wkt.loads(wkt.dumps(geometry, rounding_precision=5)))
-    canonical_point = shapely.Point(rounded.x + 0.0, rounded.y + 0.0)
+    return shapely.Point(rounded.x + 0.0, rounded.y + 0.0)
+
+
+def compute_station_id(geometry) -> str:
+    """Deterministic station id from a shapely Point in EPSG:4326.
+
+    tethys-compatible derivation: z stripped if present; WKT round-trip with
+    ``rounding_precision=5`` (~1 m at the equator); signed zero collapsed
+    (``-0.0`` -> ``0.0``, reachable after reprojection); explicit little-endian
+    WKB; keyless blake2b-12 hex. Same x/y at different z share a station_id.
+
+    The canonicalization is :func:`canonical_station_point`; this hashes its WKB.
+    Splitting the two moved no id (verified against 0.1.3 over ~143,000 points
+    in review round ``envlib-stationid-1``, including exception parity).
+    """
+    canonical_point = canonical_station_point(geometry)
     return blake2b(shapely.to_wkb(canonical_point, byte_order=1), digest_size=12).hexdigest()
 
 

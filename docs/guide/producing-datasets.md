@@ -1,16 +1,29 @@
 # Producing Datasets
 
-A dataset is a cfdb file that satisfies envlib's requirements. You build it with the [cfdb API](https://mullenkamp.github.io/cfdb/), describe it with `envlib.Metadata`, and hand it to `cat.validate()` / `cat.publish()`. This page covers the envlib-specific parts; for cfdb itself (chunk shapes, dtypes, appending, compression) use [cfdb's docs](https://mullenkamp.github.io/cfdb/).
+A dataset is a cfdb file that satisfies envlib's requirements. You build it with the [cfdb API](https://mullenkamp.github.io/cfdb/), describe it with `envlib.Metadata`, and hand it to `envlib.validate_dataset()` / `cat.publish()`. This page covers the envlib-specific parts; for cfdb itself (chunk shapes, dtypes, appending, compression) use [cfdb's docs](https://mullenkamp.github.io/cfdb/).
 
 ## The requirements checklist
 
-`validate()` and `publish()` enforce all of these:
+`validate_dataset()` and `publish()` enforce all of these:
 
 - **Complete Identity metadata** (all 11 fields) plus `license` and `attribution`, stored in the file's attributes via `meta.to_dict()`.
 - **Exactly one primary data variable, named after `meta.variable`** — if `variable='temperature'`, the file must contain `ds['temperature']`. Ancillary variables (QC flags, uncertainties) are welcome alongside it, declared via the CF `ancillary_variables` attribute on the primary variable.
 - **`units` on the primary variable.** Units describe *your* stored data and are never auto-populated.
 - **A CRS**, set with `ds.create.crs.from_user_input(...)`.
 - **A `time` coordinate with at least one value.** Every envlib dataset is a time series — quasi-static data (a DEM, a soil map) carries a single timestamp marking the start of its validity, with revisions appended as new time slices.
+    - **Exception — the forecast types.** `ts_forecast` and `grid_forecast` carry
+      `forecast_reference_time` (init) and `forecast_period` (lead) instead of `time`. Their
+      catalogue time range is the **valid** range: *first init + shortest lead* through *last
+      init + longest lead* — both ends come from the leads, so a day-2-only product does not
+      claim coverage it lacks and a negative lead cannot invert the range. Three requirements,
+      each refused loudly if unmet:
+        - `forecast_period` must declare a CF `units` attribute. There is **no default**: cfdb
+          has no timedelta dtype, so a bare integer lead added to a `datetime64[m]` axis
+          silently adds *minutes*. Bare `'m'` is refused as ambiguous (it means metres in CF) —
+          write `'min'`.
+        - `forecast_period` must be an **integer** dtype; a float lead would truncate silently.
+        - `method='forecast'` is mandatory. `dataset_type` is not an identity field, so without
+          it a forecast dataset collides with its measured counterpart on `dataset_version_id`.
 - For station datasets: a **`station_id` variable** matching envlib's derivation (below).
 
 Two conventions to know:
@@ -118,7 +131,9 @@ meta = envlib.Metadata(
     license='CC-BY-4.0', attribution='Environment Canterbury',
 )
 
-points = [shapely.Point(172.5, -43.5), shapely.Point(171.9, -43.1)]     # EPSG:4326
+# CANONICALIZE before storing — never append raw source coordinates    # (2)
+points = [envlib.canonical_station_point(p) for p in                    # EPSG:4326
+          (shapely.Point(172.5, -43.5), shapely.Point(171.9, -43.1))]
 times = np.arange('2020-01-01T00', '2020-01-02T00', dtype='datetime64[h]')
 
 with cfdb.open_dataset('ecan_flow_v1.cfdb', flag='n', dataset_type='ts_ortho') as ds:
@@ -140,6 +155,8 @@ with cfdb.open_dataset('ecan_flow_v1.cfdb', flag='n', dataset_type='ts_ortho') a
 
 **(1)** `compute_station_id` rounds the point to 5 decimal places (~1 m) and hashes it; `validate()` recomputes and compares, so a wrong or stale id fails loudly. Points must be 2D shapely Points in EPSG:4326 (envlib reprojects for you at validation if the dataset's CRS differs; a z coordinate is ignored for identity).
 
+**(2)** **Store the canonical point, not the raw one.** `validate()` re-derives each id from the geometry *as stored*, and cfdb re-rounds a point when it writes it — it encodes with `shapely.to_wkt(..., rounding_precision=5)`, which rounds the shortest decimal *string* half-to-even, whereas `compute_station_id` rounds the underlying *binary* value. On roughly 9% of coordinates given to 6 decimal places the two disagree, and the dataset then fails validation forever with `'station_id' values do not match the envlib derivation` — the id is right, the stored geometry moved. `canonical_station_point` returns exactly the point the id hashes, so once it is stored the round-trip is stable. It is idempotent and never changes an id, so applying it to points that are already 5 dp (or fewer) costs nothing. Added in envlib 0.1.4, after a live publish failed this way.
+
 Optional station attribute variables envlib recognizes (all shaped `(point,)`): `station_name`, `surface_altitude` (the ground level at the station — distinct from a vertical *measurement* axis, which is a cfdb coord named `altitude`/`height`/`depth`), and `operator` (when it differs from the dataset `owner`). Add any others you need; envlib doesn't constrain them.
 
 Because `station_id` is deterministic, consumers can correlate stations *across* datasets by matching ids — no central station registry needed.
@@ -147,8 +164,19 @@ Because `station_id` is deterministic, consumers can correlate stations *across*
 ## Validate early, validate often
 
 ```python
-cat = envlib.Catalogue(remotes=[])
-result = cat.validate('era5_temp_v1.cfdb')     # raises ValidationError with a specific message
+result = envlib.validate_dataset('era5_temp_v1.cfdb')   # raises ValidationError with a specific message
 ```
 
-`validate()` is pure local inspection (no S3, no catalogue changes) — suitable for CI. When it passes, you're ready for [Publishing & Registration](publishing.md).
+`validate_dataset()` is pure local inspection — **no catalogue, no S3, no network at all** — so it suits CI, and it suits a producer that builds an envlib-shaped dataset and never publishes it (a private `EDataset` archive, say). Without it, such a dataset is never checked: every structural guard here lives inside `publish()`, including the `station_id` recomputation that a forecast↔measured join depends on. Added in envlib 0.1.6.
+
+It also accepts an **already-open** cfdb `Dataset`/`EDataset`, which is what you want inside a builder:
+
+```python
+with cfdb.open_dataset(path, flag='w') as ds:
+    ...                                        # write the data
+    result = envlib.validate_dataset(ds)       # check before closing
+```
+
+Prefer that form when you have the dataset open — reopening a remote-linked file starts a second session against the remote, and an open `EDataset` pulls transparently, so extents come from the whole dataset rather than whichever chunks happen to be local.
+
+`Catalogue.validate()` is a thin wrapper over the same function and remains available (`envlib.Catalogue(remotes=[]).validate(path)` also works offline). When validation passes, you're ready for [Publishing & Registration](publishing.md).

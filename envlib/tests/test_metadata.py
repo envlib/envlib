@@ -16,6 +16,7 @@ from envlib.metadata import (
     IDENTITY_FIELDS,
     Metadata,
     ValidationError,
+    canonical_station_point,
     compute_dataset_id,
     compute_dataset_version_id,
     compute_station_id,
@@ -61,6 +62,12 @@ VEC_B_DATASET_ID = 'afd96ff1d282da0bc52e4ca0'
 WELLINGTON = shapely.Point(174.7762, -41.2865)
 WELLINGTON_STATION_ID = '032f5549c18f1c3ec87d4d74'
 ZERO_LON_STATION_ID = 'f92630c38e30854bb6dd541a'  # Point(0.0, 51.5)
+# ECan site 68839 "Lake Emma at East Lake" — a REAL 6-dp coordinate on which the two shapely
+# WKT writers round the 5th decimal in opposite directions. Every other station fixture in
+# this suite is 1-2 dp and therefore exactly representable at 5 dp, which is why the suite
+# did not catch the 0.1.4 defect. Do not "tidy" this to fewer decimals.
+SIXDP_STATION = shapely.Point(171.1091, -43.631905)
+SIXDP_STATION_ID = 'a6394786abaf8a79753b9e64'
 
 
 ###################################################
@@ -119,6 +126,48 @@ def test_station_id_wkb_is_little_endian():
     manual_wkb = b'\x01' + struct.pack('<I', 1) + struct.pack('<dd', 174.7762, -41.2865)
     rounded = shapely.wkt.loads(shapely.wkt.dumps(WELLINGTON, rounding_precision=5))
     assert shapely.to_wkb(shapely.Point(rounded.x + 0.0, rounded.y + 0.0), byte_order=1) == manual_wkb
+
+
+def test_golden_station_id_six_decimal_places():
+    assert compute_station_id(SIXDP_STATION) == SIXDP_STATION_ID
+
+
+def test_canonical_station_point_is_what_the_id_hashes():
+    # pins the 0.1.4 extraction: compute_station_id must be exactly blake2b over this
+    # point's little-endian WKB, so the split can never drift from the id contract.
+    p = canonical_station_point(shapely.Point(174.776204999, -41.286500001))
+    assert blake2b(shapely.to_wkb(p, byte_order=1), digest_size=12).hexdigest() == WELLINGTON_STATION_ID
+
+
+def test_canonical_station_point_is_idempotent():
+    for pt in (WELLINGTON, SIXDP_STATION, shapely.Point(-0.000001, 51.5), shapely.Point(0.0, 0.0)):
+        once = canonical_station_point(pt)
+        assert canonical_station_point(once).equals_exact(once, 0.0)
+
+
+def test_canonical_station_point_survives_a_5dp_wkt_store():
+    # THE 0.1.4 REGRESSION (live publish failure, 2026-08-24). A store that re-encodes the
+    # geometry at 5 dp must not move it: cfdb writes points with shapely.to_wkt(trim=True),
+    # which rounds the shortest decimal STRING half-to-even, while compute_station_id uses
+    # wkt.dumps(trim=False), which rounds the underlying BINARY value. They disagree on ~9%
+    # of 6-dp coordinates, and SIXDP_STATION is a real one.
+    def through_a_5dp_store(pt):
+        return shapely.from_wkt(shapely.to_wkt(pt, rounding_precision=5))
+
+    canonical = canonical_station_point(SIXDP_STATION)
+    assert compute_station_id(through_a_5dp_store(canonical)) == SIXDP_STATION_ID
+    # ...and the RAW point must not survive, or this test would pass with the fix reverted
+    assert compute_station_id(through_a_5dp_store(SIXDP_STATION)) != SIXDP_STATION_ID
+
+
+def test_canonical_station_point_rejects_what_the_id_rejects():
+    # the helper is public, so a producer must hit the same wall one step earlier
+    with pytest.raises(ValidationError):
+        canonical_station_point(shapely.LineString([(0, 0), (1, 1)]))
+    with pytest.raises(ValidationError, match='non-empty'):
+        canonical_station_point(shapely.Point())
+    with pytest.raises(ValidationError, match='finite'):
+        canonical_station_point(shapely.Point(float('nan'), 51.5))
 
 
 def test_station_id_rejects_non_points():

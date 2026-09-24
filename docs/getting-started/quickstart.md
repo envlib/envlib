@@ -84,11 +84,10 @@ with cfdb.open_dataset('data.cfdb', flag='n') as ds:
 
 ### 2. Validate
 
-`validate()` checks everything a registration would — metadata completeness, the primary variable and its `units`, CRS, the time coordinate — and extracts the spatial/temporal extents, without touching any remote:
+`validate_dataset()` checks everything a registration would — metadata completeness, the primary variable and its `units`, CRS, the time coordinate — and extracts the spatial/temporal extents, without touching any remote:
 
 ```python
-cat = envlib.Catalogue(remotes=[])          # an empty catalogue works for validation
-result = cat.validate('data.cfdb')
+result = envlib.validate_dataset('data.cfdb')   # no catalogue, no network
 
 result['dataset_version_id']   # '5fb10df86042d17bc646f5b7'
 result['state']['bbox']        # [170.0, -44.0, 172.0, -42.0]

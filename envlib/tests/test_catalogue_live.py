@@ -41,7 +41,14 @@ def live(s3_config):
         print(f'SWEEP WARNING: delete_objects raised {err!r}; re-listing')  # noqa: T201
     leftovers = [obj['key'] for obj in session.list_objects(prefix=RUN_PREFIX).iter_objects()]
     if leftovers:
-        session.delete_objects(keys=leftovers)
+        ## Wrapped like the prefix sweep above: since s3func 0.9.6 a failed
+        ## version resolution RAISES rather than degrading to a versionless
+        ## delete, and an opaque HTTPError here would hide the leaked-key list
+        ## that the assertion below is meant to report.
+        try:
+            session.delete_objects(keys=leftovers)
+        except Exception as err:  # loud, then re-check below
+            print(f'SWEEP WARNING: delete_objects(keys=...) raised {err!r}; re-listing')  # noqa: T201
         leftovers = [obj['key'] for obj in session.list_objects(prefix=RUN_PREFIX).iter_objects()]
     assert not leftovers, f'LEAKED REMOTE OBJECTS under {RUN_PREFIX}: {leftovers}'
 
