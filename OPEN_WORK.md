@@ -25,6 +25,18 @@ _Phase-1 record (2026-07-13, superseded header kept for context): **assessment P
  - [ ] **[cfdb] `DataVariableView.set()` pays ~20–40 µs per call before doing any work** (added 2026-09-23): `get_coord_origins` tests `hasattr(self, 'coords')`, and `coords` is a property that builds a coordinate object per dim (8 objects per `set()`). It doubles small-chunk write cost in the one-`set()`-per-chunk loop the cfdb skill recommends. Evidence: `benchmarks/results/review-cfdb-profile-1.md`, finding 3.
  - [ ] **[cfdb] Reads decode every chunk into freshly allocated buffers** (added 2026-09-23), which page-fault at multi-MB chunks under the default glibc allocator and cause most of the large-chunk read penalty. With a reused buffer a decode-like step stayed flat per element up to 2 M elements (fresh buffers: 2.3× slower); glibc allocator settings cut stored-shape reads 15–25 % here, leaving a ~1.2–1.5× penalty, mostly decompression. Evidence: cfdb `benchmarks/RESULTS.md`, "Per-chunk costs vs chunk size, real data", and `benchmarks/results/review-cfdb-profile-1.md`, finding 5.
  - [ ] **[cfdb-ingest] Default chunking gives 4.3–8.6 MB chunks** (e.g. (24,1,324,277) for the WRF d01 cache), above cfdb's old 2 MiB target and outside the measured best range (added 2026-09-23). cfdb 0.10.0 now defaults data variables to 2¹⁸ elements × item size (`cfdb.utils.data_var_chunk_elements`); decide whether cfdb-ingest follows it (ungrouped remotes favour larger chunks: see cfdb `docs/guide/s3-remote.md`, "Chunk sizes for remote datasets").
+ - [ ] **[cfdb-ingest] A single-variable target option, e.g. `convert(..., only_variable=True)`** (added 2026-10-02, from
+   `envlib-ingest-wrf-3k` Stage B):
+   - **The gap:** refuse to write into an existing dataset that holds any OTHER data variable. cfdb-ingest
+     deliberately allows several variables per dataset, so a build aimed at the wrong file of the same
+     shape is accepted. Example: a `temperature` (T2) band pointed at the `specific_humidity` file passes
+     the 0.8.0 key-provenance check (no variable there holds T2) and the axis checks (same step, label and
+     CRS), and adds a second variable. This was traced in the code, not run.
+   - **Why it matters:** envlib needs exactly one primary variable per dataset, so every envlib producer
+     wants this refusal.
+   - **Today:** `envlib-ingest-wrf-3k` guards it itself (`wrf3k.check_target_holds`: the stamped
+     `envlib_variable` and the data-variable names). Keep that as a backstop once this lands.
+   - **Size:** a small 0.8.1. Test it with a real two-dataset mix-up, mutation-checked.
  - [ ] **[cfdb-ingest] CLI `--compression` help says "zstd or lz4"** (added 2026-09-24): cfdb 0.10.0 also accepts `zstd_shuffle` (its default) and `lz4_shuffle` (`cfdb.utils.compression_options`); `cfdb_ingest/cli.py`, three options. Text only; the value is passed straight through. (The two docs tables, `docs/guide/{era5,wrf}-ingestion.md`, were fixed 2026-09-24 (cfdb-ingest `3d659ff`); only the CLI help strings remain.)
  - [ ] **[cfdb] Lead, not a commitment: per-variable zstd dictionaries for sub-1 KB chunks** (added 2026-09-23). One review arm measured +22 % ratio and +23 % compression speed on RH at 960 B blocks (not reproduced). Cost: chunks stop being self-contained. `benchmarks/compression/results/review-cfdb-compression-1.md`.
 - [ ] **[ebooklet] WRITERS read through the public `db_url` (CDN) whenever one is set** — found
