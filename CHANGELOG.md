@@ -3,7 +3,19 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
-## 0.1.7 (unreleased)
+## 0.1.8 (unreleased)
+
+- **Requires cfdb >= 0.11.0 and ebooklet >= 0.11.0.** ebooklet 0.11 stores grouped remotes in
+  write-order groups (remote format 3), which older clients refuse ("upgrade ebooklet"); the commons
+  catalogue and its grouped datasets are republished in that format.
+- **`publish(..., group_bytes=...)` replaces `num_groups`.** An int packs a dataset's chunks into
+  write-order groups of up to that many bytes, so appending to a published dataset uploads only the
+  new chunks; `None` stores one object per chunk. Omitted, an existing remote keeps its layout and a
+  new one is grouped (ebooklet's default, 32 MiB). `group_bytes` and `verify_objects` are now
+  keyword-only: `group_bytes` sits where `num_groups` was, so a positional 0.1.7 call now raises
+  `TypeError` instead of passing a group count as a byte target.
+
+## 0.1.7
 
 - **Requires cfdb >= 0.10.0.** cfdb 0.10 compresses new datasets with a byte-shuffle filter
   (`zstd_shuffle`, its new default), and an older cfdb cannot open them: it fails at open with

@@ -116,7 +116,7 @@ rcg_conn = S3Connection(
 )
 
 cat = envlib.Catalogue(remotes=[rcg_conn])
-cat.publish('data.cfdb', data_conn, rcg_conn, num_groups=101)   # prime numbers hash best
+cat.publish('data.cfdb', data_conn, rcg_conn)   # grouped S3 layout by default (group_bytes)
 ```
 
 The data is pushed **before** the catalogue entry is written, so the catalogue never references incomplete data; re-running a failed publish is safe. Any consumer with the catalogue's location can now run the query at the top of this page and find your dataset.

@@ -6,14 +6,14 @@
 
 ```python
 cat = envlib.Catalogue(remotes=[rcg_conn])
-cat.publish('era5_temp_v1.cfdb', data_conn, rcg_conn, num_groups=101)
+cat.publish('era5_temp_v1.cfdb', data_conn, rcg_conn)
 ```
 
 Internally, in order: validate → write the derived attributes into the file (`envlib_dataset_id`, `envlib_dataset_version_id`, and the auto-populated `standard_name`) → push the cfdb data → verify the pushed objects → write the catalogue entry → push the catalogue. The data goes up **before** the entry, so the catalogue never references incomplete data.
 
 - `data_conn` is where the dataset lives (an `ebooklet.S3Connection` with your credentials). Set its `db_url` to the dataset's public HTTPS location if you host it publicly — that URL rides into the entry as `data_url` so consumers can open the dataset credential-free. It must be a *plain* public URL: no `user:pass@`, no query string (presigned URLs are rejected — their signatures must never land in a catalogue).
 - `rcg_conn` is the catalogue's own S3 location. A catalogue that doesn't exist yet is created on first publish.
-- `num_groups` tunes the S3 object layout for a **new** remote dataset (see [cfdb's S3 guide](https://mullenkamp.github.io/cfdb/guide/s3-remote/)); it's ignored for existing ones. **It's best to use a prime number**.
+- `group_bytes` sets the S3 object layout: chunks are packed, in the order they were written, into group objects of up to that many bytes (default 32 MiB, the setting for most datasets, including ones that grow by appending); `group_bytes=None` stores one object per chunk, for datasets pushed very often in tiny increments. Omitted, an existing remote keeps its layout and the `group_bytes` it records from its last push (see [cfdb's S3 guide](https://mullenkamp.github.io/cfdb/guide/s3-remote/)).
 
 **Failure handling & object verification**: if publish dies between the data push and the catalogue write, just run it again — the data push is idempotent and the entry write is an upsert. A *partial* push failure (some objects could not be transferred) raises a `RuntimeError` naming the failed keys rather than claiming success; the pending changes are retained, so fixing the cause and re-running completes it.
 

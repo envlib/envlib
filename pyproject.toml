@@ -19,9 +19,12 @@ dependencies = [
   # >=0.10.0: cfdb 0.10 writes new datasets with byte-shuffled compression (zstd_shuffle), which an
   # older cfdb refuses at open with a bare "Invalid enum value 'zstd_shuffle'" naming no remedy.
   # Readers must be able to open anything a current producer publishes, so envlib floors the
-  # version that can. (It needs no other 0.10 feature.)
-  "cfdb>=0.10.0",
-  "ebooklet>=0.10.5",
+  # version that can.
+  # >=0.11 (cfdb and ebooklet): ebooklet 0.11's write-order groups are remote format 3, which
+  # 0.10 clients refuse ("upgrade ebooklet"), and publish() forwards group_bytes, which only
+  # cfdb 0.11's open_edataset accepts. The commons catalogue itself is a format-3 remote.
+  "cfdb>=0.11.0",
+  "ebooklet>=0.11.0",
   "booklet>=0.12.6",
   "pyproj",
   "shapely>=2.0",

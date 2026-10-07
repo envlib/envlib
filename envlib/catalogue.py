@@ -42,6 +42,10 @@ DEFAULT_CACHE_DIR = '~/.envlib/cache'
 
 STATION_ID_VAR = 'station_id'
 
+# "Argument not given" for publish()'s group_bytes: only a given value is
+# forwarded, so ebooklet's own default applies otherwise.
+_NOT_GIVEN = object()
+
 # cfdb dataset types, grouped by the structure envlib cares about. Defined once because every
 # check below used exact string equality against a single value, which is how a new dataset type
 # silently skips a guard -- most dangerously _check_stations.
@@ -989,9 +993,16 @@ class Catalogue:
         return validate_dataset(local_cfdb_path)
 
     def publish(
-        self, local_cfdb_path, remote_conn, rcg_remote_conn, num_groups=None, verify_objects: bool = True, **open_kwargs
+        self, local_cfdb_path, remote_conn, rcg_remote_conn, *, group_bytes=_NOT_GIVEN, verify_objects: bool = True,
+        **open_kwargs
     ) -> dict:
         """Validate, push the cfdb data to its S3 remote, verify it, then register it in the RCG.
+
+        ``group_bytes`` sets how the remote stores chunks (ebooklet >= 0.11): an
+        int packs chunks into write-order groups of up to that many bytes, None
+        stores one object per chunk. Omitted, an existing remote keeps its mode
+        and recorded group_bytes, and a new one is grouped (ebooklet's
+        default, 32 MiB).
 
         The cfdb data is pushed BEFORE the RCG entry so the catalogue never
         references incomplete remote data. With ``verify_objects`` (default True),
@@ -1004,8 +1015,8 @@ class Catalogue:
         """
         member_conn = _as_connection(remote_conn)
         edataset_kwargs = dict(open_kwargs)
-        if num_groups is not None:
-            edataset_kwargs['num_groups'] = num_groups
+        if group_bytes is not _NOT_GIVEN:
+            edataset_kwargs['group_bytes'] = group_bytes
         # validate INSIDE the edataset session: for a re-publish of an
         # already-pushed (possibly partially materialized) local file, plain
         # open_dataset would read local chunks only and could extract wrong
