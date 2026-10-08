@@ -240,10 +240,50 @@ envlib-aware tooling (owner, licence, cadence) also goes in a standard slot.
 `TiledNdArray` ranges split an array into tiles fetched by URL template. That mirrors cfdb's chunking
 and could later expose chunks as tiles. It is not needed for a first version.
 
-JSON is verbose. One station's full 183,561-hour history is an estimated 6 MB before gzip
-(timestamps dominate; not measured). So `f=CSV` should ship from the start, and `f=netCDF4` for
-large cube requests, since cfdb already exports netCDF. (The ts_ortho netCDF export currently fails
-on the geometry coordinate; see the `[cfdb]` Backlog item.)
+`f=CSV` should ship from the start, and `f=netCDF4` for large cube requests, since cfdb already
+exports netCDF. (The ts_ortho netCDF export currently fails on the geometry coordinate; see the
+`[cfdb]` Backlog item.) EDR's `output_formats` is an open list of strings, so a binary format such as
+Parquet could be added later.
+
+### Response compression: zstd
+
+**Decision (Mike, 2026-10-07): zstd level 1, with a gzip level 1 fallback.** EDR leaves compression
+to HTTP. The 1.2 text never mentions it, and OGC API – Features Part 1 says "the standard HTTP
+mechanisms can be used". So the server negotiates per request from the client's `Accept-Encoding`:
+
+1. zstd offered → `Content-Encoding: zstd`, level 1.
+2. otherwise gzip offered → `Content-Encoding: gzip`, level 1.
+3. neither → an uncompressed body.
+
+The fallback is needed because the most common Python HTTP client never offers zstd. Default
+`Accept-Encoding`, checked 2026-10-07:
+
+| Client | Offers |
+|---|---|
+| `requests` 2.x (urllib3 2.8.0) | `gzip, deflate`, even with `zstandard` installed |
+| `httpx` 0.28.1 | `gzip, deflate`, plus `zstd` only when `zstandard` is installed |
+| curl 8.5 with `--compressed` | zstd, when libcurl is built with it (this build is); curl sends no `Accept-Encoding` without the flag |
+
+Without the fallback, a `requests` user would download 4.73 MB instead of 0.79 MB for the response
+below.
+
+Measured 2026-10-07 on one ECan streamflow station's full history (183,570 hours, 142,230 non-missing),
+serialised compactly:
+
+| Body | Raw | zstd-1 | zstd-3 | gzip-1 | gzip-6 |
+|---|---|---|---|---|---|
+| CoverageJSON `PointSeries` | 4.73 MB | **0.36 MB (13×), 5 ms** | 0.35 MB, 7 ms | **0.79 MB (6×), 38 ms** | 0.73 MB, 147 ms |
+| CSV | 4.20 MB | 0.66 MB (6×), 6 ms | 0.68 MB, 8 ms | 0.94 MB (4×), 40 ms | 0.77 MB, 156 ms |
+
+Level 1 costs almost nothing in size for either codec and is markedly faster: zstd-1 is within 3 % of
+zstd-3, and gzip-1 is within 7 % of gzip-6 at a quarter of the CPU. Speed matters as much as size,
+because a warm read of this station takes under 10 ms (§1). zstd-1 keeps compression a small fraction
+of the response time, whereas gzip would dominate it. CoverageJSON is larger than CSV raw but smaller
+compressed, because its repeated timestamp strings compress very well.
+
+netCDF4 responses carry their own compression inside the file. Use zlib there for compatibility,
+since zstd inside netCDF needs filter plugins on the reader's side, and do not compress them again
+over HTTP.
 
 ## 7. What EDR does not cover
 
@@ -270,6 +310,32 @@ whereas pygeoapi is configured with static YAML.
 pages, OpenAPI and HTML browsing. Its built-in `xarray-edr` provider supports only `position` and
 `cube`, and whether pygeoapi can add collections at runtime was not checked.
 
+**Two tiers for gridded requests.** Agencies usually serve gridded data in one of two ways. A file
+or object server hands out whole files (e.g. netCDF on S3). A job queue processes requests in the
+background (e.g. CDS, where much of ERA5 sits in ECMWF's MARS archive). Synchronous cube subsetting
+exists (THREDDS NCSS, ERDDAP griddap, NWS's EDR deployment), but it relies on chunked files on local
+disk. envlib/cfdb can serve `cube` from object storage because its chunk layouts are chosen for both
+time-series and map reads and the server keeps a warm cache. That capability has a ceiling: one cold
+WRF map took 13 s (§1), and ten years of one full-domain WRF variable is about 59 GB raw
+(87,660 h × 534 × 315 × 4 bytes). So the API answers in two tiers and deliberately stops there:
+
+1. **Small and interactive:** EDR `position`/`area`/`cube` within the chunk budget, served
+   synchronously.
+2. **Bulk: direct access.** A request over the budget gets a 413 that points the user to the envlib
+   Python package and the dataset's `db_url`. Every public dataset can be opened directly
+   (`Catalogue().query(...)[0].open()`, or `cfdb.open_edataset` on the `db_url`), and the client then
+   pulls exactly the chunks it needs. This is envlib's chunk-level version of the "file server" path,
+   and it needs nothing new on the server.
+**Non-goal: a CDS-style processing service** (Mike, 2026-10-07). The API will not run job queues or
+large servers that process bulk requests on the user's behalf. A user who wants more than the
+synchronous budget uses envlib directly and pulls as much as they want, so the compute and transfer
+for bulk work stay on the user's side. That keeps the service small enough to run as ordinary Swarm
+replicas.
+
+The 413 body names the limit that was exceeded, the request's estimated size, the collection's
+`dataset_version_id` and its `db_url`, and a short snippet of envlib code that opens it. EDR asks for
+exactly this kind of message ("explaining the query limits imposed by the server implementation").
+
 **Swarm layout:**
 - **Concurrency:** one uvicorn worker per replica with a thread pool, and dataset handles opened at
   startup and shared across threads. Scale with replicas. Never point two processes at one cache
@@ -278,7 +344,7 @@ pages, OpenAPI and HTML browsing. Its built-in `xarray-edr` provider supports on
 - **Freshness:** a refresh timer for the catalogue and the hourly datasets.
 - **HTTP caching:** `Cache-Control`/`ETag` derived from `dataset_version_id` plus the remote
   timestamp. Frozen datasets can be cached by a CDN for a long time.
-- **Limits:** a per-request chunk budget returning 413 with the limit in the message.
+- **Limits:** a per-request chunk budget returning 413 that points to direct access (tier 2 above).
 - **Credentials:** read-only access to public datasets needs none (`db_url` only).
 
 **Sequencing:** ebooklet format 3 will be finished before this work starts (Mike, 2026-10-07). The
@@ -301,6 +367,12 @@ republished under it.
   - the cache-lock test of §3;
   - the ebooklet working-tree state (format 3 uncommitted; installed 0.10.5 still reads the
     hash-grouped esa-sst);
+  - the §6 compression table (an isolated environment pinned to envlib 0.1.7 and ebooklet 0.10.5,
+    because the project venv had moved to ebooklet 0.11.0, which refuses the format 2 commons
+    catalogue);
+  - a text search of EDR 1.2 and OGC API – Features Part 1 for compression terms;
+  - the default `Accept-Encoding` of `requests` and `httpx` (throwaway environments, with and without
+    `zstandard`) and the curl build features;
   - a fetch of the EDR 1.2 `collection.yaml` and `parameterNames.yaml` schemas: `additionalProperties`
     appears only under `parameter_names` and `categoryEncoding`, and `measurementType` has a required
     `method` and an optional `duration`.
@@ -312,12 +384,16 @@ republished under it.
   pygeoapi's EDR providers.
 - **Not checked:**
   - the EDR 1.1 approval month;
+  - the §8 statements about THREDDS NCSS, ERDDAP griddap and ERA5 in MARS (background knowledge, not
+    looked up this session);
   - the 1.2 changes beyond OGC's compatibility statement;
   - the spec prose on extension properties (the schema was relied on);
   - that NERC resolves every envlib `standard_name`;
   - pygeoapi runtime collections;
   - cfdb thread-safety within a process;
-  - real CoverageJSON sizes;
+  - zstd `Content-Encoding` support in browsers, R and GIS clients (believed current in Chrome and
+    Firefox);
+  - whether a CDN in front would re-encode zstd responses for clients that do not offer it;
   - behaviour under concurrent load.
 
 ## Sources
