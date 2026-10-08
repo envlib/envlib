@@ -22,7 +22,7 @@ dependencies = [
   # version that can.
   # >=0.11 (cfdb and ebooklet): ebooklet 0.11's write-order groups are remote format 3, which
   # 0.10 clients refuse ("upgrade ebooklet"), and publish() forwards group_bytes, which only
-  # cfdb 0.11's open_edataset accepts. The commons catalogue itself is a format-3 remote.
+  # cfdb 0.11's open_edataset accepts. The commons catalogue is republished per-key (format 2), which both 0.10 and 0.11 read.
   "cfdb>=0.11.0",
   "ebooklet>=0.11.0",
   "booklet>=0.12.6",

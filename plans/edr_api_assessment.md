@@ -60,7 +60,9 @@ Live dataset layouts at the time of measurement:
 **These cold numbers predate ebooklet format 3.** The WRF and SST datasets were read from
 hash-grouped format 2 remotes. Format 3 regroups them in write order (32 MB groups by default), which
 changes how many bytes a grouped ranged read pulls. Re-measure the grouped rows on the republished
-remotes before sizing the chunk budget. The ECan rows are per-key and should not change.
+remotes before sizing the chunk budget. The ECan rows were per-key with `(1, 25000)` chunks when
+measured; they move to `(1, 2520)` chunks in small write-order groups (the telemetry layout, decided
+2026-10-08), so re-measure them too.
 
 **What the numbers say.** Cold costs are network round trips to B2, and warm costs are near zero. The
 efficiency levers are therefore: keep dataset handles open (an open costs 2–3 s), keep the cache warm,
@@ -180,7 +182,7 @@ imposed by the server implementation", and names HTTP 413.
 
 | EDR query | envlib use |
 |---|---|
-| `locations` and `locations/{station_ref}` | ts_ortho stations. One station's history is exactly what the `(1, 25000)` chunking is built for. Several ids can be comma-separated. |
+| `locations` and `locations/{station_ref}` | ts_ortho stations. One station's history is exactly what one-station chunks are built for (`(1, 2520)` under the 2026-10 telemetry layout; a two-week window is 1–2 chunks). Several ids can be comma-separated. |
 | `position` (WKT `POINT`) | A grid cell's time series (WRF, SST). |
 | `area` (WKT `POLYGON`) | Grid subsets, or the stations inside a polygon. |
 | `radius` | Stations near a point. envlib already does great-circle radius tests on catalogue bboxes. |
