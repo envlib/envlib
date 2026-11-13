@@ -27,20 +27,20 @@ The catalogue snapshots all entries at construction. After new registrations lan
 
 ## Browsing: what's in here?
 
-The plural properties answer "what does this catalogue actually contain" — one per identity field, plus `licenses` and `dataset_types`:
+The plural properties answer "what does this catalogue actually contain" — one per identity field, plus `licenses` and `dataset_types`. The values shown are the public commons' in November 2026; the lists grow as datasets are added:
 
 ```python
-cat.variables            # ['precipitation', 'streamflow', 'temperature']
-cat.owners               # ['ecan', 'ecmwf', 'niwa']
-cat.features             # ['atmosphere', 'waterway']
-cat.product_codes        # ['era5', 'vcsn']
+cat.variables            # ['altitude', 'barometric_pressure', 'evapotranspiration', ..., 'wind_speed']
+cat.owners               # ['ecan', 'esa', 'uc']
+cat.features             # ['atmosphere', 'land', 'ocean', 'soil', 'waterway']
+cat.product_codes        # ['cci-sst-l4-v3-nz', 'wrf-3km-nz']
 cat.dataset_types        # ['grid', 'ts_ortho']
 ```
 
 They all wrap `cat.distinct(field, counts=False)`, which additionally gives you counts (including how many entries *lack* an optional field):
 
 ```python
-cat.distinct('product_code', counts=True)    # {'era5': 3, 'vcsn': 1, None: 12}
+cat.distinct('product_code', counts=True)    # {'cci-sst-l4-v3-nz': 1, 'wrf-3km-nz': 12, None: 5}
 ```
 
 This is a different question from what's *valid* — for that, see the [vocabularies module](vocabularies.md). For the free-form fields (`owner`, `product_code`, `version`), browsing the catalogue is the *only* way to discover values.
@@ -52,13 +52,13 @@ All entries, filtered. Field kwargs are AND-ed together; a list value means "any
 ```python
 results = cat.query(
     variable='temperature',
-    owner=['niwa', 'ecmwf'],            # either owner
+    owner=['uc', 'esa'],                # either owner
     processing_level='quality_controlled',
     dataset_type='grid',
 )
 ```
 
-Matching is **case-insensitive on both sides** — `owner='NIWA'` matches stored `niwa`, `license='cc-by-4.0'` matches stored `CC-BY-4.0`. It is exact-match only: no globs, substrings, or regex. `query(product_code=None)` matches entries with no product code.
+Matching is **case-insensitive on both sides** — `owner='ECAN'` matches stored `ecan`, `license='cc-by-4.0'` matches stored `CC-BY-4.0`. It is exact-match only: no globs, substrings, or regex. `query(product_code=None)` matches entries with no product code.
 
 ### The latest-version default
 
@@ -74,7 +74,7 @@ At most one of these per query; all in EPSG:4326 (WGS84 lon/lat), all *intersect
 ```python
 cat.query(bbox=[166, -47, 179, -34])                  # [min_lon, min_lat, max_lon, max_lat]
 cat.query(within_radius=((174.0, -41.0), 50))          # ((lon, lat), km) great-circle
-cat.query(geometry=shapely.Polygon(...))               # any shapely geometry
+cat.query(geometry=shapely.box(170, -45, 175, -40))   # any shapely geometry (import shapely)
 ```
 
 Bounding boxes use the GeoJSON antimeridian convention: `min_lon > max_lon` means the box crosses 180° (a domain spanning 166°E–172°W is `[166, -47, -172, -34]`, not a near-global box). Both stored and query boxes may cross; envlib handles the wraparound, including for `within_radius` distances across the dateline.

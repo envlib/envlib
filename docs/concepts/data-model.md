@@ -17,7 +17,7 @@ Eleven fields define what a dataset is. Together they must be unique; individual
 | `method` | `simulation`, `sensor_recording` | envlib CV |
 | `product_code` | `era5`, or `None` | free-form slug |
 | `processing_level` | `raw`, `quality_controlled` | envlib CV |
-| `owner` | `ecmwf`, `niwa` | free-form slug |
+| `owner` | `ecan`, `uc` | free-form slug |
 | `aggregation_statistic` | `mean`, `point` | CF cell_methods subset |
 | `frequency_interval` | `1h`, `day`, or `None` | envlib frequency codes |
 | `utc_offset` | `+00:00`, `+12:00` | `±HH:MM` grammar |
