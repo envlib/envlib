@@ -41,7 +41,6 @@ pip install envlib
 import envlib
 
 # The public envlib catalogue — zero config, no credentials
-# (until it's hosted: Catalogue(remotes=['https://.../catalogue.rcg']))
 cat = envlib.Catalogue()
 
 # What's in it?

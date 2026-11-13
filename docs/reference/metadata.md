@@ -23,3 +23,7 @@
 ::: envlib.metadata.ValidationError
     options:
       show_root_heading: true
+
+::: envlib.metadata.PublishIntegrityError
+    options:
+      show_root_heading: true

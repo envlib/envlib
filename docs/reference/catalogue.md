@@ -7,3 +7,7 @@
 ::: envlib.catalogue.DatasetRef
     options:
       show_root_heading: true
+
+::: envlib.catalogue.validate_dataset
+    options:
+      show_root_heading: true

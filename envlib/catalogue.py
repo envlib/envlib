@@ -640,7 +640,8 @@ def validate_dataset(dataset, *, validate_cv: bool = True) -> dict:
     network refresh, neither of which a local build has or wants.
 
     Args:
-        dataset: a path to a local cfdb file, or an ALREADY-OPEN cfdb ``Dataset``/``EDataset``.
+        dataset (str | pathlib.Path | cfdb.Dataset | cfdb.EDataset): a path to a local cfdb file,
+            or an ALREADY-OPEN cfdb ``Dataset``/``EDataset``.
             Prefer passing the open object when you have one -- reopening a file that is linked
             to a remote starts a second session against it, and for an ``EDataset`` the open
             object also pulls transparently, so extents are read from the whole dataset rather
@@ -1002,7 +1003,11 @@ class Catalogue:
         int packs chunks into write-order groups of up to that many bytes, None
         stores one object per chunk. Omitted, an existing remote keeps its mode
         and recorded group_bytes, and a new one is grouped (ebooklet's
-        default, 32 MiB).
+        default, 32 MiB). The mode (grouped or per-key) is fixed per remote:
+        asking an existing remote for the other mode is ignored with a warning.
+        A remote hash-grouped by envlib <= 0.1.7 (``num_groups``) cannot be
+        opened at all (ebooklet raises ``UnsupportedFormatError``); see the
+        changelog for how to move one.
 
         The cfdb data is pushed BEFORE the RCG entry so the catalogue never
         references incomplete remote data. With ``verify_objects`` (default True),
