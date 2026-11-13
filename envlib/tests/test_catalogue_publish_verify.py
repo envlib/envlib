@@ -91,3 +91,13 @@ def test_verify_helper_is_wired_into_publish_and_register():
         assert '_verify_remote_objects(member_conn)' in src
         # the verify must precede the entry write
         assert src.index('_verify_remote_objects') < src.index('_upsert_entry')
+
+
+def test_publish_group_bytes_is_keyword_only():
+    """group_bytes sits where envlib 0.1.7's num_groups was: a positional call
+    (a group COUNT) must fail loudly, not become a byte target."""
+    import inspect
+
+    params = inspect.signature(catalogue.Catalogue.publish).parameters
+    assert params['group_bytes'].kind is inspect.Parameter.KEYWORD_ONLY
+    assert params['verify_objects'].kind is inspect.Parameter.KEYWORD_ONLY

@@ -158,7 +158,7 @@ wheels = [
 
 [[package]]
 name = "cfdb"
-version = "0.10.0"
+version = "0.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "booklet" },
@@ -176,9 +176,9 @@ dependencies = [
     { name = "shapely" },
     { name = "zstandard" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/15/d1/0bc8d21cefc73f9c110e032baef98d61e3599d30ff999a9a143f68185401/cfdb-0.10.0.tar.gz", hash = "sha256:020a4d1895dd96f8f47dbea35871653fa8d1b35e4ea12658caad7d60719f3c95", size = 78263, upload-time = "2026-09-23T22:15:05.12Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3e/9b/a10848012c121cfb9043252e39506c9916a4c04eba54ea6c8fbe85d28d10/cfdb-0.11.0.tar.gz", hash = "sha256:4fc686bc87af360528f1b743e287b504b4f12e0c6036015c2a61c8a589b54f0d", size = 78660, upload-time = "2026-10-07T01:09:18.75Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/7c/37f2bda5326726cda6f37a67b4d6a1536216ea1893d8924423bbd62e6876/cfdb-0.10.0-py3-none-any.whl", hash = "sha256:f02b23f673f66bab975e26e86db4701a7616fdb21c1fd139fc412c96b6185d04", size = 85006, upload-time = "2026-09-23T22:15:03.362Z" },
+    { url = "https://files.pythonhosted.org/packages/e0/ae/2b0c731503aad863b37b091a42767dc5b2c62606bef3fe9c2f143f3d659f/cfdb-0.11.0-py3-none-any.whl", hash = "sha256:fbb37b6f3a302e10307f10904e2c3f49751f71a87d3e95c090206483d143621d", size = 85403, upload-time = "2026-10-07T01:09:17.33Z" },
 ]
 
 [[package]]
@@ -554,7 +554,7 @@ wheels = [
 
 [[package]]
 name = "ebooklet"
-version = "0.10.5"
+version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "booklet" },
@@ -563,9 +563,9 @@ dependencies = [
     { name = "s3func" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b3/33/f41536b10d853994bd1c74539f4234640e4d92bd7558ac3d8f54b33ffcfa/ebooklet-0.10.5.tar.gz", hash = "sha256:d66c287e5f56da8accaca7c8d17e54dc4a04a874ab501aad03aa4b7236ec77ed", size = 68481, upload-time = "2026-09-08T04:19:00.127Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/9e/53/6bc8b1abc17fdb3da70fed9d17f115b6d1ed347dbb2fa015abe2816687b3/ebooklet-0.11.1.tar.gz", hash = "sha256:35a079b5840c9eafd7bbe867725c75c67c94f161f0082dda2ae36caf5948d299", size = 77217, upload-time = "2026-10-08T18:20:13.418Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/32/11be14fa6a229e61053760d5126046574b967db82cbe5b0e60ba7171cff3/ebooklet-0.10.5-py3-none-any.whl", hash = "sha256:8cb7d814225d8985fc8b4e076cc62352ae4695036f1a93b98ab3d03a1983314f", size = 71925, upload-time = "2026-09-08T04:18:58.466Z" },
+    { url = "https://files.pythonhosted.org/packages/6f/b8/b2a0c1febc2b79710bfd5d3b0395d045625d4d8379aef0a2d7642efc3366/ebooklet-0.11.1-py3-none-any.whl", hash = "sha256:db734fde3026a150728426c4a14f1b7290a6b6b746a9e8006bddb4077638359a", size = 80635, upload-time = "2026-10-08T18:20:11.769Z" },
 ]
 
 [[package]]
@@ -601,8 +601,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "booklet", specifier = ">=0.12.6" },
-    { name = "cfdb", specifier = ">=0.10.0" },
-    { name = "ebooklet", specifier = ">=0.10.5" },
+    { name = "cfdb", specifier = ">=0.11.0" },
+    { name = "ebooklet", specifier = ">=0.11.0" },
     { name = "pyproj" },
     { name = "shapely", specifier = ">=2.0" },
     { name = "urllib3" },

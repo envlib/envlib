@@ -3,7 +3,30 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
-## 0.1.7 (unreleased)
+## Unreleased
+
+- **`envlib.PublishIntegrityError` is exported** (it lived only in `envlib.metadata`), so the error
+  `publish()` raises after a silent over-claim can be caught from the top-level package.
+
+## 0.1.8 (2026-10-07)
+
+- **Requires cfdb >= 0.11.0 and ebooklet >= 0.11.0.** ebooklet 0.11 stores grouped remotes in
+  write-order groups (remote format 3), which older clients refuse ("upgrade ebooklet"). The commons
+  catalogue is republished per-key (format 2, which both 0.10 and 0.11 read); its grouped datasets
+  move to format 3.
+- **Datasets published with `num_groups` (hash-grouped, envlib <= 0.1.7) cannot be opened by 0.1.8**,
+  not even to read: ebooklet raises `UnsupportedFormatError`, so `DatasetRef.open()`, `publish()` and
+  `register()` fail on them. To move one: with ebooklet < 0.11, open it `'w'` and `load_items()` so
+  the local file holds every value, `delete_remote()`, then publish the local file again with 0.1.8.
+- **`publish(..., group_bytes=...)` replaces `num_groups`.** An int packs a dataset's chunks into
+  write-order groups of up to that many bytes, so appending to a published dataset uploads only the
+  new chunks; `None` stores one object per chunk. Omitted, an existing remote keeps its layout and a
+  new one is grouped (ebooklet's default, 32 MiB). The mode (grouped or one object per chunk) is
+  fixed per remote: asking an existing remote for the other one is ignored with a warning. In
+  `publish`, `group_bytes` and `verify_objects` are now keyword-only: `group_bytes` sits where `num_groups` was, so a positional 0.1.7 call now raises
+  `TypeError` instead of passing a group count as a byte target.
+
+## 0.1.7 (2026-09-24)
 
 - **Requires cfdb >= 0.10.0.** cfdb 0.10 compresses new datasets with a byte-shuffle filter
   (`zstd_shuffle`, its new default), and an older cfdb cannot open them: it fails at open with

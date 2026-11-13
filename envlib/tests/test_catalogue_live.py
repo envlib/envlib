@@ -71,7 +71,7 @@ def test_publish_query_open_roundtrip(live, s3_config, tmp_path, cache_dir):
     with pytest.warns(UserWarning, match='treating as empty'):
         publisher = Catalogue(remotes=[rcg_conn], cache=str(cache_dir))
     assert publisher.datasets == []
-    result = publisher.publish(local, data_conn, rcg_conn, num_groups=11)
+    result = publisher.publish(local, data_conn, rcg_conn, group_bytes=2**16)
     assert result['dataset_version_id'] == meta.dataset_version_id
 
     # a fresh consumer catalogue sees the entry
@@ -105,7 +105,7 @@ def test_republish_noop_keeps_modified_at(live, tmp_path, cache_dir):
 
     with pytest.warns(UserWarning, match='treating as empty'):
         cat = Catalogue(remotes=[rcg_conn], cache=str(cache_dir))
-    cat.publish(local, data_conn, rcg_conn, num_groups=11)
+    cat.publish(local, data_conn, rcg_conn, group_bytes=2**16)
     first = cat.query(variable='temperature')[0].metadata
 
     cat.publish(local, data_conn, rcg_conn)
@@ -130,7 +130,7 @@ def test_ts_ortho_publish_roundtrip(live, s3_config, tmp_path, cache_dir):
     meta = build_ts(local)
 
     cat = Catalogue(remotes=[], cache=str(cache_dir))
-    cat.publish(local, data_conn, rcg_conn, num_groups=11)
+    cat.publish(local, data_conn, rcg_conn, group_bytes=2**16)
 
     consumer = _catalogue(rcg_conn, cache_dir / 'consumer')
     refs = consumer.query(dataset_type='ts_ortho')
@@ -162,7 +162,7 @@ def test_register_existing_remote(live, tmp_path, cache_dir):
     meta = build_grid(local)
 
     # push the cfdb outside envlib (the pipeline-managed case)
-    with cfdb.open_edataset(data_conn, local, flag='w', num_groups=11) as eds:
+    with cfdb.open_edataset(data_conn, local, flag='w', group_bytes=2**16) as eds:
         eds.push()
 
     with pytest.warns(UserWarning, match='treating as empty'):
@@ -185,7 +185,7 @@ def test_deregister_guard_and_delete(live, s3_config, tmp_path, cache_dir):
 
     with pytest.warns(UserWarning, match='treating as empty'):
         cat = Catalogue(remotes=[rcg_conn], cache=str(cache_dir))
-    cat.publish(local, data_conn, rcg_conn, num_groups=11)
+    cat.publish(local, data_conn, rcg_conn, group_bytes=2**16)
 
     # the real shared-target trap: fix/bump the SAME file's identity (the
     # typo-correction flow: clear the stale self-identification attrs, change
@@ -237,6 +237,6 @@ def test_deregister_missing_entry_raises(live, cache_dir, tmp_path):
         cat = Catalogue(remotes=[rcg_conn], cache=str(cache_dir))
     # seed the RCG so it exists remotely
     data_conn = live('missing/data.cfdb')
-    cat.publish(local, data_conn, rcg_conn, num_groups=11)
+    cat.publish(local, data_conn, rcg_conn, group_bytes=2**16)
     with pytest.raises(ValidationError, match='no catalogue entry'):
         cat.deregister('0' * 24, rcg_conn)

@@ -33,7 +33,7 @@ ds.close()
 That's the whole flow — browse, query, open. From here it's the [cfdb API](https://mullenkamp.github.io/cfdb/) — selection, chunk iteration, netCDF export.
 
 !!! note
-    The public catalogue is not hosted yet — until it is, pass the location of a catalogue you know about instead: `envlib.Catalogue(remotes=['https://.../catalogue.rcg'])`. That form is also how you read any organisation-specific catalogue alongside (or instead of) the public one. Datasets on private buckets additionally need access keys injected at open time — see [Opening Data](../guide/opening-data.md#private-buckets).
+    To read another catalogue, such as an organisation-specific one, alongside (or instead of) the public one, pass its location: `envlib.Catalogue(remotes=['https://.../catalogue.rcg'])`. Datasets on private buckets additionally need access keys injected at open time — see [Opening Data](../guide/opening-data.md#private-buckets).
 
 ## Publishing your own data
 
@@ -89,7 +89,7 @@ with cfdb.open_dataset('data.cfdb', flag='n') as ds:
 ```python
 result = envlib.validate_dataset('data.cfdb')   # no catalogue, no network
 
-result['dataset_version_id']   # '5fb10df86042d17bc646f5b7'
+result['dataset_version_id']   # '7617935dd05fc23bfb4365c2'
 result['state']['bbox']        # [170.0, -44.0, 172.0, -42.0]
 result['standard_name']        # {'action': 'populate', 'value': 'air_temperature'}
 ```
@@ -116,7 +116,7 @@ rcg_conn = S3Connection(
 )
 
 cat = envlib.Catalogue(remotes=[rcg_conn])
-cat.publish('data.cfdb', data_conn, rcg_conn, num_groups=101)   # prime numbers hash best
+cat.publish('data.cfdb', data_conn, rcg_conn)   # grouped S3 layout by default (group_bytes)
 ```
 
 The data is pushed **before** the catalogue entry is written, so the catalogue never references incomplete data; re-running a failed publish is safe. Any consumer with the catalogue's location can now run the query at the top of this page and find your dataset.
