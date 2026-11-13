@@ -49,9 +49,15 @@ Multiple producers registering into one shared catalogue is safe: the catalogue 
 
 ## Deregistration
 
+Two alternatives: call one or the other, not both (once delisted, the entry is gone, so a retract after it
+raises `ValidationError`).
+
 ```python
-cat.deregister(dataset_version_id, rcg_conn)                    # delist
-cat.deregister(dataset_version_id, rcg_conn,                    # retract
+# EITHER delist: remove the catalogue entry, keep the data
+cat.deregister(dataset_version_id, rcg_conn)
+
+# OR retract: remove the entry AND delete the dataset's objects
+cat.deregister(dataset_version_id, rcg_conn,
                delete_data=True,
                access_key_id='...', access_key='...')
 ```

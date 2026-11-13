@@ -9,10 +9,10 @@ import envlib
 
 cat = envlib.Catalogue()         # the public envlib catalogue
 
-# What does it contain?
-cat.variables                    # ['precipitation', 'streamflow', 'temperature']
-cat.owners                       # ['ecan', 'ecmwf', 'niwa']
-cat.features                     # ['atmosphere', 'waterway']
+# What does it contain? (the public commons in November 2026; it grows)
+cat.variables                    # ['altitude', 'barometric_pressure', ..., 'temperature', ..., 'wind_speed']
+cat.owners                       # ['ecan', 'esa', 'uc']
+cat.features                     # ['atmosphere', 'land', 'ocean', 'soil', 'waterway']
 
 # Filter down to what you want — the latest version of each matching dataset
 refs = cat.query(
@@ -26,7 +26,7 @@ refs[0]                          # prints its full metadata dict
 # Open it — a cfdb dataset; chunks download on demand
 ds = refs[0].open()
 ds['temperature'].attrs['standard_name']    # 'air_temperature'
-data = ds['temperature'].data
+data = ds['temperature'][-24:].data          # the last 24 hours: (24, 534, 315), 16 MB
 ds.close()
 ```
 

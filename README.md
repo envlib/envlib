@@ -43,9 +43,9 @@ import envlib
 # The public envlib catalogue — zero config, no credentials
 cat = envlib.Catalogue()
 
-# What's in it?
-cat.variables       # ['precipitation', 'streamflow', 'temperature']
-cat.owners          # ['ecan', 'ecmwf', 'niwa']
+# What's in it? (the public commons in November 2026; it grows)
+cat.variables       # ['altitude', 'barometric_pressure', ..., 'temperature', ..., 'wind_speed']
+cat.owners          # ['ecan', 'esa', 'uc']
 
 # Find the latest version of each matching dataset
 results = cat.query(

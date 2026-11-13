@@ -141,6 +141,13 @@ None open here. The live rollout of the released stack is tracked in the ingesti
 
 ### cfdb
 
+- [ ] **[cfdb] A `.loc` slice on a float coordinate needs exact labels, and a non-label bound raises a bare
+      `IndexError`** (added 2026-11-14, found testing envlib's docs examples). `loc_index_numeric`
+      (`cfdb/indexers.py:31`) finds a float bound with `np.isclose(coord_data, key)` and takes its first hit, so
+      `select_loc({'latitude': slice(-44, -43)})` on the ESA SST grid (cell centres at -43.975, …) fails with
+      `IndexError: index 0 is out of bounds`. Datetime and integer coordinates use `searchsorted`, which treats a
+      bound as a range limit. **Wanted:** `searchsorted` semantics for float slices too (a range selection), or at
+      least an error naming the coordinate and its nearest labels.
 - [ ] **[cfdb] a slice with numpy-integer bounds is silently ignored and returns the whole axis** (found 2026-11-10 in
       `wrf-model-eval`, cfdb 0.11.0). `v[np.int64(5000):np.int64(5120), :]` on an `(8760, 1300)` variable returns shape
       `(8760, 1300)`; the same slice with Python ints returns `(120, 1300)`. Indices from `np.flatnonzero`,
@@ -178,6 +185,10 @@ None open here. The live rollout of the released stack is tracked in the ingesti
 
 ### envlib
 
+- [ ] **[envlib] Bundle the CF standard-name table v95** (added 2026-11-14). The bundled
+      `envlib/vocabularies/standard_name.json` is v94; `vocabularies.refresh()` fetched v95 on 2026-11-14. Regenerate
+      the bundled files with `refresh(_target_dir=...)` before the next release, and check the curated mappings
+      against the new table.
 - [ ] **[envlib] `Catalogue.refresh` turns a uuid-mismatched `.rcg` cache into an EMPTY catalogue** (added 2026-10-08, plan review `ecan-telemetry-plan-1b`, Sonnet executed it). `catalogue.py:801-812` catches `UUIDMismatchError`, warns and treats the source as empty, so a reader whose cached catalogue predates a recreated catalogue sees no datasets until the cache file is deleted. The per-key catalogue republish keeps the uuid, so it does not trigger this. A catalogue recreated from a different file would.
 - [ ] **[envlib] Interval-start datasets: `time_end` is the last label, so coverage is under-reported by one interval** (added 2026-09-25, review round `wrf3k-ingest-plan-1`, all three arms). `_extract_state` sets `time_end = time[-1]` (`catalogue.py:393`), and `_time_overlaps` (`:1177`) drops a dataset when `time_end < start_date`. So a query starting inside the final interval misses the dataset: e.g. `start_date='…T22:30'` against an hourly dataset whose last label is 22:00. This applies to every interval-labelled dataset (esa-sst's last day too). Decide whether `time_end` means the last label or the end of coverage (label + `frequency_interval`), and document it.
 - [ ] **[envlib] Grid bbox is taken from cell CENTRES, so it is half a cell short on every side** (added 2026-09-25, round `wrf3k-ingest-plan-1`, Gemini). `_extract_state` uses the x/y min/max (`catalogue.py:410–412`), so point queries in the outer half-cell of a domain miss: 1.5 km for WRF 3 km, 0.025° for esa-sst. The fix is to add half a step per side before `transform_bounds`.
