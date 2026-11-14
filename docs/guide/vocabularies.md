@@ -3,11 +3,14 @@
 Most identity fields are constrained to controlled vocabularies (CVs), bundled with envlib as JSON files. The `envlib.vocabularies` module answers "what is *valid*"; the catalogue's [browse properties](browsing-querying.md#browsing-whats-in-here) answer "what is *present*".
 
 ```python
-from envlib import vocabularies
-
-vocabularies.list('feature')             # all valid values of a field
-vocabularies.is_valid('variable', 'streamflow')       # True
-vocabularies.canonical('license', 'cc-by-4.0')        # 'CC-BY-4.0' (case-insensitive resolution)
+>>> from envlib import vocabularies
+>>> vocabularies.list('feature')                     # all valid values of a field
+['atmosphere', 'waterway', 'still_water', 'ocean', 'groundwater', 'glacier', 'wetland', 'soil',
+ 'coastline', 'land']
+>>> vocabularies.is_valid('variable', 'streamflow')
+True
+>>> vocabularies.canonical('license', 'cc-by-4.0')   # case-insensitive resolution
+'CC-BY-4.0'
 ```
 
 ## The vocabularies
@@ -42,9 +45,12 @@ vocabularies.canonical('license', 'cc-by-4.0')        # 'CC-BY-4.0' (case-insens
 `standard_name.json` bundles the full CF standard-name table (v94, ~5000 names), used to validate overrides and to back the curated mapping:
 
 ```python
-vocabularies.get_cf_standard_names('temperature', feature='ocean')      # ['sea_water_temperature']
-vocabularies.get_cf_standard_names('temperature', feature='waterway')   # [] — curated: none applicable
-vocabularies.get_cf_standard_names('cadmium_dissolved', feature='soil') # None — not curated yet
+>>> vocabularies.get_cf_standard_names('temperature', feature='ocean')
+['sea_water_temperature']
+>>> vocabularies.get_cf_standard_names('temperature', feature='waterway')          # curated: none applicable
+[]
+>>> print(vocabularies.get_cf_standard_names('cadmium_dissolved', feature='soil'))  # not curated yet
+None
 ```
 
 Three distinct answers:
@@ -55,10 +61,14 @@ Three distinct answers:
 
 ## Keeping vocabularies fresh
 
+<!-- skip: start if(not docs_live, reason="fetches the upstream vocabularies over the internet") -->
+
 ```python
 vocabularies.refresh()                   # ODM2 + the CF table
 vocabularies.refresh('standard_name')    # just one
 ```
+
+<!-- skip: end -->
 
 `refresh()` fetches the current upstream lists and writes them to a user-level overlay (`~/.envlib/vocabularies/`) that takes precedence over the bundled files — it never writes into the installed package. Two guarantees:
 

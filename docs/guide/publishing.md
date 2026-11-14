@@ -4,7 +4,15 @@
 
 `publish()` takes a validated local cfdb file, pushes it to *your* S3 storage, and writes the catalogue entry:
 
+<!-- invisible-code-block: python
+from envlib.tests.docs_support import make_era5_temp, s3_conns
+make_era5_temp('era5_temp_v1.cfdb')
+data_conn, rcg_conn = s3_conns('datasets/era5_temp_v1.cfdb')
+-->
+
 ```python
+import envlib
+
 cat = envlib.Catalogue(remotes=[rcg_conn])
 cat.publish('era5_temp_v1.cfdb', data_conn, rcg_conn)
 ```
@@ -52,10 +60,20 @@ Multiple producers registering into one shared catalogue is safe: the catalogue 
 Two alternatives: call one or the other, not both (once delisted, the entry is gone, so a retract after it
 raises `ValidationError`).
 
+<!-- invisible-code-block: python
+dataset_version_id = envlib.validate_dataset('era5_temp_v1.cfdb')['dataset_version_id']
+-->
+
 ```python
 # EITHER delist: remove the catalogue entry, keep the data
 cat.deregister(dataset_version_id, rcg_conn)
+```
 
+<!-- invisible-code-block: python
+cat.register(data_conn, rcg_conn)
+-->
+
+```python
 # OR retract: remove the entry AND delete the dataset's objects
 cat.deregister(dataset_version_id, rcg_conn,
                delete_data=True,

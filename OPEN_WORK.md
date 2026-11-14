@@ -9,7 +9,28 @@ new booklet and ebooklet so far; the rest is the item "Refresh locks to booklet 
 
 ## Verification debts
 
-None open here. The live rollout of the released stack is tracked in the ingestion file (below).
+The live rollout of the released stack is tracked in the ingestion file (below).
+
+- [ ] **[cfdb + envlib] The docs-example tests (Sybil) and `mkdocs build --strict`: built, not yet run on GitHub**
+  (built 2026-11-14 from the Backlog item "Test the docs' code examples automatically (Sybil), and build the sites
+  with `--strict`"; plan reviewed in round `docs-tests-plan-1`, Fable 5.2 + Sonnet 5.5). Every Python block of `README.md` and `docs/` now
+  runs as a test (`uv run pytest README.md docs`; envlib adds `--docs-live` for the blocks that read the live
+  commons). The machinery and the rules for writing examples are in each repo's `CLAUDE.md`, "Docs examples are
+  tests", which also lists the known limits accepted as rare. **Code review `docs-tests-code-1`** (Fable 5.2; the
+  Sonnet 5.5 arm was killed at 15 min with no report, and Mike chose not to relaunch it) found 13 issues plus 2 on
+  the pages. All the non-rare ones are fixed: a `+SKIP` doctest option or text after a blank line in a `>>>` block
+  passed unseen; a widened skip region left the manifest unchanged (it now records `covers=N`); the value-comment
+  lint saw only top-level statements; a chained exception turned a failure into a pytest INTERNALERROR (a Sybil bug,
+  worked around in `docs_support.py`); the moto server outlived a SIGTERM or SIGKILL of pytest; the `.data` guard and
+  S3 rewrite stayed installed for unit runs; four pages relied on hidden imports; `indexing.md` swapped the file
+  behind `file_path`; and the combining page now warns visibly about the `overlap` bug (cfdb item below).
+  **Run locally (2026-11-14, after the fixes):** envlib offline 59 passed and 43 skipped in 12 s, live 99 passed
+  and 1 skipped in 40 s; cfdb 219 passed and 2 skipped in 13 s; both `mkdocs build --strict` pass; the unit suites
+  keep their test sets (envlib 187 = 185 + 2 inventory tests; cfdb 514 = 512 + 2). 22 planted defects in envlib
+  and 11 in cfdb each failed with their named cause, re-planted after the last harness change. **Not yet run:**
+  the GitHub jobs (`test.yml` `docs` and envlib `docs-live` on push to `dev`; `documentation.yml` with `--strict`;
+  envlib's weekly `docs-live.yml`, which uses `main` only). **Close-check:** after Mike pushes `dev`, both repos' `docs` jobs and envlib's `docs-live` job pass;
+  after the dev → main merge, the deploy builds with `--strict` and the first scheduled live run passes.
 
 ## Backlog
 
@@ -25,7 +46,10 @@ None open here. The live rollout of the released stack is tracked in the ingesti
   fixed per remote; wrong reference signatures and defaults in cfdb; the forecast types in cfdb's `dataset_type`
   docstrings; envlib's stale "not hosted yet" notes and quickstart id; `PublishIntegrityError` exported, and it
   and `validate_dataset` added to envlib's reference. Close-check: each live changelog page shows the PyPI
-  version, and the live S3 and publishing guides have no `num_groups`.
+  version, and the live S3 and publishing guides have no `num_groups`. Since then the cfdb fixes (2026-11-14) are
+  committed as `8a623d8` and the envlib ones as `7597861`/`b50256a`, all on `dev`; the merge to `main` remains.
+  The merge will also deploy the docs changes made for the docs-example tests (uncommitted on `dev` as of
+  2026-11-14; the verification debt "The docs-example tests (Sybil) and `mkdocs build --strict`").
 - [ ] **[new service] Read-only data API speaking OGC API – EDR, on the Docker Swarm cluster** (assessed 2026-10-07; full findings, measurements and sources in `plans/edr_api_assessment.md`). Feasible, and it should be Python on top of envlib/cfdb rather than Rust. Cold reads are bound by B2 round trips, not decoding, and ebooklet format 3 would obsolete a second reader on arrival. EDR 1.2 (published 2026-09-08) maps closely: collection = `dataset_id`, instance = `dataset_version_id`, `/locations` = ts_ortho stations, and `/position`/`/area`/`/cube` = grids. Output is CoverageJSON plus CSV and netCDF4. The full envlib metadata rides in a namespaced `envlib` object on each collection, and the standard slots (`extent`, `parameter_names` with `measurementType`, `keywords`, licence link) are derived from it. **Design constraints found:** one cache directory per process (even read-only sessions hold an exclusive lock; ran); open handles once (2–3 s per open); a freshness timer for hourly datasets; a per-request chunk budget returning 413 (one cold WRF map is 322 chunks, 13 s). The 413 points the user to the envlib Python package and the dataset's `db_url` for direct chunk-level access (Mike, 2026-10-07); a CDS-style processing service (job queues, large servers doing bulk work for users) is an explicit NON-GOAL (Mike, 2026-10-07): bulk users go through envlib directly. **Deferred:** forecasts, temporal aggregation, faceted catalogue search and Part 2 notifications. **Open questions** (auth, first datasets, load) are in §9 of the doc. ebooklet format 3 will be finished first (Mike, 2026-10-07), so the service targets format 3 remotes only. The doc's cold timings for the grouped WRF/SST datasets were taken on format 2 and need re-measuring (both are format 3 since 2026-10-18). **Next step when taken up:** a plan.
 - [ ] **[cfdb/envlib] No representation for IRREGULAR station series (`frequency_interval=None`) — and it is UPSTREAM of two other workstreams** (surfaced 2026-08-03 while planning the ECan tethys migration; Mike's ruling that cfdb should solve this BEFORE the tethys archiver, not after). The identity layer already anticipates irregular data — `frequency_interval` is a closed CV whose `None` entry means "irregular", and `Metadata` accepts it — but there is nowhere to *store* it: `ts_ortho` is a dense fixed-step axis by definition, and `envlib_ingest_base.tsortho._freq_step` raises on `None`. So a producer can legally *describe* an irregular dataset and then cannot *build* one. **Concrete driver: ~30 of the 36 quality-controlled ECan datasets in tethys are irregular** (lab sample analyses, manual gaugings; 1900→2022) — single-copy in a system being decommissioned, no migration path today, and consequently excluded from the ECan data-foundation migration. **Why this must land before the tethys archiver:** the archiver needs the same representation, so if it invents its own you get two incompatible irregular layouts plus a conversion later; define it once here and the archiver mirrors it. **Candidate form** — a long/tidy table, three parallel columns (`station_index`, `time`, `value`), which is CF's *indexed ragged array* described without the DSG framing. **Note the dense-with-NaN trick that makes `ts_ortho` cheap does NOT transfer**: for regular data the axis comes from the declared cadence and NaN runs compress away, but an irregular dataset has **no cadence to build an axis from** — the axis would be the union of observed timestamps, roughly as long as the observation count itself, giving ~n_stations × n_observations cells for n_observations values. That is a representation problem, not a compression one. Design questions when picked up: a new `dataset_type` alongside `ts_ortho` or a variant of it; how `Catalogue.validate` recognises it; whether the toolkit grows a `build_local`/`merge_dataset` pair for it or irregular data is append-only. Context: `tethys-repos/tethys-archiver/planning/design-notes.md` (moved 2026-08-03 out of the ecan-flow-forecasts repo, where it was first drafted). **CORRECTION 2026-08-03 to the dense-storage figures this entry originally cited** (dense zlib-4 12.0 MB vs ragged 11.9 MB, "~1% penalty"): that benchmark used an axis **10× too short** — 56,614 steps against a real 565,824 — so the absolute numbers were wrong, though the sparsity ratio (78%) happened to be about right. Re-measured on real data with the whole file: dense gzip-1 is **1.50× the source without HDF5 `shuffle` and 0.61× with it**. `shuffle=True` is the load-bearing flag and was missing from the original comparison entirely. **Status: the archiver shipped v1 WITHOUT irregular support**, covering only the 6 regular-cadence ECan QC datasets — so the ~30 irregular ones remain single-copy and unbacked. ⚠️ **CORRECTION 2026-08-07: this item is NOT what stands between them and a backup, and saying so has been delaying one.** A *representation* is needed to put irregular data into cfdb/envlib; it is not needed to **copy the tethys objects to disk**. Those objects are public zstd'd netCDF chunks with a JSON manifest — `rclone`/HTTP against the `tethys/v4/{dataset_id}/…` prefix preserves them byte-for-byte with no schema decision at all, and they can be converted later once this item lands. **Newly urgent:** ECan's raw tethys extractions were reset around 2026-05-07 (ten datasets across five parameters all start that day; raw streamflow at 2025-11-12), losing their prior history. The QC datasets were checked on 2026-08-07 and are intact — same 59 datasets as the archive snapshot, zero start dates moved — but there is now precedent for loss in this bucket, and ~30 single-copy datasets reaching back to 1900 are sitting behind it. **Do the dumb byte-copy first; solve the format afterwards.** **Status 2026-10-09:** no irregular dataset is in envlib yet. Mike recalls that all the tethys QC data has been archived. The archiver's own record says the irregular datasets are NOT exported (`tethys-repos/tethys-archiver/PROVENANCE.md:233`, and its `OPEN_WORK.md` item "Irregular datasets have no export path, and they are single-copy"), and its Mega S4 copy (2026-08-04) is a copy of those exports. Find where the irregular datasets' copy is (or make the byte-copy) before treating them as backed up.
 - [ ] **[infra] MkDocs 2.0 is unlicensed — stack docs stay on mkdocs 1.x for now** (investigated 2026-07-08; LOW urgency): the "Currently unlicensed – unsuitable for production use" banner in docs builds is mkdocs-material *warning about MkDocs 2.0* (released without a license per squidfunk's 2026-02-18 analysis), not about material itself. The stack's builds are clean today: mkdocs 1.6.1 (BSD) + material 9.7.6 (MIT), and material caps `mkdocs<2` so unpinned syncs can't pull 2.0. Longer-term watch: squidfunk is steering users toward **Zensical** (their successor generator). **Assessed 2026-07-08 with Mike — do NOT switch yet**: Zensical is pre-1.0 (v0.0.47 as of 2026-07-05) and, while mkdocs.yml + Python-Markdown extensions (pymdownx incl. snippets) carry over, **MkDocs plugins do not yet — mkdocstrings is unsupported**, which would kill every stack site's API reference pages (3 in envlib, ~10 in cfdb). **Revisit trigger**: Zensical ships mkdocstrings-equivalent API-reference support (their roadmap Phase 2/3 "popular third-party plugins"); then migrate the whole stack in one pass. Until then: mkdocs 1.6.x (BSD) + material 9.x (MIT, caps mkdocs<2) is licensed, working, and safe.
@@ -146,8 +170,41 @@ None open here. The live rollout of the released stack is tracked in the ingesti
       (`cfdb/indexers.py:31`) finds a float bound with `np.isclose(coord_data, key)` and takes its first hit, so
       `select_loc({'latitude': slice(-44, -43)})` on the ESA SST grid (cell centres at -43.975, …) fails with
       `IndexError: index 0 is out of bounds`. Datetime and integer coordinates use `searchsorted`, which treats a
-      bound as a range limit. **Wanted:** `searchsorted` semantics for float slices too (a range selection), or at
-      least an error naming the coordinate and its nearest labels.
+      bound as a range limit. The cfdb docs test (2026-11-14) found a second inconsistency: a float slice's stop is
+      EXCLUSIVE (`loc[2.0:5.0]` gives 2, 3, 4), while integer and datetime stops are inclusive (`searchsorted(side=
+      'right')`, `indexers.py:34`), as is `Coordinate.truncate`. So `combine(sel={'latitude': slice(35.0, 72.0)})`
+      silently drops the 72.0 row. The docs now state both rules (cfdb `docs/guide/indexing.md`, the "Float
+      coordinates" warning). **Wanted:** `searchsorted` semantics for float slices too (a range selection with an
+      inclusive stop, as for the other types), or at least an error naming the coordinate and its nearest labels.
+      Then drop the docs warning.
+- [ ] **[cfdb] Attribute writes on a closed Dataset are silently lost** (added 2026-11-14, cfdb docs test). After a
+      `with cfdb.open_dataset(...) as ds:` block, `ds.attrs['x'] = 1` neither raises nor persists, whereas a data
+      read on the closed handle raises `ValueError: seek of closed file`. **Wanted:** attribute writes (and reads)
+      on a closed dataset raise.
+- [ ] **[cfdb] A geometry dtype without `precision` fails with an opaque `int(None)` TypeError** (added
+      2026-11-14, cfdb docs test). `ds.create.coord.generic(..., dtype='point')` reaches `Geometry.__init__`'s
+      `int(precision)` (`cfdb/dtypes.py:168`) and raises `TypeError: int() argument must be ... not 'NoneType'`.
+      Two docs examples did exactly that (fixed to `cfdb.dtypes.dtype('point', precision=6)`). **Wanted:** a
+      clear error ("geometry dtypes need precision=…"), or a documented default precision.
+- [ ] **[cfdb] `combine(overlap='first')` drops data and `overlap='error'` raises, for disjoint inputs that share an
+      output chunk** (added 2026-11-14, found by the docs tests; reproduced). The overlap test is per chunk, not per
+      value: `out_var.get_chunk(out_sel, missing_none=True) is not None` (`cfdb/combine.py:373-384`;
+      `_write_noncontiguous`, L401-408, has the same shape). Two NZ grids with disjoint latitudes (-41..-34 and
+      -48..-41.5, 0.5°, chunks of 15 rows): `overlap='first'` left 14 of 29 latitude rows all-NaN, and
+      `overlap='error'` raised `Overlap detected for variable temperature at (slice(0, 14, None), …)`.
+      `overlap='last'` is correct. A 1-D case with the second input appended after the first did not reproduce it.
+      The docs skip those two lines with this reason and show a visible "Known issue" warning (cfdb
+      `docs/guide/combining-datasets.md`, manifest `cfdb/tests/docs_skips.txt`). **Wanted:** a per-value overlap
+      test (stored and not fill), then remove the skip and the warning.
+- [ ] **[cfdb] `combine` leaves its output dataset open when it raises** (added 2026-11-14, docs tests;
+      reproduced). After the `overlap='error'` failure above, `out.cfdb` was still open, so the next open of that
+      file waits forever on the lock. **Wanted:** close the output (or delete the partial file) on any exception.
+- [ ] **[cfdb] `create.coord.generic(..., axis='z')` raises `AttributeError: 'DataVariable' object has no attribute
+      'axis'` once the dataset holds a data variable** (added 2026-11-14, docs tests; reproduced with a dataset
+      holding `lat` and data variable `t`). The duplicate-axis check (`cfdb/creation.py:206-211`) loops over every
+      variable, data variables included. The `creator.md` example passes only because its hidden setup opens a
+      dataset with coordinates alone. **Wanted:** check coordinates only; then let that example's setup use a
+      dataset with data variables.
 - [ ] **[cfdb] a slice with numpy-integer bounds is silently ignored and returns the whole axis** (found 2026-11-10 in
       `wrf-model-eval`, cfdb 0.11.0). `v[np.int64(5000):np.int64(5120), :]` on an `(8760, 1300)` variable returns shape
       `(8760, 1300)`; the same slice with Python ints returns `(120, 1300)`. Indices from `np.flatnonzero`,

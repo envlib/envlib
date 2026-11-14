@@ -4,19 +4,27 @@
 
 The default catalogue is the public envlib commons — shared, credential-free, zero configuration:
 
+<!-- skip: start if(not docs_live, reason="reads the live public commons") -->
+
 ```python
 import envlib
 
 cat = envlib.Catalogue()
 ```
 
+<!-- skip: end -->
+
 !!! note
     A bare `Catalogue()` connects to the public envlib commons (read-only, no credentials) at `https://b2.envlib.xyz/file/envlib/envlib-commons/catalogue`. The `ENVLIB_PUBLIC_RCG_URL` environment variable overrides the default — useful for stand-ins, testing, or mirrors.
 
 Any other catalogue — an agency's, a research group's, your own — is addressed by location. For a publicly hosted index that's just its HTTPS URL, still credential-free:
 
+<!-- invisible-code-block: python
+import envlib
+-->
+
 ```python
-cat = envlib.Catalogue(remotes=['https://s3.example.com/some-bucket/catalogue.rcg'])
+agency_cat = envlib.Catalogue(remotes=['https://s3.example.com/some-bucket/catalogue.rcg'])
 ```
 
 Passing `remotes=` *replaces* the public default; add `include_public=True` to merge your remotes with the commons. (A remote can also be an `ebooklet.S3Connection` or a dict of its parameters, for indexes on private buckets that need credentials.)
@@ -29,18 +37,26 @@ The catalogue snapshots all entries at construction. After new registrations lan
 
 The plural properties answer "what does this catalogue actually contain" — one per identity field, plus `licenses` and `dataset_types`. The values shown are the public commons' in November 2026; the lists grow as datasets are added:
 
+<!-- skip: start if(not docs_live, reason="reads the live public commons") -->
+
 ```python
-cat.variables            # ['altitude', 'barometric_pressure', 'evapotranspiration', ..., 'wind_speed']
-cat.owners               # ['ecan', 'esa', 'uc']
-cat.features             # ['atmosphere', 'land', 'ocean', 'soil', 'waterway']
-cat.product_codes        # ['cci-sst-l4-v3-nz', 'wrf-3km-nz']
-cat.dataset_types        # ['grid', 'ts_ortho']
+>>> cat.variables            # doctest: +ELLIPSIS
+['altitude', 'barometric_pressure', 'evapotranspiration', ..., 'wind_speed']
+>>> cat.owners
+['ecan', 'esa', 'uc']
+>>> cat.features
+['atmosphere', 'land', 'ocean', 'soil', 'waterway']
+>>> cat.product_codes
+['cci-sst-l4-v3-nz', 'wrf-3km-nz']
+>>> cat.dataset_types
+['grid', 'ts_ortho']
 ```
 
 They all wrap `cat.distinct(field, counts=False)`, which additionally gives you counts (including how many entries *lack* an optional field):
 
 ```python
-cat.distinct('product_code', counts=True)    # {'cci-sst-l4-v3-nz': 1, 'wrf-3km-nz': 12, None: 5}
+>>> cat.distinct('product_code', counts=True)
+{'cci-sst-l4-v3-nz': 1, 'wrf-3km-nz': 12, None: 5}
 ```
 
 This is a different question from what's *valid* — for that, see the [vocabularies module](vocabularies.md). For the free-form fields (`owner`, `product_code`, `version`), browsing the catalogue is the *only* way to discover values.
@@ -72,9 +88,11 @@ Without an explicit `version=` kwarg, the results contain **the latest version o
 At most one of these per query; all in EPSG:4326 (WGS84 lon/lat), all *intersects* semantics against each dataset's stored bounding box:
 
 ```python
+import shapely
+
 cat.query(bbox=[166, -47, 179, -34])                  # [min_lon, min_lat, max_lon, max_lat]
 cat.query(within_radius=((174.0, -41.0), 50))          # ((lon, lat), km) great-circle
-cat.query(geometry=shapely.box(170, -45, 175, -40))   # any shapely geometry (import shapely)
+cat.query(geometry=shapely.box(170, -45, 175, -40))   # any shapely geometry
 ```
 
 Bounding boxes use the GeoJSON antimeridian convention: `min_lon > max_lon` means the box crosses 180° (a domain spanning 166°E–172°W is `[166, -47, -172, -34]`, not a near-global box). Both stored and query boxes may cross; envlib handles the wraparound, including for `within_radius` distances across the dateline.
@@ -88,6 +106,8 @@ The stored bbox is a coarse, never-too-small filter — for precise spatial sele
 ```python
 cat.query(variable='streamflow', start_date='2015-01-01', end_date='2020-01-01')
 ```
+
+<!-- skip: end -->
 
 !!! warning "Quasi-static data"
     Temporal filters match *recorded timestamps*, not validity periods. A DEM registered with a single 2013 survey date is a zero-width interval — a `start_date='2020-01-01'` query will not return it even though the terrain is still current. Don't temporally filter quasi-static features.

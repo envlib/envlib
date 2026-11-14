@@ -4,6 +4,14 @@ site_description: The environmental library
 repo_url: https://github.com/envlib/envlib
 repo_name: envlib/envlib
 
+# Under `mkdocs build --strict` a warning aborts the build, so these make broken anchors and
+# unrecognised or absolute links fail it (by default they are only INFO).
+validation:
+    links:
+        anchors: warn
+        unrecognized_links: warn
+        absolute_links: warn
+
 theme:
     name: material
     icon:

@@ -1,0 +1,31 @@
+name: Docs examples (live commons, weekly)
+
+# Runs the docs blocks that read the live public envlib commons. Scheduled runs use the default
+# branch (main), i.e. the docs as deployed. GitHub disables a schedule after 60 days without
+# repository activity; re-enable it from the Actions tab.
+on:
+  schedule:
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  docs-live:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --python 3.12
+
+      - name: Run the docs examples, live
+        timeout-minutes: 15
+        run: uv run --python 3.12 pytest README.md docs --docs-live -p no:cacheprovider -rs

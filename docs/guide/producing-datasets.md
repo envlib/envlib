@@ -36,14 +36,26 @@ Two conventions to know:
 Every `Metadata` field validates and normalizes on assignment (construct all at once or field-by-field — order never matters):
 
 ```python
-import envlib
-
-meta = envlib.Metadata()
-meta.feature = ' Atmosphere '        # -> 'atmosphere' (stripped, case-folded to the CV)
-meta.owner = 'ECMWF'                 # -> 'ecmwf' (slugs lowercase; ASCII [a-z0-9._-], ≥1 letter/digit)
-meta.frequency_interval = '60min'    # -> '1h' (input aliases resolve to the canonical code)
-meta.spatial_resolution = '0.250deg' # ValidationError: non-canonical spellings are REJECTED, never rewritten
-meta.utc_offset = 'Pacific/Auckland' # ValidationError: fixed offsets only
+>>> import envlib
+>>> meta = envlib.Metadata()
+>>> meta.feature = ' Atmosphere '        # stripped, case-folded to the CV
+>>> meta.feature
+'atmosphere'
+>>> meta.owner = 'ECMWF'                 # slugs are lowercase ASCII [a-z0-9._-], ≥1 letter/digit
+>>> meta.owner
+'ecmwf'
+>>> meta.frequency_interval = '60min'    # input aliases resolve to the canonical code
+>>> meta.frequency_interval
+'1h'
+>>> meta.spatial_resolution = '0.250deg' # non-canonical spellings are REJECTED, never rewritten
+Traceback (most recent call last):
+    ...
+envlib.metadata.ValidationError: spatial_resolution must be <number><m|km|deg> in canonical spelling
+(e.g. 0.25deg, 1km, 500m), the literal point, or None; got '0.250deg'.
+>>> meta.utc_offset = 'Pacific/Auckland' # fixed offsets only
+Traceback (most recent call last):
+    ...
+envlib.metadata.ValidationError: utc_offset must be ±HH:MM (or ±HH shorthand); got 'Pacific/Auckland'.
 ```
 
 The rules worth internalizing:
@@ -58,14 +70,13 @@ The rules worth internalizing:
 You do not set `standard_name` yourself. envlib curates the mapping from `(variable, feature)` to CF standard names and auto-populates the curated default at publish time:
 
 ```python
-from envlib import vocabularies
-
-vocabularies.get_cf_standard_names('temperature', feature='atmosphere')
-# ['air_temperature']                       <- the first entry is what gets populated
-vocabularies.get_cf_standard_names('temperature', feature='waterway')
-# []                                        <- curated: NO applicable CF name (common for freshwater)
-vocabularies.get_cf_standard_names('barometric_pressure', feature='atmosphere')
-# ['air_pressure', 'air_pressure_at_mean_sea_level']   <- multiple candidates
+>>> from envlib import vocabularies
+>>> vocabularies.get_cf_standard_names('temperature', feature='atmosphere')   # the first entry is what gets populated
+['air_temperature']
+>>> vocabularies.get_cf_standard_names('temperature', feature='waterway')     # curated: NO applicable CF name (common for freshwater)
+[]
+>>> vocabularies.get_cf_standard_names('barometric_pressure', feature='atmosphere')   # multiple candidates
+['air_pressure', 'air_pressure_at_mean_sea_level']
 ```
 
 - An **empty list** means envlib has verified no CF name applies (CF's water-property names are ocean-scoped, so freshwater water-quality legitimately has none) — the attribute simply stays absent, which is valid CF.
@@ -170,6 +181,10 @@ result = envlib.validate_dataset('era5_temp_v1.cfdb')   # raises ValidationError
 `validate_dataset()` is pure local inspection — **no catalogue, no S3, no network at all** — so it suits CI, and it suits a producer that builds an envlib-shaped dataset and never publishes it (a private `EDataset` archive, say). Without it, such a dataset is never checked: every structural guard here lives inside `publish()`, including the `station_id` recomputation that a forecast↔measured join depends on. Added in envlib 0.1.6.
 
 It also accepts an **already-open** cfdb `Dataset`/`EDataset`, which is what you want inside a builder:
+
+<!-- invisible-code-block: python
+path = 'era5_temp_v1.cfdb'
+-->
 
 ```python
 with cfdb.open_dataset(path, flag='w') as ds:

@@ -7,6 +7,9 @@ envlib does not promise SemVer before 1.0 — minor versions may change behavior
 
 - **`envlib.PublishIntegrityError` is exported** (it lived only in `envlib.metadata`), so the error
   `publish()` raises after a silent over-claim can be caught from the top-level package.
+- **Documentation:** every code example in the README and the docs now runs as a test, and the shown values
+  are checked. Fixes from that: the Browsing & Querying page no longer replaces the public `cat` with an
+  agency catalogue partway down, pages define every name they use, and the shown outputs are the real ones.
 
 ## 0.1.8 (2026-10-07)
 
