@@ -1,0 +1,115 @@
+{
+ "ecan_raw_streamflow": {
+  "open_s": 1.685
+ },
+ "ecan_1stn_2wk": {
+  "first_s": 0.7982,
+  "first": {
+   "mongo_hit": 1,
+   "mongo_s": 0.002,
+   "remote_groups": 4,
+   "remote_keys": 4,
+   "remote_s": 0.792,
+   "bytes_fetched": 2529,
+   "dup_inserts": 4,
+   "mongo_insert_s": 0.002,
+   "lru_hit": 1
+  },
+  "hot_s": 0.0004
+ },
+ "ecan_1stn_full": {
+  "first_s": 2.0014,
+  "first": {
+   "mongo_s": 0.0,
+   "remote_groups": 67,
+   "remote_keys": 73,
+   "remote_s": 1.993,
+   "bytes_fetched": 248308,
+   "dup_inserts": 73,
+   "mongo_insert_s": 0.006,
+   "lru_hit": 79
+  },
+  "hot_s": 0.0021
+ },
+ "ecan_all_48h": {
+  "first_s": 0.6045,
+  "first": {
+   "mongo_s": 0.0,
+   "remote_groups": 1,
+   "remote_keys": 135,
+   "remote_s": 0.594,
+   "bytes_fetched": 151736,
+   "dup_inserts": 135,
+   "mongo_insert_s": 0.007,
+   "lru_hit": 141
+  },
+  "hot_s": 0.0034
+ },
+ "wrf_precip": {
+  "open_s": 2.631
+ },
+ "wrf_cell_1y": {
+  "first_s": 3.4263,
+  "first": {
+   "mongo_s": 0.002,
+   "remote_groups": 13,
+   "remote_keys": 14,
+   "remote_s": 3.403,
+   "bytes_fetched": 1397678,
+   "dup_inserts": 14,
+   "mongo_insert_s": 0.014,
+   "lru_hit": 11
+  },
+  "hot_s": 0.0064
+ },
+ "wrf_map_1h": {
+  "first_s": 2.5527,
+  "first": {
+   "mongo_s": 0.001,
+   "remote_groups": 1,
+   "remote_keys": 322,
+   "remote_s": 1.897,
+   "bytes_fetched": 22205645,
+   "dup_inserts": 322,
+   "mongo_insert_s": 0.362,
+   "lru_hit": 325
+  },
+  "hot_s": 0.2587
+ },
+ "flow_fc": {
+  "open_s": 1.818
+ },
+ "fc_latest_run": {
+  "first_s": 0.7634,
+  "first": {
+   "mongo_hit": 2,
+   "mongo_s": 0.002,
+   "remote_keys": 4,
+   "remote_s": 0.757,
+   "bytes_fetched": 402,
+   "dup_inserts": 4,
+   "mongo_insert_s": 0.003,
+   "lru_hit": 1
+  },
+  "hot_s": 0.0004
+ },
+ "fc_last_120_runs": {
+  "first_s": 3.7632,
+  "first": {
+   "mongo_s": 0.0,
+   "remote_keys": 116,
+   "remote_s": 3.754,
+   "bytes_fetched": 25081,
+   "dup_inserts": 116,
+   "mongo_insert_s": 0.006,
+   "lru_hit": 123
+  },
+  "hot_s": 0.002
+ },
+ "mongo": {
+  "docs": 671,
+  "data_MB": 24.1,
+  "storage_MB": 0.0,
+  "max_doc_B": 174105
+ }
+}

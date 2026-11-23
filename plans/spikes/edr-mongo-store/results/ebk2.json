@@ -1,0 +1,40 @@
+{
+ "ecan_raw_streamflow": {
+  "open_s": 1.754
+ },
+ "ecan_1stn_2wk": {
+  "cold_s": 0.638,
+  "warm_s": 0.0004
+ },
+ "ecan_1stn_full": {
+  "cold_s": 1.965,
+  "warm_s": 0.0036
+ },
+ "ecan_all_48h": {
+  "cold_s": 0.597,
+  "warm_s": 0.0064
+ },
+ "wrf_precip": {
+  "open_s": 2.977
+ },
+ "wrf_cell_1y": {
+  "cold_s": 3.24,
+  "warm_s": 0.0062
+ },
+ "wrf_map_1h": {
+  "cold_s": 2.097,
+  "warm_s": 0.1542
+ },
+ "flow_fc": {
+  "open_s": 1.692
+ },
+ "fc_latest_run": {
+  "cold_s": 1.031,
+  "warm_s": 0.0005
+ },
+ "fc_last_120_runs": {
+  "cold_s": 2.955,
+  "warm_s": 0.0043
+ },
+ "cache_MB": 59.5
+}
