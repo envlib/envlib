@@ -2,10 +2,15 @@
 
 Tracks **verification debts** (work done but not yet proven; each has a close-check — remove the item once it passes) and **backlog** (known work not yet started) for the **stack-development track** (the envlib/cfdb/ebooklet packages themselves). The **datasets/ingestion track** (ingest toolkit + per-source repos, dataset selection, the tethys data migration) is tracked separately in `envlib-ingest-base/OPEN_WORK.md` (split 2026-07-19). Items are tagged: `[envlib]` (this repo), `[booklet]`, `[s3func]`, `[ebooklet]`, `[cfdb]`, `[cfdb-ingest]`, `[ifs-download]`, `[infra]`, `[MEGA]` and `[new service]`. The Backlog is grouped by the package an item changes. Completed items move to **`OPEN_WORK_DONE.md`** (newest first), so this file shows only open work.
 
-_Status 2026-11-13: the released stack is booklet 0.12.11 and ebooklet 0.11.2 (both 2026-11-10), cfdb 0.11.0,
-envlib 0.1.8 and envlib-ingest-base 0.7.0 (checked on PyPI). Every live dataset is on ebooklet storage format 3
-(the rollout is closed in the ingestion file's `OPEN_WORK_DONE.md`). Only `envlib-ingest-wrf-3k` is locked to the
-new booklet and ebooklet so far; the rest is the item "Refresh locks to booklet 0.12.11 and ebooklet 0.11.2"._
+_Status 2026-11-24 (checked on PyPI):
+- **The released stack:** booklet 0.12.11, s3func 0.10.0, ebooklet 0.13.0 and cfdb 0.12.0 (the last two
+  released 2026-11-24, carrying the MongoDB read path of "EDR plan 1: the MongoDB read path"), envlib 0.1.8 and
+  envlib-ingest-base 0.8.0.
+- **Live datasets:** every one is on ebooklet storage format 3.
+- **Locks:** cfdb, envlib and `envlib-ingest-base` are refreshed to ebooklet 0.13.0 and cfdb 0.12.0 (uncommitted).
+  The rest is the item "Refresh locks to booklet 0.12.11 and ebooklet 0.11.2".
+- **The EDR API:** its work is the `### EDR API (new service)` group. Plan 1 is closed (in `OPEN_WORK_DONE.md`),
+  and "EDR plan 2: the worker service and MongoDB on the swarm" is next._
 
 ## Verification debts
 
@@ -53,7 +58,16 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 - [ ] **[cfdb/envlib] No representation for IRREGULAR station series (`frequency_interval=None`) — and it is UPSTREAM of two other workstreams** (surfaced 2026-08-03 while planning the ECan tethys migration; Mike's ruling that cfdb should solve this BEFORE the tethys archiver, not after). The identity layer already anticipates irregular data — `frequency_interval` is a closed CV whose `None` entry means "irregular", and `Metadata` accepts it — but there is nowhere to *store* it: `ts_ortho` is a dense fixed-step axis by definition, and `envlib_ingest_base.tsortho._freq_step` raises on `None`. So a producer can legally *describe* an irregular dataset and then cannot *build* one. **Concrete driver: ~30 of the 36 quality-controlled ECan datasets in tethys are irregular** (lab sample analyses, manual gaugings; 1900→2022) — single-copy in a system being decommissioned, no migration path today, and consequently excluded from the ECan data-foundation migration. **Why this must land before the tethys archiver:** the archiver needs the same representation, so if it invents its own you get two incompatible irregular layouts plus a conversion later; define it once here and the archiver mirrors it. **Candidate form** — a long/tidy table, three parallel columns (`station_index`, `time`, `value`), which is CF's *indexed ragged array* described without the DSG framing. **Note the dense-with-NaN trick that makes `ts_ortho` cheap does NOT transfer**: for regular data the axis comes from the declared cadence and NaN runs compress away, but an irregular dataset has **no cadence to build an axis from** — the axis would be the union of observed timestamps, roughly as long as the observation count itself, giving ~n_stations × n_observations cells for n_observations values. That is a representation problem, not a compression one. Design questions when picked up: a new `dataset_type` alongside `ts_ortho` or a variant of it; how `Catalogue.validate` recognises it; whether the toolkit grows a `build_local`/`merge_dataset` pair for it or irregular data is append-only. Context: `tethys-repos/tethys-archiver/planning/design-notes.md` (moved 2026-08-03 out of the ecan-flow-forecasts repo, where it was first drafted). **CORRECTION 2026-08-03 to the dense-storage figures this entry originally cited** (dense zlib-4 12.0 MB vs ragged 11.9 MB, "~1% penalty"): that benchmark used an axis **10× too short** — 56,614 steps against a real 565,824 — so the absolute numbers were wrong, though the sparsity ratio (78%) happened to be about right. Re-measured on real data with the whole file: dense gzip-1 is **1.50× the source without HDF5 `shuffle` and 0.61× with it**. `shuffle=True` is the load-bearing flag and was missing from the original comparison entirely. **Status: the archiver shipped v1 WITHOUT irregular support**, covering only the 6 regular-cadence ECan QC datasets — so the ~30 irregular ones remain single-copy and unbacked. ⚠️ **CORRECTION 2026-08-07: this item is NOT what stands between them and a backup, and saying so has been delaying one.** A *representation* is needed to put irregular data into cfdb/envlib; it is not needed to **copy the tethys objects to disk**. Those objects are public zstd'd netCDF chunks with a JSON manifest — `rclone`/HTTP against the `tethys/v4/{dataset_id}/…` prefix preserves them byte-for-byte with no schema decision at all, and they can be converted later once this item lands. **Newly urgent:** ECan's raw tethys extractions were reset around 2026-05-07 (ten datasets across five parameters all start that day; raw streamflow at 2025-11-12), losing their prior history. The QC datasets were checked on 2026-08-07 and are intact — same 59 datasets as the archive snapshot, zero start dates moved — but there is now precedent for loss in this bucket, and ~30 single-copy datasets reaching back to 1900 are sitting behind it. **Do the dumb byte-copy first; solve the format afterwards.** **Status 2026-10-09:** no irregular dataset is in envlib yet. Mike recalls that all the tethys QC data has been archived. The archiver's own record says the irregular datasets are NOT exported (`tethys-repos/tethys-archiver/PROVENANCE.md:233`, and its `OPEN_WORK.md` item "Irregular datasets have no export path, and they are single-copy"), and its Mega S4 copy (2026-08-04) is a copy of those exports. Find where the irregular datasets' copy is (or make the byte-copy) before treating them as backed up.
 - [ ] **[infra] MkDocs 2.0 is unlicensed — stack docs stay on mkdocs 1.x for now** (investigated 2026-07-08; LOW urgency): the "Currently unlicensed – unsuitable for production use" banner in docs builds is mkdocs-material *warning about MkDocs 2.0* (released without a license per squidfunk's 2026-02-18 analysis), not about material itself. The stack's builds are clean today: mkdocs 1.6.1 (BSD) + material 9.7.6 (MIT), and material caps `mkdocs<2` so unpinned syncs can't pull 2.0. Longer-term watch: squidfunk is steering users toward **Zensical** (their successor generator). **Assessed 2026-07-08 with Mike — do NOT switch yet**: Zensical is pre-1.0 (v0.0.47 as of 2026-07-05) and, while mkdocs.yml + Python-Markdown extensions (pymdownx incl. snippets) carry over, **MkDocs plugins do not yet — mkdocstrings is unsupported**, which would kill every stack site's API reference pages (3 in envlib, ~10 in cfdb). **Revisit trigger**: Zensical ships mkdocstrings-equivalent API-reference support (their roadmap Phase 2/3 "popular third-party plugins"); then migrate the whole stack in one pass. Until then: mkdocs 1.6.x (BSD) + material 9.x (MIT, caps mkdocs<2) is licensed, working, and safe.
 - [ ] **[all repos on the stack] Refresh locks to booklet 0.12.11 and ebooklet 0.11.2** (added 2026-11-11; both on
-  PyPI 2026-11-10). Every live remote index is relocated with 144,013 buckets (sweep 2026-11-10), so any dataset
+  PyPI 2026-11-10).
+  **Status 2026-11-24:** every lock now has booklet 0.12.11, and ebooklet 0.12.0 or later. The later releases are
+  folded into this item.
+  - **Refreshed to ebooklet 0.13.0 and cfdb 0.12.0, uncommitted:** cfdb, envlib and `envlib-ingest-base`; their
+    tests pass.
+  - **Not touched:** `-ecan-env`, `-esa-sst`, `-wrf-3k` and `flow-forecast-app-envlib`. They hold *uncommitted*
+    lock refreshes to ebooklet 0.12.0 from another effort, and `-esa-sst` and `-wrf-3k` also hold uncommitted
+    `PROVENANCE.md` edits. Mike commits or discards those first, then run in each:
+    `uv lock --upgrade-package ebooklet --upgrade-package cfdb --refresh-package ebooklet --refresh-package cfdb`.
+    Without `--refresh-package`, uv's cached index silently kept ebooklet 0.12.0 in cfdb's lock on 2026-11-24. Every live remote index is relocated with 144,013 buckets (sweep 2026-11-10), so any dataset
   whose index passes 144,013 keys hangs its next push on booklet 0.12.10. Order by exposure:
   - **esa-sst first:** 16,402 keys of headroom; it runs from its lock.
   - **ECan:** 128k+ of headroom. Its images `pip install` the newest on their next rebuild, so a rebuild suffices.
@@ -82,9 +96,14 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 ### EDR API (new service)
 
 - [ ] **[new service] Read-only data API speaking OGC API – EDR, on the Docker Swarm cluster** (assessed 2026-10-07; full findings, measurements and sources in `plans/edr_api_assessment.md`). Feasible, and it should be Python on top of envlib/cfdb rather than Rust. Cold reads are bound by B2 round trips, not decoding, and ebooklet format 3 would obsolete a second reader on arrival. EDR 1.2 (published 2026-09-08) maps closely: collection = `dataset_id`, instance = forecast run (decided 2026-11-23; versions are discoverable through `/catalogue` instead), `/locations` = ts_ortho stations, and `/position`/`/area`/`/cube` = grids. Output is CoverageJSON plus CSV and netCDF4. The full envlib metadata rides in a namespaced `envlib` object on each collection, and the standard slots (`extent`, `parameter_names` with `measurementType`, `keywords`, licence link) are derived from it. **Design constraints found (2026-10-07; the 2026-11-23 design in §11 of the doc answers them):** one cache directory per process (even read-only sessions hold an exclusive lock; ran); open handles once (2–3 s per open); a freshness timer for hourly datasets; a per-request chunk budget returning 413 (one cold WRF map is 322 chunks, 13 s). The 413 points the user to the envlib Python package and the dataset's `db_url` for direct chunk-level access (Mike, 2026-10-07); a CDS-style processing service (job queues, large servers doing bulk work for users) is an explicit NON-GOAL (Mike, 2026-10-07): bulk users go through envlib directly. **Deferred:** temporal aggregation and Part 2 notifications. Forecasts are designed (§11) but wait until a forecast dataset is in envlib. **Design decided 2026-11-23** (Mike; the full record is §11 of the doc, and the spike is in `plans/spikes/edr-mongo-store/`). One worker mirrors the B2 catalogue and each dataset's index into MongoDB. Stateless FastAPI processes answer every request from MongoDB, and on a miss they fill an insert-only chunk cache from B2. The stack changes are a read store and the worker's refresh in ebooklet (`ebooklet[mongo]`), a store hook in cfdb and a public catalogue-matching function in envlib. The spike re-measured the cold timings on format 3: a full WRF map now takes about 2 s. **Next step:** the six plans, each in its own item below this heading and each reviewed and closed on its own (split 2026-11-23, Mike: more, smaller plans). The order is "EDR plan 1: the MongoDB read path", then "EDR plan 2: the worker service and MongoDB on the swarm", then "EDR plan 3: the API core and station data". After those, "EDR plan 4: grid queries" and "EDR plan 5: catalogue discovery" can go in either order. "EDR plan 6: going public" comes last. This item closes when all six have closed.
-- [ ] **[ebooklet + cfdb] EDR plan 1: the MongoDB read path** (added 2026-11-23; design in `plans/edr_api_assessment.md` §11, spike in `plans/spikes/edr-mongo-store/`). An optional `ebooklet[mongo]` extra has two parts. The refresh fetches a dataset's db object, diffs its index against the previous one and applies the diff to MongoDB in order: entries, then the metadata document, then deletions. The read-only store serves cfdb from MongoDB and fills the chunk cache from B2 on a miss. cfdb gets a public hook to open a dataset on a supplied store. Tests run against a real `mongod`. **Close-check:** reads through the store equal `cfdb.open_edataset` exactly on live datasets; each of the spike's planted defects fails as it should; Mike releases ebooklet and cfdb, and PyPI shows both. **Review:** dual-blind, because it is consistency-critical. **Status:** not started.
-- [ ] **[new service + infra] EDR plan 2: the worker service and MongoDB on the swarm** (added 2026-11-23; §11). A thin service around the refresh from "EDR plan 1: the MongoDB read path". It mirrors the B2 catalogue into MongoDB, polls each catalogued dataset and updates `checked_at` on every poll. MongoDB is deployed on the swarm: node, volume, auth, schemas and indexes. It needs plan 1 released. **Close-check:** a live MongoDB whose entries match the remotes; an hourly ECan push is followed within one poll interval; a stopped worker shows as a stale `checked_at`. **Review:** one arm, plus a code review because the mirror's integrity is the gate. **Status:** not started.
-- [ ] **[new service] EDR plan 3: the API core and station data** (added 2026-11-23; §11). The FastAPI app: the per-request flow from MongoDB, the cost caps and their 413, and the 404 handling. The EDR landing page, conformance and collections. The `ts_ortho` queries `/locations`, `/area` and `/radius`. CoverageJSON, CSV and GeoJSON output, compressed by zstd or gzip. It needs the populated MongoDB from "EDR plan 2: the worker service and MongoDB on the swarm". **Close-check:** the ECan datasets are served locally from MongoDB, and every response matches a direct envlib read. **Review:** one arm. **Status:** not started.
+- [ ] **[new service + infra] EDR plan 2: the worker service and MongoDB on the swarm** (added 2026-11-23; §11). A thin service around the refresh from "EDR plan 1: the MongoDB read path". It mirrors the B2 catalogue into MongoDB, polls each catalogued dataset and updates `checked_at` on every poll. MongoDB is deployed on the swarm: node, volume, auth, schemas and indexes. It needs plan 1 released. **Requirements carried from plan 1** (its review; `ebooklet/docs/ops.md`, "The MongoDB read path"): the refresh and the store's HEAD must use an endpoint that caches neither db-object HEADs and GETs nor 404s (per-key chunk 404s included), so check whether `b2.envlib.xyz` / `b2.tethys-ts.xyz` cache them. If they do, the worker can refresh through B2's S3 API with read-only keys, which `refresh()` already accepts, while the store keeps reading chunks through the public URL. The store itself reads public remotes only: `object_reader` takes a `db_url`, never credentials (`ebooklet/docs/ops.md`); every production writer must commit before it deletes (ebooklet 0.10 or later); exactly one worker replica, a hard requirement because two overlapping refreshes diverge for good (review `edr-mongo-code-1`), so deploy with `replicas: 1` and Swarm's default stop-first update order, and never run a manual refresh beside it; and a refresh status `stale_get` (HEAD and GET disagree) means a cache sits in front of the remote. **Close-check:** a live MongoDB whose entries match the remotes; an hourly ECan push is followed within one poll interval; a stopped worker shows as a stale `checked_at`. **Review:** one arm, plus a code review because the mirror's integrity is the gate. **Status:** not started.
+- [ ] **[new service] EDR plan 3: the API core and station data** (added 2026-11-23; §11). The FastAPI app: the per-request flow from MongoDB, the cost caps and their 413, and the 404 handling. The EDR landing page, conformance and collections. The `ts_ortho` queries `/locations`, `/area` and `/radius`. CoverageJSON, CSV and GeoJSON output, compressed by zstd or gzip. It needs the populated MongoDB from "EDR plan 2: the worker service and MongoDB on the swarm". **Carried from plan 1** (review `edr-mongo-code-1`; `ebooklet/docs/ops.md`):
+- Call `MongoStore.verify()` before sending any response.
+- Build a new store for each retry, because a store that raised `StaleIndexError` stays stale.
+- While an apply is in progress, a store build is refused for a few tens of milliseconds; wait about 100 ms and retry internally rather than answer 503.
+- Reduce the 13–19 MongoDB round trips of a warm request, for example by prefetching attrs and coordinate chunks in one `load_items` (deferred here by Mike, 2026-11-24).
+
+**Close-check:** the ECan datasets are served locally from MongoDB, and every response matches a direct envlib read. **Review:** one arm. **Status:** not started.
 - [ ] **[new service] EDR plan 4: grid queries** (added 2026-11-23; §11). `/position` (lon/lat projected to the WRF grid, then the nearest cell) and `/cube` for the WRF 3 km and ESA SST collections. It needs "EDR plan 3: the API core and station data". **Close-check:** WRF and SST responses match direct envlib reads, and an oversized request gets the 413. **Review:** one arm. **Status:** not started.
 - [ ] **[envlib + new service] EDR plan 5: catalogue discovery** (added 2026-11-23; §11). envlib exposes its catalogue matching as a public function. The API adds `/catalogue` (every version on request) and `/catalogue/distinct/{field}`, and it links each collection to its versions with `rel="version-history"`. It needs "EDR plan 3: the API core and station data". **Close-check:** `/catalogue` returns the same entries as `Catalogue.query()` for the same filters. **Review:** one arm. **Status:** not started.
 - [ ] **[new service + infra] EDR plan 6: going public** (added 2026-11-23; §11). Per-IP quotas (hourly and 24-hourly), Traefik's request-rate limit, Cloudflare in front (compression, caching, and an origin locked to Cloudflare's ranges), the allowlist for Mike's servers, and deployment to `api.envlib.xyz`. The caps and quotas are calibrated on the VPSes. **Close-check:** the public endpoint answers through Cloudflare; the origin refuses direct requests; the quotas and the rate limit are verified from outside. **Review:** one arm. **Status:** not started.
@@ -114,6 +133,49 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 
 ### ebooklet
 
+- [ ] **[ebooklet] A benchmark suite for ebooklet's core paths** (added 2026-11-24, Mike). The global release rule
+  wants each performance-critical package to keep a `benchmarks/` suite of about a minute, and to A/B it against
+  the previous PyPI release before each release. ebooklet has only `benchmarks/bench_mongo.py`, which covers
+  the MongoDB read path and nothing else. The suite should cover:
+  - opening a session (the HEAD and the index download);
+  - warm reads per key and batched (`get_items` / `load_items`);
+  - cold reads, grouped and per-key;
+  - push (pack, upload, commit, GC) and pull/`changes()`.
+  Build it on the in-memory fake S3, in booklet's `bench.py` style. Every run should include a booklet baseline
+  measured in the same run.
+  **Lead for the first measurement (a profile, 2026-11-24):** ebooklet's warm per-key read is slow. On 10,000
+  shuffled warm reads (grouped storage, 200 B values), the rates were:
+  - booklet opened `'r'`: 424K keys/s;
+  - the same `get` on ebooklet's own local file: 157K keys/s;
+  - ebooklet `eb[key]`: 48K keys/s;
+  - ebooklet `get_items` (batched): 51K keys/s.
+
+  There are two causes:
+  - ebooklet opens its local file and its remote-index file writable in every session mode, including
+    `'r'`, so booklet's mmap read path is never used (`ebooklet/utils.py:695–699` says so).
+  - Every key costs three booklet lookups: the remote-index entry, the local timestamp (the freshness
+    check) and the value. That is about 10 file reads and 9 seeks per key. `get_items` does the same
+    lookups key by key, so batching it does not help.
+
+  The levers to measure are an mmap read path for read-only sessions, and skipping the per-key freshness
+  check when the session has just synced. For comparison, `ebooklet.mongo`'s batched store read reached 180K
+  keys/s in the same benchmark. The script is `benchmarks/bench_mongo.py` and the results are in
+  `planning/mongo-read-path-evidence/`.
+  **Close-check:** the suite runs in about a minute, and an A/B against 0.12.0 is recorded, with each ratio next
+  to the run-to-run spread.
+- [ ] **[ebooklet + cfdb] Small pre-existing defects found while building "EDR plan 1: the MongoDB read path"**
+  (added 2026-11-23; none affects that plan). The first three came from the plan review `edr-mongo-plan-1`, and
+  the last from implementation:
+  - `bool(S3SessionReader)` raises `AttributeError`, because `__bool__` returns `self.read_access`, which is
+    never defined (`ebooklet/remote.py`).
+  - cfdb `Dataset.prune()` is not guarded by `writable`, so on a read-only store it fails with an
+    `AttributeError` instead of a clear error.
+  - ebooklet's floors in `requirements.txt` and `conda/meta.yaml` have drifted from `pyproject.toml`. The conda
+    recipes are unmaintained, so only `requirements.txt` matters.
+  - ebooklet's docs do not build with current mkdocstrings-python. `mkdocs.yml` uses the removed `import:`
+    option, and there is a `Highlight.__init__` error with current mkdocs-material; the dependencies are
+    unpinned. Pin them, or update the config, before the next docs deploy.
+  **Close-check:** each is fixed or ruled not worth fixing.
 - [ ] **[ebooklet] A non-replacement push with upload failures commits anyway** (added 2026-11-11, plan review
       `wrf3k-append-plan-1`, Fable F1; reproduced there by injecting one failed group PUT). `push` logs "Please run
       this again" (`ebooklet/utils.py:1694-1700`) and then commits the groups that did upload; only a replacement
@@ -176,6 +238,14 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 
 ### cfdb
 
+- [ ] **[cfdb] A `flag='n'` replacement over an existing remote may read the old remote's chunks and drop
+  attrs keys** (added 2026-11-24; seen by both arms of code review `edr-mongo-code-1`, outside that
+  change; not yet reproduced by me). Fable saw `cfdb.open_edataset(flag='n')` over an existing remote read
+  an old chunk during `v[:] = data` (`ValueError: cannot reshape array of size 144 into shape (12,3,2)` at
+  `support_classes.py:1618`). Sonnet saw a `flag='n'` replacement lose every attrs key from the remote
+  (`__.attrs`, `_t.attrs`, …), and guessed that `attrs_finalizer` skips writing attrs equal to the old
+  remote's. **If the attrs loss is real, a replacement silently drops metadata.** **Close-check:**
+  reproduce both against an unmodified HEAD; fix, or rule them expected.
 - [ ] **[cfdb] A `.loc` slice on a float coordinate needs exact labels, and a non-label bound raises a bare
       `IndexError`** (added 2026-11-14, found testing envlib's docs examples). `loc_index_numeric`
       (`cfdb/indexers.py:31`) finds a float bound with `np.isclose(coord_data, key)` and takes its first hit, so

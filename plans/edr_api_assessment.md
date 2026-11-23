@@ -406,6 +406,25 @@ republished under it.
 _Design discussion with Mike, 2026-11-23. The spike's scripts and raw results are in
 `plans/spikes/edr-mongo-store/`._
 
+**Implemented and released 2026-11-24 as ebooklet 0.13.0 (`ebooklet.mongo`) and cfdb 0.12.0
+(`open_store_dataset`).** The authority for how the read path now behaves is ebooklet's `docs/ops.md`,
+"The MongoDB read path"; this section is the design as discussed. Two review rounds (`edr-mongo-plan-1`
+and `edr-mongo-code-1`; records in `ebooklet/planning/`) changed these points:
+- **The 404 rule.** The API compares one HEAD of the db object with the `applied` pair read when the store
+  was built (equal → 500, different → 503). `checked_at` no longer classifies anything: compared with
+  the time of the 404, it almost never gave a 500.
+- **The worker is stateless.** It diffs against MongoDB's entries, not an index held in memory.
+- **The write order** gained a claim step: 0 (`rev`+1 and `applying`), then entries, the dataset document,
+  deletes, and `applied` written last.
+- **Requests overlapping an apply retry.** A store refuses to build while `applying` is set, and the API
+  must call `store.verify()` before responding. Without that, old metadata could decode new chunks.
+- **Per-key objects overwritten since the index copy** raise `StaleIndexError`.
+- **Exactly one refresher is a hard requirement.** Two overlapping refreshers diverge for good.
+- **The schema:** the collections use per-collection compressors (zstd for `entries` and `datasets`, none
+  for `chunks`), and the remote's `ebooklet_type` is recorded.
+- **The store reads public remotes only** (`object_reader` takes a `db_url`). The refresh accepts any
+  `S3Connection`.
+
 ### Core
 
 **Decided.** The API serves envlib datasets for real-time use. Historical and bulk work goes through
