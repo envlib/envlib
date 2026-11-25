@@ -463,7 +463,8 @@ ways:
 
 **Plan 5 (catalogue discovery)** is built in envlib 0.1.9 (`envlib.match_entries`,
 `envlib.latest_per_dataset`, `envlib.distinct_values`) and in envlib-api 0.4.0 (`envlib_api/api/catalogue.py`;
-the README's "The catalogue"). Neither is released yet. Plan review `edr-api-plan-5` and Mike's decisions
+the README's "The catalogue"), both released on 2026-11-26. Plan review `edr-api-plan-5`, code review
+`edr-api-code-5` and Mike's decisions
 changed it from "Versions and discovery" below in these ways:
 - **A tie on `created_at`** goes to the greater `dataset_version_id` in envlib too, whatever the
   catalogue order.
@@ -475,6 +476,9 @@ changed it from "Versions and discovery" below in these ways:
   with `latest-version` (RFC 5829).
 - **CORS** headers are on every answer (moved from plan 6, Mike, 2026-11-25), so a catalogue browser
   on another site can call the API.
+- **0–360 longitudes** work in envlib itself, in both a query `bbox` and a `geometry`, so the API passes
+  them through and an HTTP query and a Python query give the same entries (code review, Mike,
+  2026-11-26).
 
 ### Core
 

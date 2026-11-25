@@ -3,7 +3,7 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
-## Unreleased
+## 0.1.9 (2026-11-26)
 
 - **Catalogue matching is public:** `envlib.match_entries`, `envlib.latest_per_dataset`,
   `envlib.distinct_values` and `envlib.QUERYABLE_FIELDS` take catalogue `user_meta` dicts, and
