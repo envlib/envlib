@@ -425,6 +425,42 @@ and `edr-mongo-code-1`; records in `ebooklet/planning/`) changed these points:
 - **The store reads public remotes only** (`object_reader` takes a `db_url`). The refresh accepts any
   `S3Connection`.
 
+**Plan 2 (the worker and MongoDB)** is built in the repo `envlib/envlib-api`. Its README covers how it
+runs and its operating rules, and its `planning/` holds the plan and the review records. It differs
+from "The worker" below in these ways:
+- every catalogued version is mirrored, keyed by `dataset_version_id`;
+- datasets that leave the catalogue are retired by tombstone, behind guards;
+- MongoDB is version 9.0, with a custom role;
+- there is no lease.
+
+**Plan 3 (the API core and station data)** is built in the same repo (`envlib_api/api/`; its README,
+"The API"). Plan review `edr-api-plan-3` changed it from "The API" and "The EDR surface" below in
+these ways:
+- **Reads:** a request reads its data in one batched fetch (`store.load_items` of every data key),
+  not chunk by chunk. Cold, all stations × 48 h took 22–112 s station by station and 0.3–10 s batched.
+- **Time:** `datetime` selects by label containment, through the API's own `searchsorted`, not cfdb's
+  `.loc`.
+- **Output:**
+  - values print at the variable's stored precision, not shortest round-trip;
+  - several stations answer a CoverageJSON `CoverageCollection` of `PointSeries`, not the
+    `MultiPointSeries` of §6, because `MultiPointSeries` cannot carry station ids;
+  - a query that selects nothing answers 204.
+- **Retries:** only a refused store build or a failed `verify()` is retried. An index that is behind
+  the remote answers 503 at once.
+
+**Plan 4 (grid queries)** is built in the same repo (`envlib_api/api/grid.py`; the README's "Grids"),
+and was released as envlib-api 0.3.0 on 2026-11-25.
+Plan review `edr-api-plan-4` and Mike's decisions changed it from "The EDR surface" below in these
+ways:
+- **The cell** is the nearest stored centre on each axis. It is not a step-based lattice, because the
+  SST centres are float32 values with irregular spacing.
+- **A cube** is the smallest grid rectangle holding every cell whose centre is in the bbox, unmasked.
+  Longitudes are compared mod 360.
+- **A WRF cube** comes back in the grid's own Lambert CRS: a documented deviation from EDR's default
+  of the extent's CRS.
+- **The caps** keep plan 3's defaults (Mike, 2026-11-25), so a full WRF map at one hour (322 chunks,
+  623 MB decoded) answers 413.
+
 ### Core
 
 **Decided.** The API serves envlib datasets for real-time use. Historical and bulk work goes through
@@ -601,11 +637,17 @@ envlib 0.1.8), pymongo 4.20.1 and MongoDB 8.0 on tmpfs, all reading the live rem
 
 ### Open for the plan
 
-- The poll interval for each dataset type.
-- The TTL length.
-- Calibrating the caps and quotas on the Contabo VPSes, which have 6 and 8 vCPUs.
+- ~~The poll interval for each dataset type.~~ **Settled by plan 2:** one interval for every dataset,
+  60 s (`poll_seconds` in `envlib-api`'s config; at most 150).
+- ~~The TTL length.~~ **Settled by plan 2:** 7 days (`chunk_ttl_days`), to be revisited when plan 6
+  calibrates the caps and quotas.
+- Calibrating the caps and quotas on the swarm. Plan 3 set the caps' defaults, and added a CSV row cap
+  (the `[api]` section of `envlib-api/envlib_api/config.py`). The cluster has four nodes, not the two VPSes assumed
+  here (checked 2026-11-24): uswest9 and uswest12 are processors, and uswest10 and uswest11 are web
+  servers. uswest11 has 8 vCPUs and 23 GiB, and runs the MongoDB and the refresher.
 - The Cloudflare details: compression and re-encoding, caching, and locking the origin.
-- The repo and deployment for `api.envlib.xyz`.
+- ~~The repo~~ **Settled by plan 2:** the repo is `envlib/envlib-api`. The deployment for
+  `api.envlib.xyz` is plan 6.
 
 ### Verification status of this section
 

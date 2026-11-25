@@ -3,19 +3,26 @@
 Tracks **verification debts** (work done but not yet proven; each has a close-check — remove the item once it passes) and **backlog** (known work not yet started) for the **stack-development track** (the envlib/cfdb/ebooklet packages themselves). The **datasets/ingestion track** (ingest toolkit + per-source repos, dataset selection, the tethys data migration) is tracked separately in `envlib-ingest-base/OPEN_WORK.md` (split 2026-07-19). Items are tagged: `[envlib]` (this repo), `[booklet]`, `[s3func]`, `[ebooklet]`, `[cfdb]`, `[cfdb-ingest]`, `[ifs-download]`, `[infra]`, `[MEGA]` and `[new service]`. The Backlog is grouped by the package an item changes. Completed items move to **`OPEN_WORK_DONE.md`** (newest first), so this file shows only open work.
 
 _Status 2026-11-24 (checked on PyPI):
-- **The released stack:** booklet 0.12.11, s3func 0.10.0, ebooklet 0.13.0 and cfdb 0.12.0 (the last two
-  released 2026-11-24, carrying the MongoDB read path of "EDR plan 1: the MongoDB read path"), envlib 0.1.8 and
-  envlib-ingest-base 0.8.0.
+- **The released stack:** booklet 0.12.11, s3func 0.10.0, ebooklet 0.13.2 and cfdb 0.12.0 (ebooklet 0.13.0 and
+  cfdb 0.12.0 released 2026-11-24, carrying the MongoDB read path of "EDR plan 1: the MongoDB read path";
+  ebooklet 0.13.1 the same day, with the incarnation token from "EDR plan 2: the worker service and MongoDB on
+  the swarm"; ebooklet 0.13.2 on 2026-11-25, with `MongoStore(http_session=)` from "EDR plan 3: the API core
+  and station data"), envlib 0.1.8 and envlib-ingest-base 0.8.0.
 - **Live datasets:** every one is on ebooklet storage format 3.
-- **Locks:** cfdb, envlib and `envlib-ingest-base` are refreshed to ebooklet 0.13.0 and cfdb 0.12.0 (uncommitted).
-  The rest is the item "Refresh locks to booklet 0.12.11 and ebooklet 0.11.2".
-- **The EDR API:** its work is the `### EDR API (new service)` group. Plan 1 is closed (in `OPEN_WORK_DONE.md`),
-  and "EDR plan 2: the worker service and MongoDB on the swarm" is next._
+- **Locks:** cfdb, envlib, envlib-api, `envlib-ingest-base` and `-ecan-env` are refreshed to ebooklet 0.13.2
+  (envlib-api's is committed, in its 0.3.0; the other four are not yet). `-esa-sst`, `-wrf-3k` and `flow-forecast-app-envlib` are on 0.13.0, with uncommitted lock
+  changes of their own. The rest is the item "Refresh locks to booklet 0.12.11 and ebooklet 0.11.2".
+- **The EDR API:** its work is the `### EDR API (new service)` group. Plans 1, 2 and 3 are closed (in
+  `OPEN_WORK_DONE.md`). The refresher and MongoDB 9.0 run on uswest11 as the stack `envlib-api` (repo
+  `envlib/envlib-api`). The API for station data is built in the same repo and runs locally; it is
+  deployed in "EDR plan 6: going public". Plan 4 (grid queries) closed 2026-11-25 with envlib-api
+  0.3.0 on PyPI. "EDR plan 5: catalogue discovery" is next._
 
 ## Verification debts
 
 The live rollout of the released stack is tracked in the ingestion file (below).
 
+- [ ] **[new service] Verify the envlib-api refresher's Sentry alerts** (added 2026-11-24, from closing "EDR plan 2: the worker service and MongoDB on the swarm"). The refresher reports errors and a cron check-in each cycle (`envlib-api/envlib_api/refresher.py`), but no Sentry side was checked: during the live close-checks the refresher was scaled to 0 for 4 minutes, and whether its monitor alerted was not looked at. **Close-check:** Sentry shows the `envlib-api-refresher` cron monitor receiving check-ins, and a planned `docker service scale envlib-api_refresher=0` for more than the 5-minute margin raises a missed check-in alert.
 - [ ] **[cfdb + envlib] The docs-example tests (Sybil) and `mkdocs build --strict`: built, not yet run on GitHub**
   (built 2026-11-14 from the Backlog item "Test the docs' code examples automatically (Sybil), and build the sites
   with `--strict`"; plan reviewed in round `docs-tests-plan-1`, Fable 5.2 + Sonnet 5.5). Every Python block of `README.md` and `docs/` now
@@ -96,19 +103,51 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 ### EDR API (new service)
 
 - [ ] **[new service] Read-only data API speaking OGC API – EDR, on the Docker Swarm cluster** (assessed 2026-10-07; full findings, measurements and sources in `plans/edr_api_assessment.md`). Feasible, and it should be Python on top of envlib/cfdb rather than Rust. Cold reads are bound by B2 round trips, not decoding, and ebooklet format 3 would obsolete a second reader on arrival. EDR 1.2 (published 2026-09-08) maps closely: collection = `dataset_id`, instance = forecast run (decided 2026-11-23; versions are discoverable through `/catalogue` instead), `/locations` = ts_ortho stations, and `/position`/`/area`/`/cube` = grids. Output is CoverageJSON plus CSV and netCDF4. The full envlib metadata rides in a namespaced `envlib` object on each collection, and the standard slots (`extent`, `parameter_names` with `measurementType`, `keywords`, licence link) are derived from it. **Design constraints found (2026-10-07; the 2026-11-23 design in §11 of the doc answers them):** one cache directory per process (even read-only sessions hold an exclusive lock; ran); open handles once (2–3 s per open); a freshness timer for hourly datasets; a per-request chunk budget returning 413 (one cold WRF map is 322 chunks, 13 s). The 413 points the user to the envlib Python package and the dataset's `db_url` for direct chunk-level access (Mike, 2026-10-07); a CDS-style processing service (job queues, large servers doing bulk work for users) is an explicit NON-GOAL (Mike, 2026-10-07): bulk users go through envlib directly. **Deferred:** temporal aggregation and Part 2 notifications. Forecasts are designed (§11) but wait until a forecast dataset is in envlib. **Design decided 2026-11-23** (Mike; the full record is §11 of the doc, and the spike is in `plans/spikes/edr-mongo-store/`). One worker mirrors the B2 catalogue and each dataset's index into MongoDB. Stateless FastAPI processes answer every request from MongoDB, and on a miss they fill an insert-only chunk cache from B2. The stack changes are a read store and the worker's refresh in ebooklet (`ebooklet[mongo]`), a store hook in cfdb and a public catalogue-matching function in envlib. The spike re-measured the cold timings on format 3: a full WRF map now takes about 2 s. **Next step:** the six plans, each in its own item below this heading and each reviewed and closed on its own (split 2026-11-23, Mike: more, smaller plans). The order is "EDR plan 1: the MongoDB read path", then "EDR plan 2: the worker service and MongoDB on the swarm", then "EDR plan 3: the API core and station data". After those, "EDR plan 4: grid queries" and "EDR plan 5: catalogue discovery" can go in either order. "EDR plan 6: going public" comes last. This item closes when all six have closed.
-- [ ] **[new service + infra] EDR plan 2: the worker service and MongoDB on the swarm** (added 2026-11-23; §11). A thin service around the refresh from "EDR plan 1: the MongoDB read path". It mirrors the B2 catalogue into MongoDB, polls each catalogued dataset and updates `checked_at` on every poll. MongoDB is deployed on the swarm: node, volume, auth, schemas and indexes. It needs plan 1 released. **Requirements carried from plan 1** (its review; `ebooklet/docs/ops.md`, "The MongoDB read path"): the refresh and the store's HEAD must use an endpoint that caches neither db-object HEADs and GETs nor 404s (per-key chunk 404s included), so check whether `b2.envlib.xyz` / `b2.tethys-ts.xyz` cache them. If they do, the worker can refresh through B2's S3 API with read-only keys, which `refresh()` already accepts, while the store keeps reading chunks through the public URL. The store itself reads public remotes only: `object_reader` takes a `db_url`, never credentials (`ebooklet/docs/ops.md`); every production writer must commit before it deletes (ebooklet 0.10 or later); exactly one worker replica, a hard requirement because two overlapping refreshes diverge for good (review `edr-mongo-code-1`), so deploy with `replicas: 1` and Swarm's default stop-first update order, and never run a manual refresh beside it; and a refresh status `stale_get` (HEAD and GET disagree) means a cache sits in front of the remote. **Close-check:** a live MongoDB whose entries match the remotes; an hourly ECan push is followed within one poll interval; a stopped worker shows as a stale `checked_at`. **Review:** one arm, plus a code review because the mirror's integrity is the gate. **Status:** not started.
-- [ ] **[new service] EDR plan 3: the API core and station data** (added 2026-11-23; §11). The FastAPI app: the per-request flow from MongoDB, the cost caps and their 413, and the 404 handling. The EDR landing page, conformance and collections. The `ts_ortho` queries `/locations`, `/area` and `/radius`. CoverageJSON, CSV and GeoJSON output, compressed by zstd or gzip. It needs the populated MongoDB from "EDR plan 2: the worker service and MongoDB on the swarm". **Carried from plan 1** (review `edr-mongo-code-1`; `ebooklet/docs/ops.md`):
-- Call `MongoStore.verify()` before sending any response.
-- Build a new store for each retry, because a store that raised `StaleIndexError` stays stale.
-- While an apply is in progress, a store build is refused for a few tens of milliseconds; wait about 100 ms and retry internally rather than answer 503.
-- Reduce the 13–19 MongoDB round trips of a warm request, for example by prefetching attrs and coordinate chunks in one `load_items` (deferred here by Mike, 2026-11-24).
+- [ ] **[envlib + new service] EDR plan 5: catalogue discovery** (added 2026-11-23; §11). envlib exposes its catalogue matching as a public function. The API adds `/catalogue` (every version on request) and `/catalogue/distinct/{field}`, and it links each collection to its versions with `rel="version-history"`. It needs "EDR plan 3: the API core and station data". **Carried from plan 3** (review `edr-api-plan-3`): envlib stamps `created_at` to the second, and `_latest_per_dataset` keeps the first seen on a tie, in catalogue order. The API breaks a tie by the greater `dataset_version_id` (`envlib-api/envlib_api/api/resolve.py`), so the two can serve different versions when two were registered within one second (none live). The public function should define the tie-break, or `created_at` should carry sub-seconds, and the API should then call it instead of its copy. **Close-check:** `/catalogue` returns the same entries as `Catalogue.query()` for the same filters. **Review:** one arm. **Status:** not started.
+- [ ] **[new service + infra] EDR plan 6: going public** (added 2026-11-23; §11). Per-IP quotas (hourly and 24-hourly), Traefik's request-rate limit, Cloudflare in front (compression, caching, and an origin locked to Cloudflare's ranges), the allowlist for Mike's servers, and deployment to `api.envlib.xyz`. The caps and quotas are calibrated on the VPSes. **Carried from plan 3** (code review `edr-api-code-3`; its synthesis is in `envlib-api/planning/`):
+- **Links:** they follow the request's `Host` header, so set `public_url`. Behind a proxy that is not on loopback, uvicorn ignores `X-Forwarded-Proto` unless `FORWARDED_ALLOW_IPS` names it.
+- **Caching:** make the ETag weak, or one per encoding, and answer `If-None-Match`. It does not move when only the catalogue entry changes.
+- **Load:**
+  - add a concurrency bound, since one worker runs a 40-thread pool;
+  - `/collections` costs about 90 MongoDB operations for 5 collections, uncached, and grids will grow it.
+- **The OpenAPI document:** `/api` lists no query parameters, so `oas31` is not claimed; describe them, then claim it.
+- **Browsers:** add CORS headers, and answer `HEAD` and `OPTIONS`.
+- **Strictness:** make `datetime` parsing strict RFC 3339 (Python accepts week dates and the basic format).
+- **Risks to weigh:**
+  - the API's `insert` on `chunks` can plant bytes under an uncached id;
+  - the API fetches from whatever `db_url` the catalogue records;
+  - CSV does not neutralise a station name that starts with `=`.
+- **Response shape:** no response states a series' time-label anchor (`interval_start`).
 
-**Close-check:** the ECan datasets are served locally from MongoDB, and every response matches a direct envlib read. **Review:** one arm. **Status:** not started.
-- [ ] **[new service] EDR plan 4: grid queries** (added 2026-11-23; §11). `/position` (lon/lat projected to the WRF grid, then the nearest cell) and `/cube` for the WRF 3 km and ESA SST collections. It needs "EDR plan 3: the API core and station data". **Close-check:** WRF and SST responses match direct envlib reads, and an oversized request gets the 413. **Review:** one arm. **Status:** not started.
-- [ ] **[envlib + new service] EDR plan 5: catalogue discovery** (added 2026-11-23; §11). envlib exposes its catalogue matching as a public function. The API adds `/catalogue` (every version on request) and `/catalogue/distinct/{field}`, and it links each collection to its versions with `rel="version-history"`. It needs "EDR plan 3: the API core and station data". **Close-check:** `/catalogue` returns the same entries as `Catalogue.query()` for the same filters. **Review:** one arm. **Status:** not started.
-- [ ] **[new service + infra] EDR plan 6: going public** (added 2026-11-23; §11). Per-IP quotas (hourly and 24-hourly), Traefik's request-rate limit, Cloudflare in front (compression, caching, and an origin locked to Cloudflare's ranges), the allowlist for Mike's servers, and deployment to `api.envlib.xyz`. The caps and quotas are calibrated on the VPSes. **Close-check:** the public endpoint answers through Cloudflare; the origin refuses direct requests; the quotas and the rate limit are verified from outside. **Review:** one arm. **Status:** not started.
+**Carried from plan 4** (`envlib-api/planning/edr-api-plan-4.md` and its close-check record):
+- **Memory under load** (estimated 2026-11-25, not run):
+  - one process runs at most 40 requests at once, which is anyio's default thread pool;
+  - each holds its compressed chunks until it answers: about 1/6 of its decoded bytes on the WRF temperature and wind grids, so up to about 17 MB at the 100 MB bytes cap;
+  - the values cap is the larger term: about 100 MB of JSON encoding per request at 2 M values.
+- **The caps:** kept at their plan 3 defaults (Mike, 2026-11-25: "it's easier to increase it than decrease it"). A full WRF or SST map at one time step answers 413, since it is 322 or 459 chunks (623 MB or 793 MB decoded). Calibrate from real use.
+- **A cold `/collections`** took 28 s for 18 collections, reading their attrs and coordinates from B2 one after another. Warm, it took 0.08 s.
+
+**Also publishes** the docs site from "EDR plan 7: the public docs site", which comes before this plan (Mike, 2026-11-25).
+
+**Close-check:** the public endpoint answers through Cloudflare; the origin refuses direct requests; the quotas and the rate limit are verified from outside. **Review:** one arm. **Status:** not started.
+- [ ] **[new service] EDR plan 7: the public docs site** (added 2026-11-25, Mike: "one thing we did forget to include in our plans is the public docs site"). It was left out of the six-plan split of 2026-11-23. Its scope is not planned yet.
+- **When** (Mike, 2026-11-25):
+  - after "EDR plan 4: grid queries" and "EDR plan 5: catalogue discovery", once the API's surface is complete;
+  - before "EDR plan 6: going public";
+  - published as part of plan 6, so the public endpoint and its docs go live together, and plan 6's review covers the docs.
+- **Proposed for the plan, not yet decided:**
+  - **Fill in `/api` here.** Describe the query parameters in `/api` (carried in plan 6's item today), so the reference pages can be generated from it and the `oas31` claim restored.
+  - **Run the docs examples as tests** against a local API over the hermetic test datasets, as envlib's docs examples are.
+  - **Point at the cap and quota values** rather than restating them, because plan 6 calibrates them.
+- **Open:** an API section of envlib's existing mkdocs site (the lean, 2026-11-25), or a separate site.
+
+**Status:** not started.
 - [ ] **[new service] EDR forecasts (option C)** (added 2026-11-23; designed in §11, "Forecasts: later, but designed for now"). Instances are forecast runs. The instance list covers 30 days, `/instances/latest` redirects to the current run, and a query on the collection returns the best estimate. **Trigger:** the first forecast dataset in envlib.
-- [ ] **[new service] EDR grid `/area` and netCDF output** (added 2026-11-23; §11). Grid `/area` is `/cube` plus a polygon mask. netCDF output waits for the item "[cfdb] ts_ortho → netCDF export crashes on the geometry coord". **Trigger:** "EDR plan 4: grid queries" closed, and the export fix for netCDF.
+- [ ] **[new service] EDR grid `/area` and netCDF output** (added 2026-11-23; §11). Grid `/area` is `/cube` plus a polygon mask. netCDF output waits for the item "[cfdb] ts_ortho → netCDF export crashes on the geometry coord". **Trigger:** "EDR plan 4: grid queries" closed, and the export fix for netCDF. Plan 4 closed 2026-11-25 (envlib-api 0.3.0), so only the netCDF fix remains.
+- [ ] **[new service] Bound the cube hull's projection on large grids** (added 2026-11-25, code review `edr-api-code-4`; Mike: document it now, build it when needed).
+  - **The problem:** `/cube` finds its rectangle by projecting every cell centre to CRS84, before the caps are checked (`envlib-api/envlib_api/api/grid.py`, `Grid.hull`). That costs 15 ms on WRF's 168,210 cells, but about 2 s and 784 MB on a 16-million-cell grid (Sonnet measured it).
+  - **The fix:** project the bbox's densified edge into the grid's CRS first, then test only the centres in that index window plus a cell of margin. Test it against the full scan.
+  - **Trigger:** the first projected grid of more than about 1 million cells offered to the API.
 
 ### booklet
 
@@ -323,6 +362,7 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 
 ### envlib
 
+- [ ] **[envlib] ts_ortho bbox spans 350° across the antimeridian** (added 2026-11-24, plan review `edr-api-plan-3`, Fable; checked live). The two ECan QC streamflow collections (`814fd7…`, `6ca564…`) hold two Chatham Islands stations at lon −176.7. `_extract_state` takes the plain min/max of the station longitudes, so their catalogue `bbox` is `[-176.664, -44.95, 173.84, -42.11]`: almost the whole globe, instead of a box crossing the antimeridian (west > east, which the catalogue already allows for grids). The EDR API copies the `bbox` into each collection's extent, and `Catalogue.query(bbox=…)` matches these collections far too widely. **Fix:** for point datasets, choose the smaller of the two longitude spans (the plain one, or the one across ±180) and write west > east when it crosses. **Close-check:** both collections' `bbox` becomes about `[169.8, -44.95, -176.55, -42.11]` after a re-publish, and a `Catalogue.query(bbox=…)` over the Atlantic no longer matches them.
 - [ ] **[envlib] Bundle the CF standard-name table v95** (added 2026-11-14). The bundled
       `envlib/vocabularies/standard_name.json` is v94; `vocabularies.refresh()` fetched v95 on 2026-11-14. Regenerate
       the bundled files with `refresh(_target_dir=...)` before the next release, and check the curated mappings
