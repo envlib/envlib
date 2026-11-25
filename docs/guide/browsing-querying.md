@@ -78,7 +78,9 @@ Matching is **case-insensitive on both sides** — `owner='ECAN'` matches stored
 
 ### The latest-version default
 
-Without an explicit `version=` kwarg, the results contain **the latest version of each matching dataset** (grouped by `dataset_id`; "latest" is the greatest `created_at`). Pin `version='2'` to get a specific version, or pass `version=['1', '2']` to see several.
+Without an explicit `version=` kwarg, the results contain **the latest version of each matching dataset** (grouped by `dataset_id`; "latest" is the greatest `created_at`, and on a tie the greater `dataset_version_id`). Pin `version='2'` to get a specific version, pass `version=['1', '2']` to see several, or pass `all_versions=True` to get every matching version.
+
+The latest is chosen among the versions that match, so a time filter can return an older version of a dataset whose newest version does not overlap it. `envlib.latest_per_dataset(...)` gives the latest over the whole catalogue.
 
 !!! warning "Back-fill caveat"
     "Latest" is decided by *first registration time*, not by parsing version strings. If someone back-fills version 1 *after* registering version 2, the back-filled v1 becomes "latest". When exact versions matter, pin `version=` explicitly.
@@ -95,7 +97,9 @@ cat.query(within_radius=((174.0, -41.0), 50))          # ((lon, lat), km) great-
 cat.query(geometry=shapely.box(170, -45, 175, -40))   # any shapely geometry
 ```
 
-Bounding boxes use the GeoJSON antimeridian convention: `min_lon > max_lon` means the box crosses 180° (a domain spanning 166°E–172°W is `[166, -47, -172, -34]`, not a near-global box). Both stored and query boxes may cross; envlib handles the wraparound, including for `within_radius` distances across the dateline.
+Bounding boxes use the GeoJSON antimeridian convention: `min_lon > max_lon` means the box crosses 180° (a domain spanning 166°E–172°W is `[166, -47, -172, -34]`, not a near-global box). Both stored and query boxes may cross; envlib handles the wraparound, including for `within_radius` distances across the dateline. A query `bbox` may also use longitudes from −360 to 360 (`[175, -45, 184, -42]` is the same box as `[175, -45, -176, -42]`), with its east up to 360° east of its west; a box envlib cannot read, such as one wider than 360° or with south above north, raises `ValueError`. A `geometry` is also tried 360° east and west, so a shape drawn in 0–360° longitudes finds what the same shape in −180–180° finds; one with non-finite coordinates raises `ValueError`.
+
+A station dataset's stored box is the shortest arc of longitude that holds every station, whatever the dataset's CRS (the stations are reprojected to EPSG:4326 first): stations on Canterbury and the Chatham Islands give a box from about 169.8°E to 176.6°W that crosses 180°. Before envlib 0.1.9 it was the plain minimum and maximum longitude, which for such a dataset spanned about 350°. An entry registered before then keeps that box until it is republished.
 
 The stored bbox is a coarse, never-too-small filter — for precise spatial selection, open the dataset and use cfdb's native selection against its actual coordinates.
 

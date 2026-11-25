@@ -15,6 +15,7 @@ import pathlib
 import re
 import urllib.parse
 import warnings
+from collections.abc import Iterable
 from hashlib import blake2b
 
 import cfdb
@@ -22,6 +23,7 @@ import ebooklet
 import numpy as np
 import pyproj
 import shapely
+import shapely.affinity
 
 from envlib import vocabularies
 from envlib.metadata import (
@@ -56,10 +58,13 @@ FORECAST_REF_COORD = 'forecast_reference_time'
 FORECAST_PERIOD_COORD = 'forecast_period'
 
 _HEX24_RE = re.compile(r'[0-9a-f]{24}')
+_FRACTION_RE = re.compile(r'(?<=:\d\d)\.(\d{1,5})(?!\d)')
 _EPSG_4326 = pyproj.CRS.from_epsg(4326)
 _FULL_CIRCLE_DEG = 360.0
+_BBOX_LEN = 4  # w, s, e, n
+_MAX_LAT = 90.0
 
-_QUERYABLE_FIELDS = frozenset(IDENTITY_FIELDS) | {'license', 'dataset_type', 'dataset_version_id', 'dataset_id'}
+QUERYABLE_FIELDS = frozenset(IDENTITY_FIELDS) | {'license', 'dataset_type', 'dataset_version_id', 'dataset_id'}
 
 
 def _raise_on_push_failure(result, context: str):
@@ -127,12 +132,21 @@ def _dt64_to_iso(value) -> str:
     return dt.strftime('%Y-%m-%dT%H:%M:%S') + f'.{frac}Z'
 
 
+def _pad_fraction(text: str) -> str:
+    """Pad a 1-5 digit fractional second to 6 digits.
+
+    `_dt64_to_iso` strips trailing zeros ('...00.5Z'), and Python 3.10's fromisoformat accepts
+    only 3 or 6 fractional digits (plan review edr-api-plan-5).
+    """
+    return _FRACTION_RE.sub(lambda m: '.' + m.group(1).ljust(6, '0'), text, count=1)
+
+
 def _parse_iso(value) -> datetime.datetime:
     """Parse an ISO8601 string (Z-suffixed or naive-as-UTC) or pass a datetime through."""
     if isinstance(value, datetime.datetime):
         dt = value
     else:
-        dt = datetime.datetime.fromisoformat(str(value).replace('Z', '+00:00'))
+        dt = datetime.datetime.fromisoformat(_pad_fraction(str(value).replace('Z', '+00:00')))
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=datetime.timezone.utc)
     return dt
@@ -208,6 +222,61 @@ def _wrap_lon_extent(west: float, east: float, x_step: float | None) -> tuple:
     return w, e
 
 
+def _smallest_lon_arc(lons) -> tuple:
+    """(west, east) of the shortest arc of longitude holding every value in `lons`.
+
+    The arc is the circle minus its largest gap between neighbouring longitudes, taken on the
+    longitudes normalised to [-180, 180), so 0..360 input and a station at exactly 180 are placed
+    correctly. Each end comes back as the value given (a longitude within [-180, 180] unchanged).
+    When the largest gap is the one across 180 (or ties with it), west <= east after the wrap;
+    otherwise the arc crosses 180 (west > east, the GeoJSON convention).
+    """
+    normalised = {}
+    for lon in lons:
+        normalised.setdefault((float(lon) + 180.0) % 360.0 - 180.0, float(lon))
+    ordered = sorted(normalised)
+    if len(ordered) == 1:
+        lon = normalised[ordered[0]]
+        return lon, lon
+    gap, i = max((ordered[k + 1] - ordered[k], k) for k in range(len(ordered) - 1))
+    across_180 = ordered[0] + _FULL_CIRCLE_DEG - ordered[-1]
+    if across_180 >= gap:
+        return normalised[ordered[0]], normalised[ordered[-1]]
+    return normalised[ordered[i + 1]], normalised[ordered[i]]
+
+
+def _query_bbox(bbox) -> list:
+    """A query bbox in envlib's convention, or ValueError.
+
+    Accepts (west, south, east, north) with longitudes in -360..360, so 0..360 boxes work as they do
+    in a ``geometry`` (code review edr-api-code-5): a box whose east lies up to 360 degrees east of
+    its west, taken mod 360. A full-width box becomes -180..180; otherwise an edge outside
+    [-180, 180] is wrapped into it, so west > east means the box crosses 180.
+    """
+    try:
+        w, s, e, n = (float(v) for v in bbox)
+    except (TypeError, ValueError) as err:
+        msg = f'bbox must be four numbers (west, south, east, north); got {bbox!r}.'
+        raise ValueError(msg) from err
+    if not all(np.isfinite((w, s, e, n))):
+        msg = f'bbox values must be finite; got {bbox!r}.'
+        raise ValueError(msg)
+    if not (-_MAX_LAT <= s <= n <= _MAX_LAT):
+        msg = f'bbox latitudes must satisfy -90 <= south <= north <= 90; got {bbox!r}.'
+        raise ValueError(msg)
+    if abs(w) > _FULL_CIRCLE_DEG or abs(e) > _FULL_CIRCLE_DEG:
+        msg = f'bbox longitudes must be within -360..360; got {bbox!r}.'
+        raise ValueError(msg)
+    width = e - w if w <= e else e - w + _FULL_CIRCLE_DEG
+    if not (0.0 <= width <= _FULL_CIRCLE_DEG):
+        msg = f'bbox: east must lie 0 to 360 degrees east of west; got {bbox!r}.'
+        raise ValueError(msg)
+    if width == _FULL_CIRCLE_DEG:
+        return [-180.0, s, 180.0, n]
+    half = _FULL_CIRCLE_DEG / 2
+    return [_wrap_lon(w) if abs(w) > half else w, s, _wrap_lon(e) if abs(e) > half else e, n]
+
+
 def _split_bbox(bbox) -> list:
     """Split an antimeridian-crossing bbox into 1-2 conventional boxes."""
     min_lon, min_lat, max_lon, max_lat = bbox
@@ -224,8 +293,15 @@ def _bbox_intersects(stored, query) -> bool:
     return any(_boxes_intersect(s, q) for s in _split_bbox(stored) for q in _split_bbox(query))
 
 
-def _geometry_intersects(stored, geometry) -> bool:
-    return any(shapely.box(*part).intersects(geometry) for part in _split_bbox(stored))
+def _geometry_shifts(geometry) -> list:
+    """The geometry and its copies 360 degrees east and west, so a geometry drawn in 0..360 (or
+    -360..0) longitudes finds what its -180..180 twin finds (plan review edr-api-plan-5)."""
+    return [geometry, *(shapely.affinity.translate(geometry, xoff=shift) for shift in (360.0, -360.0))]
+
+
+def _geometry_intersects(stored, geometries) -> bool:
+    """Whether a stored bbox intersects any of `geometries` (from _geometry_shifts)."""
+    return any(shapely.box(*part).intersects(g) for part in _split_bbox(stored) for g in geometries)
 
 
 _GEOD = pyproj.Geod(ellps='WGS84')
@@ -403,6 +479,7 @@ def _extract_state(ds, meta: Metadata) -> dict:
     }
 
     x_step = y_step = None
+    bounds_crs = crs  # the CRS of west/south/east/north below (stations are reprojected first)
     ## Both grid types: the else-branch below assumes a station geometry coordinate, so exact
     ## equality here would route grid_forecast into it and fail with a message about ts_ortho.
     if dataset_type in GRID_TYPES:
@@ -428,16 +505,21 @@ def _extract_state(ds, meta: Metadata) -> dict:
         if len(points) == 0:
             msg = f'{dataset_type} datasets must have at least one station point.'
             raise ValidationError(msg)
-        xs = [p.x for p in points]
-        ys = [p.y for p in points]
-        west, east = float(min(xs)), float(max(xs))
+        ## The stations in EPSG:4326 whatever their CRS (as their ids are derived), then the
+        ## shortest arc of longitude holding them, crossing 180 when that is shorter: min/max gave a
+        ## 350-degree box for Canterbury plus the Chathams (plan review edr-api-plan-5), and the
+        ## arc must not depend on the CRS (code review edr-api-code-5).
+        stations_4326 = _reproject_points(points, crs)
+        west, east = _smallest_lon_arc([p.x for p in stations_4326])
+        ys = [p.y for p in stations_4326]
         south, north = float(min(ys)), float(max(ys))
+        bounds_crs = _EPSG_4326
 
-    if crs.is_geographic:
+    if bounds_crs.is_geographic:
         # native-geographic source: transform_bounds is an identity no-op for
         # longitude conventions, so apply envlib's own structure-preserving
         # wrap (0-360 grids -> [-180, 180] / the crossing convention).
-        if not crs.equals(_EPSG_4326):
+        if not bounds_crs.equals(_EPSG_4326):
             transformer = pyproj.Transformer.from_crs(crs, _EPSG_4326, always_xy=True)
             west, south, east, north = transformer.transform_bounds(west, south, east, north, densify_pts=21)
         min_lon, max_lon = _wrap_lon_extent(west, east, x_step)
@@ -827,6 +909,10 @@ class Catalogue:
         """All catalogue entries as DatasetRef objects."""
         return [DatasetRef(key, entry, self._cache_dir) for key, entry in self._entries.items()]
 
+    def _metas(self) -> list:
+        """Every entry's ``user_meta``, in catalogue order (the same order as :attr:`datasets`)."""
+        return [entry.get('user_meta') or {} for entry in self._entries.values()]
+
     # -- value discovery -------------------------------------------------------
 
     def distinct(self, field: str, *, counts: bool = False):
@@ -844,17 +930,10 @@ class Catalogue:
                 values, excluding None. When True, return a ``{value: count}``
                 dict that DOES include a None key when some entries lack the
                 field (e.g. datasets with no ``product_code``).
+
+        Every version is counted. The rules are :func:`distinct_values`'.
         """
-        if field not in _QUERYABLE_FIELDS:
-            msg = f'unknown field {field!r}; queryable fields are {sorted(_QUERYABLE_FIELDS)}.'
-            raise ValueError(msg)
-        tally: dict = {}
-        for entry in self._entries.values():
-            value = (entry.get('user_meta') or {}).get(field)
-            tally[value] = tally.get(value, 0) + 1
-        if counts:
-            return dict(sorted(tally.items(), key=lambda kv: (kv[0] is None, str(kv[0]))))
-        return sorted(v for v in tally if v is not None)
+        return distinct_values(self._metas(), field, counts=counts)
 
     @property
     def features(self) -> list:
@@ -935,50 +1014,34 @@ class Catalogue:
         geometry=None,
         start_date=None,
         end_date=None,
+        all_versions: bool = False,
         **fields,
     ) -> list:
         """Filter the catalogue; kwargs are AND'd, a list value means any-of.
 
         Spatial filters (mutually exclusive, EPSG:4326): ``bbox`` (intersects),
         ``within_radius`` (((lon, lat), km) great-circle), ``geometry``
-        (shapely, intersects). Temporal: ``start_date``/``end_date`` overlap
-        the dataset's time range. Without an explicit ``version=`` kwarg the
-        latest version (greatest created_at) of each matching dataset is
-        returned.
+        (shapely, intersects; also tried 360 degrees east and west). Temporal:
+        ``start_date``/``end_date`` overlap the dataset's time range. Without an
+        explicit ``version=`` kwarg, or ``all_versions=True``, the latest version
+        of each matching dataset is returned: the greatest created_at, and on a
+        tie the greater dataset_version_id.
+
+        The rules are :func:`match_entries`'; the results are DatasetRefs in
+        catalogue order.
         """
-        unknown = set(fields) - _QUERYABLE_FIELDS
-        if unknown:
-            msg = f'unknown query fields: {sorted(unknown)}; queryable fields are {sorted(_QUERYABLE_FIELDS)}.'
-            raise ValueError(msg)
-        spatial_kwargs = (('bbox', bbox), ('within_radius', within_radius), ('geometry', geometry))
-        spatial = [kw for kw, v in spatial_kwargs if v is not None]
-        if len(spatial) > 1:
-            msg = f'spatial filters are mutually exclusive; got {spatial}.'
-            raise ValueError(msg)
-
-        results = []
-        for ref in self.datasets:
-            user_meta = ref.metadata
-            if not all(_field_matches(user_meta.get(name), wanted) for name, wanted in fields.items()):
-                continue
-            stored_bbox = user_meta.get('bbox')
-            if bbox is not None and (stored_bbox is None or not _bbox_intersects(stored_bbox, bbox)):
-                continue
-            if geometry is not None and (stored_bbox is None or not _geometry_intersects(stored_bbox, geometry)):
-                continue
-            if within_radius is not None:
-                (lon, lat), radius_km = within_radius
-                if stored_bbox is None or not _bbox_within_radius(stored_bbox, lon, lat, radius_km):
-                    continue
-            if (start_date is not None or end_date is not None) and not _time_overlaps(
-                user_meta.get('time_start'), user_meta.get('time_end'), start_date, end_date
-            ):
-                continue
-            results.append(ref)
-
-        if 'version' not in fields:
-            results = _latest_per_dataset(results)
-        return results
+        refs = self.datasets
+        hits = _match_indices(
+            [ref.metadata for ref in refs],
+            bbox=bbox,
+            within_radius=within_radius,
+            geometry=geometry,
+            start_date=start_date,
+            end_date=end_date,
+            all_versions=all_versions,
+            fields=fields,
+        )
+        return [refs[i] for i in hits]
 
     # -- validate / publish / register / deregister ---------------------------
 
@@ -1190,33 +1253,219 @@ def _field_matches(stored, wanted) -> bool:
     return str(stored).lower() == str(wanted).strip().lower()
 
 
-def _time_overlaps(time_start, time_end, start_date, end_date) -> bool:
-    if time_start is None or time_end is None:
-        return False
-    t0 = _parse_iso(time_start)
-    t1 = _parse_iso(time_end)
-    if start_date is not None and t1 < _parse_iso(start_date):
-        return False
-    return not (end_date is not None and t0 > _parse_iso(end_date))
+def _entry_name(meta: dict) -> str:
+    return str(meta.get('dataset_version_id') or meta.get('dataset_id') or '<an entry>')
 
 
-def _latest_per_dataset(refs: list) -> list:
-    by_dataset: dict = {}
-    no_dataset_id = []
-    for ref in refs:
-        user_meta = ref.metadata
-        dataset_id = user_meta.get('dataset_id')
-        if dataset_id is None:
-            no_dataset_id.append(ref)
-            continue
-        current = by_dataset.get(dataset_id)
-        if current is None or _created_at(ref) > _created_at(current):
-            by_dataset[dataset_id] = ref
-    return list(by_dataset.values()) + no_dataset_id
-
-
-def _created_at(ref: DatasetRef) -> datetime.datetime:
-    value = ref.metadata.get('created_at')
+def _stored_time(meta: dict, field: str):
+    """A stored time as an aware datetime; None when missing, or (with a warning) unparsable."""
+    value = meta.get(field)
     if value is None:
-        return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
-    return _parse_iso(value)
+        return None
+    try:
+        return _parse_iso(value)
+    except (ValueError, TypeError, OverflowError):
+        warnings.warn(f'{_entry_name(meta)}: unparsable {field} {value!r}; it matches no time filter.', stacklevel=2)
+        return None
+
+
+def _stored_bbox(meta: dict):
+    """The stored bbox as four floats; None when missing, or (with a warning) malformed."""
+    value = meta.get('bbox')
+    if value is None:
+        return None
+    try:
+        vals = [float(v) for v in value]
+    except (TypeError, ValueError):
+        vals = []
+    if len(vals) != _BBOX_LEN or not all(np.isfinite(vals)):
+        warnings.warn(f'{_entry_name(meta)}: malformed bbox {value!r}; it matches no spatial filter.', stacklevel=2)
+        return None
+    return vals
+
+
+def _time_overlaps(meta: dict, start, end) -> bool:
+    """Whether the entry's stored time range overlaps [start, end] (aware datetimes or None)."""
+    t0 = _stored_time(meta, 'time_start')
+    t1 = _stored_time(meta, 'time_end')
+    if t0 is None or t1 is None:
+        return False
+    if start is not None and t1 < start:
+        return False
+    return not (end is not None and t0 > end)
+
+
+def _created_at(meta: dict) -> datetime.datetime:
+    """`created_at` as an aware datetime. Missing is the oldest; unparsable is the oldest too, with a
+    warning, so one damaged entry cannot fail every query (code review edr-api-code-3)."""
+    value = meta.get('created_at')
+    if value is not None:
+        try:
+            return _parse_iso(value)
+        except (ValueError, TypeError, OverflowError):
+            warnings.warn(f'{_entry_name(meta)}: unparsable created_at {value!r}; treated as the oldest.', stacklevel=2)
+    return datetime.datetime.min.replace(tzinfo=datetime.timezone.utc)
+
+
+def _version_key(meta: dict) -> tuple:
+    """The order of versions: created_at, then dataset_version_id, so a tie never depends on the
+    order the entries were read in (plan review edr-api-plan-3)."""
+    return _created_at(meta), str(meta.get('dataset_version_id') or '')
+
+
+def _latest_indices(metas: list, indices) -> list:
+    """Of `indices` into `metas`, the latest version of each dataset_id, in order of each dataset's
+    first appearance; entries with no dataset_id follow, in their own order."""
+    best: dict = {}
+    no_dataset_id = []
+    for i in indices:
+        meta = metas[i] or {}
+        dataset_id = meta.get('dataset_id')
+        if dataset_id is None:
+            no_dataset_id.append(i)
+            continue
+        current = best.get(dataset_id)
+        if current is None or _version_key(meta) > _version_key(metas[current] or {}):
+            best[dataset_id] = i
+    return list(best.values()) + no_dataset_id
+
+
+def _match_indices(metas, *, bbox, within_radius, geometry, start_date, end_date, all_versions, fields) -> list:
+    unknown = set(fields) - QUERYABLE_FIELDS
+    if unknown:
+        msg = f'unknown query fields: {sorted(unknown)}; queryable fields are {sorted(QUERYABLE_FIELDS)}.'
+        raise ValueError(msg)
+    spatial_kwargs = (('bbox', bbox), ('within_radius', within_radius), ('geometry', geometry))
+    spatial = [kw for kw, v in spatial_kwargs if v is not None]
+    if len(spatial) > 1:
+        msg = f'spatial filters are mutually exclusive; got {spatial}.'
+        raise ValueError(msg)
+    start = None if start_date is None else _parse_iso(start_date)
+    end = None if end_date is None else _parse_iso(end_date)
+    if bbox is not None:
+        bbox = _query_bbox(bbox)
+    if geometry is not None and not np.all(np.isfinite(shapely.get_coordinates(geometry))):
+        ## shapely cannot translate it (GEOSException), and it is no place (code review edr-api-code-5)
+        msg = 'geometry coordinates must be finite.'
+        raise ValueError(msg)
+    shifted = None if geometry is None else _geometry_shifts(geometry)
+
+    hits = []
+    for i, entry_meta in enumerate(metas):
+        meta = entry_meta or {}
+        if not all(_field_matches(meta.get(name), wanted) for name, wanted in fields.items()):
+            continue
+        if spatial:
+            stored = _stored_bbox(meta)
+            if stored is None:
+                continue
+            if bbox is not None and not _bbox_intersects(stored, bbox):
+                continue
+            if shifted is not None and not _geometry_intersects(stored, shifted):
+                continue
+            if within_radius is not None:
+                (lon, lat), radius_km = within_radius
+                if not _bbox_within_radius(stored, lon, lat, radius_km):
+                    continue
+        if (start is not None or end is not None) and not _time_overlaps(meta, start, end):
+            continue
+        hits.append(i)
+
+    if not all_versions and 'version' not in fields:
+        hits = _latest_indices(metas, hits)
+    return hits
+
+
+###################################################
+# catalogue matching: the public, plain-data form of query() and distinct()
+
+
+def match_entries(
+    metas: Iterable[dict],
+    *,
+    bbox=None,
+    within_radius=None,
+    geometry=None,
+    start_date=None,
+    end_date=None,
+    all_versions: bool = False,
+    **fields,
+) -> list:
+    """The catalogue entries that match, by the rules of :meth:`Catalogue.query`.
+
+    The one definition of catalogue matching: ``Catalogue.query`` and the envlib EDR API both call
+    it, so a Python query and an HTTP query of the same catalogue give the same entries.
+
+    Args:
+        metas: Catalogue ``user_meta`` dicts (``DatasetRef.metadata``).
+        all_versions: Return every matching version, not only the latest of each dataset.
+
+    ``bbox``, ``within_radius``, ``geometry``, ``start_date``, ``end_date`` and the field filters are
+    as for :meth:`Catalogue.query`.
+
+    Returns:
+        The matching dicts themselves (not copies). Without ``version=`` or ``all_versions``, the
+        latest of each dataset_id, in order of each dataset's first appearance, then any entries
+        without a dataset_id.
+
+    A stored value that cannot be read never fails the call: an unparsable ``created_at`` is the
+    oldest, and an unparsable time or bbox matches no filter on it. Each warns.
+    """
+    metas = list(metas)
+    hits = _match_indices(
+        metas,
+        bbox=bbox,
+        within_radius=within_radius,
+        geometry=geometry,
+        start_date=start_date,
+        end_date=end_date,
+        all_versions=all_versions,
+        fields=fields,
+    )
+    return [metas[i] for i in hits]
+
+
+def version_key(meta: dict) -> tuple:
+    """The order of a dataset's versions, as :func:`latest_per_dataset` ranks them.
+
+    ``(created_at, dataset_version_id)``: the greater key is the later version. A missing or
+    unparsable ``created_at`` is the oldest (an unparsable one warns). Sorting a dataset's entries by
+    this key, descending, puts the version a collection serves first.
+    """
+    return _version_key(meta or {})
+
+
+def latest_per_dataset(metas: Iterable[dict]) -> list:
+    """The latest version of each dataset_id among ``metas`` (catalogue ``user_meta`` dicts).
+
+    Latest is the greatest ``created_at``; on a tie, the greater ``dataset_version_id``, whatever
+    the order of ``metas``. Returns the dicts themselves, in order of each dataset's first
+    appearance, then any entries without a dataset_id.
+    """
+    metas = list(metas)
+    return [metas[i] for i in _latest_indices(metas, range(len(metas)))]
+
+
+def distinct_values(metas: Iterable[dict], field: str, *, counts: bool = False):
+    """The distinct stored values of a queryable field, by the rules of :meth:`Catalogue.distinct`.
+
+    Args:
+        metas: Catalogue ``user_meta`` dicts; every one is counted, all versions included.
+        field: Any field in :data:`QUERYABLE_FIELDS`.
+        counts: When False, a sorted list of the values, excluding None. When True, a
+            ``{value: count}`` dict, None last.
+    """
+    if field not in QUERYABLE_FIELDS:
+        msg = f'unknown field {field!r}; queryable fields are {sorted(QUERYABLE_FIELDS)}.'
+        raise ValueError(msg)
+    tally: dict = {}
+    for meta in metas:
+        value = (meta or {}).get(field)
+        tally[value] = tally.get(value, 0) + 1
+    if counts:
+        return dict(sorted(tally.items(), key=lambda kv: (kv[0] is None, str(kv[0]))))
+    values = [v for v in tally if v is not None]
+    try:
+        return sorted(values)
+    except TypeError:  # mixed types (e.g. an int beside strings): sort by text rather than fail
+        return sorted(values, key=str)

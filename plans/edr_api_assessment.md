@@ -461,6 +461,21 @@ ways:
 - **The caps** keep plan 3's defaults (Mike, 2026-11-25), so a full WRF map at one hour (322 chunks,
   623 MB decoded) answers 413.
 
+**Plan 5 (catalogue discovery)** is built in envlib 0.1.9 (`envlib.match_entries`,
+`envlib.latest_per_dataset`, `envlib.distinct_values`) and in envlib-api 0.4.0 (`envlib_api/api/catalogue.py`;
+the README's "The catalogue"). Neither is released yet. Plan review `edr-api-plan-5` and Mike's decisions
+changed it from "Versions and discovery" below in these ways:
+- **A tie on `created_at`** goes to the greater `dataset_version_id` in envlib too, whatever the
+  catalogue order.
+- **The station bbox** is the shortest arc of longitude holding the stations. Before, two live ECan
+  entries spanned about 350°, and a bbox search over Patagonia returned them. Entries correct on
+  republish.
+- **`/catalogue` pages by a cursor** (`after`), not an offset, and clamps a `limit` over the cap.
+- **Each entry links** to its EDR collection with `alternate`, and an older version links to the latest
+  with `latest-version` (RFC 5829).
+- **CORS** headers are on every answer (moved from plan 6, Mike, 2026-11-25), so a catalogue browser
+  on another site can call the API.
+
 ### Core
 
 **Decided.** The API serves envlib datasets for real-time use. Historical and bulk work goes through
