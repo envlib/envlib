@@ -448,7 +448,7 @@ these ways:
 - **Retries:** only a refused store build or a failed `verify()` is retried. An index that is behind
   the remote answers 503 at once.
 
-**Plan 4 (grid queries)** is built in the same repo (`envlib_api/api/grid.py`; the README's "Grids"),
+**Plan 4 (grid queries)** is built in the same repo (`envlib_api/api/grid.py`; the docs' Grids page, `docs/grids.md`),
 and was released as envlib-api 0.3.0 on 2026-11-25.
 Plan review `edr-api-plan-4` and Mike's decisions changed it from "The EDR surface" below in these
 ways:
@@ -463,7 +463,7 @@ ways:
 
 **Plan 5 (catalogue discovery)** is built in envlib 0.1.9 (`envlib.match_entries`,
 `envlib.latest_per_dataset`, `envlib.distinct_values`) and in envlib-api 0.4.0 (`envlib_api/api/catalogue.py`;
-the README's "The catalogue"), both released on 2026-11-26. Plan review `edr-api-plan-5`, code review
+the docs' catalogue page, `docs/catalogue.md`), both released on 2026-11-26. Plan review `edr-api-plan-5`, code review
 `edr-api-code-5` and Mike's decisions
 changed it from "Versions and discovery" below in these ways:
 - **A tie on `created_at`** goes to the greater `dataset_version_id` in envlib too, whatever the
@@ -479,6 +479,23 @@ changed it from "Versions and discovery" below in these ways:
 - **0–360 longitudes** work in envlib itself, in both a query `bbox` and a `geometry`, so the API passes
   them through and an HTTP query and a Python query give the same entries (code review, Mike,
   2026-11-26).
+
+**Plan 7 (the public docs site)** is built in envlib-api (`docs/`, `mkdocs.yml`,
+`envlib_api/api/routes.py` and `openapi.py`; plan `planning/edr-api-plan-7.md`), released as envlib-api
+0.5.0 on 2026-11-26. It was not in the 2026-11-23 split. Plan review `edr-api-plan-7`, code review
+`edr-api-code-7` and Mike's decisions shaped it:
+- **The site lives in envlib-api** and the API serves it at `/docs/`, built into the image, so the docs
+  always describe the API they are deployed with (Mike, 2026-11-26). It links to envlib's site for the
+  Python side.
+- **`/api` is built from one spec per route,** which also validates every request, so the document and
+  the server cannot disagree. `oas31` is claimed only when the site is mounted, because the landing
+  page's `service-doc` must answer.
+- **The docs examples are tests** against a docs world that carries the live dataset ids. Each client
+  (httpx, curl, node) is confined to the local API, and the node client behaves as a browser on another
+  site would; the harness's known limits are in envlib-api's README. The README's user-facing sections
+  moved into the docs.
+- **The landing page states the API's limits** (`envlib:limits`), and the docs point there rather than
+  restating the numbers that plan 6 calibrates.
 
 ### Core
 
