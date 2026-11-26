@@ -78,6 +78,7 @@ nav:
         - Publishing & Registration: guide/publishing.md
         - Vocabularies: guide/vocabularies.md
         - Migrating from tethys: guide/tethys-migration.md
+    - HTTP API: https://api.envlib.xyz/docs/
     - Reference:
         - Catalogue: reference/catalogue.md
         - Metadata: reference/metadata.md

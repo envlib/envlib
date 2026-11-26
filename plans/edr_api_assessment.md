@@ -497,6 +497,23 @@ changed it from "Versions and discovery" below in these ways:
 - **The landing page states the API's limits** (`envlib:limits`), and the docs point there rather than
   restating the numbers that plan 6 calibrates.
 
+**Plan 6 (going public)** is built in envlib-api 0.6.0 (plan `planning/edr-api-plan-6.md`; not yet
+released or deployed). Plan review `edr-api-plan-6` and Mike's decisions changed it from "Limits" below in
+these ways:
+- **A Cloudflare Tunnel replaces Traefik** (Mike, 2026-11-26). The swarm's Traefik publishes through the
+  routing mesh, so it never sees a source address and cannot lock the origin to Cloudflare's ranges, and it
+  has no certificate resolver for envlib.xyz. The tunnel is outbound-only and locally managed: its routing is
+  `cloudflared/config.yml` in git, the API publishes no port, and the front door depends on no orchestrator.
+- **The request-rate limit is one Cloudflare rule.** The Free plan's rule matches by path only, so it names
+  the API's paths and never B2's `/file/…`.
+- **Who is public:** a request with Cloudflare's markers (`CF-Ray`, `CDN-Loop`) or the public `Host` is
+  public; one with none is an internal caller on the swarm, exempt. The rule fails closed: a public request
+  without an address goes to one shared key, with an ERROR.
+- **The quotas:** IPv6 counts by /56 rather than /64. The charge is refunded on a 5xx, a request is charged
+  once across retries, and every charged answer states what is left (`X-Quota-Remaining`).
+- **The data routes have their own concurrency slots,** shedding with a 503 after a few seconds, because
+  bounding anyio's shared pool would have starved the healthcheck, the errors and the docs.
+
 ### Core
 
 **Decided.** The API serves envlib datasets for real-time use. Historical and bulk work goes through

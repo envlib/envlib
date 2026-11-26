@@ -1,5 +1,11 @@
 # Opening Data
 
+!!! tip "Small reads without Python"
+    For a few stations or grid cells over a short time, the [envlib HTTP API](https://api.envlib.xyz/docs/)
+    answers with CoverageJSON, CSV or GeoJSON from any language or web page. It refuses bulk reads with a
+    413 whose body carries an envlib snippet for reading the dataset here instead, because envlib reads
+    exactly the chunks you ask for.
+
 A `DatasetRef` from `cat.query()` (or `cat.datasets`) opens the underlying cfdb file as a read-only [cfdb EDataset](https://mullenkamp.github.io/cfdb/guide/s3-remote/):
 
 <!-- skip: start if(not docs_live, reason="reads the live public commons") -->

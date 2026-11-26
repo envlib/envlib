@@ -20,7 +20,8 @@ _Status 2026-11-26 (checked on PyPI):
   deployed in "EDR plan 6: going public". Plan 4 (grid queries) closed 2026-11-25 with envlib-api
   0.3.0 on PyPI. Plan 5 (catalogue discovery) closed 2026-11-26 with envlib 0.1.9 and envlib-api
   0.4.0 on PyPI. Plan 7 (the public docs site) closed 2026-11-26 with envlib-api 0.5.0 on PyPI.
-  "EDR plan 6: going public" comes next; it publishes the API and its docs together._
+  "EDR plan 6: going public" is built and code-reviewed (envlib-api 0.6.0, unreleased), and awaits its
+  release and deploy; it publishes the API and its docs together._
 
 ## Verification debts
 
@@ -138,7 +139,7 @@ The live rollout of the released stack is tracked in the ingestion file (below).
 - **The slash redirects' `Location`** behind the proxy: `/docs` redirects to `/docs/` the same way, so it shares plan 3's `public_url` / `FORWARDED_ALLOW_IPS` finding above.
 - **The quotas in `envlib:limits`:** the landing page's member states the running limits, and the docs point at it, so the quotas belong there.
 
-**Close-check:** the public endpoint answers through Cloudflare; the origin refuses direct requests; the quotas and the rate limit are verified from outside. **Review:** one arm. **Status:** not started.
+**Close-check:** the public endpoint answers through Cloudflare; the origin refuses direct requests; the quotas and the rate limit are verified from outside. **Review:** plan review `edr-api-plan-6` (Fable 5.2 and Sonnet 5.5, 27 findings, Mike agreed every remedy). **Status (2026-11-26):** built in envlib-api 0.6.0 (unreleased): the plan is `envlib-api/planning/edr-api-plan-6.md`. It reverses §11's Traefik design for a locally managed Cloudflare Tunnel, because the swarm's Traefik publishes through the routing mesh and sees no source address (Mike, 2026-11-26). Code review `edr-api-code-6` (Fable 5.2 and Sonnet 5.5) found 22 issues, the most serious that every `api` update after the first deploy would hang. Mike agreed every remedy (2026-11-27), and all are applied (`envlib-api/planning/edr-api-code-6-review-synthesis.md`). The suite passes, and the plan's and the review's mutants, run against the whole suite, are killed except one recorded equivalent (`planning/mutants_review6_result.txt`). Next: the release, the deploy, the calibration and the live close-check (the plan's Steps 9–11 and its Verification).
 - [ ] **[new service] EDR forecasts (option C)** (added 2026-11-23; designed in §11, "Forecasts: later, but designed for now"). Instances are forecast runs. The instance list covers 30 days, `/instances/latest` redirects to the current run, and a query on the collection returns the best estimate. **Trigger:** the first forecast dataset in envlib.
 - [ ] **[new service] EDR grid `/area` and netCDF output** (added 2026-11-23; §11). Grid `/area` is `/cube` plus a polygon mask. netCDF output waits for the item "[cfdb] ts_ortho → netCDF export crashes on the geometry coord". **Trigger:** "EDR plan 4: grid queries" closed, and the export fix for netCDF. Plan 4 closed 2026-11-25 (envlib-api 0.3.0), so only the netCDF fix remains.
 - [ ] **[new service] Bound the cube hull's projection on large grids** (added 2026-11-25, code review `edr-api-code-4`; Mike: document it now, build it when needed).
