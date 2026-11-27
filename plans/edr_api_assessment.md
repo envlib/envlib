@@ -497,9 +497,9 @@ changed it from "Versions and discovery" below in these ways:
 - **The landing page states the API's limits** (`envlib:limits`), and the docs point there rather than
   restating the numbers that plan 6 calibrates.
 
-**Plan 6 (going public)** is built in envlib-api 0.6.0 (plan `planning/edr-api-plan-6.md`; not yet
-released or deployed). Plan review `edr-api-plan-6` and Mike's decisions changed it from "Limits" below in
-these ways:
+**Plan 6 (going public)** is built in envlib-api 0.6.0 (plan `planning/edr-api-plan-6.md`), released and
+deployed on 2026-11-27: the API is public at `https://api.envlib.xyz`. Plan review `edr-api-plan-6`, code review
+`edr-api-code-6` and Mike's decisions changed it from "Limits" below in these ways:
 - **A Cloudflare Tunnel replaces Traefik** (Mike, 2026-11-26). The swarm's Traefik publishes through the
   routing mesh, so it never sees a source address and cannot lock the origin to Cloudflare's ranges, and it
   has no certificate resolver for envlib.xyz. The tunnel is outbound-only and locally managed: its routing is
@@ -512,7 +512,13 @@ these ways:
 - **The quotas:** IPv6 counts by /56 rather than /64. The charge is refunded on a 5xx, a request is charged
   once across retries, and every charged answer states what is left (`X-Quota-Remaining`).
 - **The data routes have their own concurrency slots,** shedding with a 503 after a few seconds, because
-  bounding anyio's shared pool would have starved the healthcheck, the errors and the docs.
+  bounding anyio's shared pool would have starved the healthcheck, the errors and the docs. The code review
+  gave the metadata routes their own slots too, and made the exception handlers async.
+- **Charged data answers are `private`,** because they carry their client's quota header, so Cloudflare caches
+  only uncharged answers (code review, Mike, 2026-11-27).
+- **Calibration** (2026-11-27) kept every value: the caps, the quotas (2 GB/h, 10 GB/day), 8 slots, a 5 s queue
+  wait, and a 2 GiB memory limit. The rate-limit rule is 25 per 10 s per IP (Mike: start low, raise it when use
+  needs it). The measurements are in `envlib-api/planning/close-checks-public-2026-11-27.md`.
 
 ### Core
 
