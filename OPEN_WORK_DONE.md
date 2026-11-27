@@ -4,6 +4,49 @@ Completed items from `OPEN_WORK.md` (the stack-development track), moved here on
 
 ## Done (newest first)
 
+- [x] ~~**[cfdb] ts_ortho → netCDF export crashes on the geometry coord**~~ — **CLOSED 2026-11-27.** cfdb 0.12.1 is on PyPI (2026-11-27; its wheel's `cfdb/` is identical to the reviewed tree) with three export fixes: geometry as WKT strings, `None` attributes left out, and packed valid ranges written packed. The close-check passed: `cfdb/plans/sweep_live_netcdf.py` with cfdb 0.12.1 installed from PyPI exported a slice of all 18 live datasets, and netCDF4 and xarray read every one back equal to cfdb's decoded values (18 of 18). Its follow-up is the Backlog item "[cfdb] CF 1.8 simple geometries in the netCDF export, if WKT draws compliance pushback". The item as it stood:
+  **[cfdb] ts_ortho → netCDF export crashes on the geometry coord** (independently reproduced 2026-07-22 on cfdb 0.9.4, the production floor; also seen on in-tree 0.9.5 during the ingest-toolkit station-metadata review): `ds.to_netcdf4(...)` on a minimal ts_ortho dataset (a geometry `point` coord + a `(point, time)` var) raises `AttributeError: 'Point' object has no attribute '_factor'` at `cfdb/main.py:600` — the export path assumes every coord dtype carries the numeric-packing `_factor`, which the Geometry dtype does not. Consequence: ts_ortho (station) datasets cannot be exported to netCDF at all, and CF variable attrs can't be verified through the netCDF archive path. Fix: a geometry-aware branch in the export (encode WKB/WKT, or skip `_factor` for non-numeric coord dtypes). Its own small cfdb round; not on the ingest critical path.
+  **Status 2026-11-27: built in cfdb 0.12.1, not yet released.** Re-verified first on cfdb 0.12.0 (the same error, now at `cfdb/main.py:603`); a grid dataset exported fine. The fix (Mike, 2026-11-27: "do the easy solution right now"): a geometry coord or data var is written as a netCDF string variable of WKT, the form cfdb already stores, marked `geometry_encoding = "WKT"`, on its own dimension. The station structure is unchanged. `test_to_netcdf4_geometry_as_wkt` (`cfdb/tests/test_dataset.py`) failed with the original error before the fix, and fails under each of three mutants (no coord branch, no data-var branch, no marker). netCDF4 and xarray read the strings as `str`. cfdb's local suite: 508 passed in 4.1 s.
+  **A live export (Mike: "test it on a real edataset") found two more export defects, both fixed in the same
+  0.12.1:**
+  - **`None` attributes:** h5py refuses them. Every live station dataset has `envlib_product_code = None`, and the
+    grid `da4acc9cb56d92e5c751ddb0` has `envlib_frequency_interval = None`, so none of them exported. They are now
+    left out (`test_to_netcdf4_leaves_out_none_attrs`; a mutant per site).
+  - **Packed `valid_min`/`valid_max`:** they were written in physical units, and netCDF4-python compares them
+    with the stored integers (CF 2.5.1 and 8.1, the NUG), so it masked every ECan flow above 1 m³/s. They are now
+    written packed, in the stored dtype (Mike, 2026-11-27; `test_to_netcdf4_packed_valid_range`; five mutants,
+    including one that truncates instead of rounding).
+
+  **Verified before release** on ECan's streamflow (5 stations × 30 days, with the patched cfdb overlaid):
+  netCDF4 with its default masking masks exactly cfdb's 722 gaps and equals cfdb's values, xarray agrees, the
+  WKT and the string variables are equal, and `envlib_product_code` is absent. cfdb's local suite: 510 passed in
+  4.2 s.
+  **A sweep of every live dataset** (`cfdb/plans/sweep_live_netcdf.py`, whose docstring has the commands; Mike: in
+  case there are more bugs real data would show; 2026-11-27): a slice of
+  each of the 18 (a window that holds data; 4 positions per other dimension) exported with the patched cfdb and read
+  back with netCDF4 (default masking) and xarray. Every variable equals cfdb's decoded values (to half a packing step
+  for packed variables), the missing counts match, every non-`None` attribute arrives, and each CRS is written.
+  **18 of 18 pass.** The sweep failed on two planted defects: valid ranges in physical units, and `add_offset` one
+  packing step out. No further export defect was found. **Close-check:** cfdb 0.12.1 is on PyPI, and the sweep passes
+  with it installed from PyPI.
+- [x] ~~**[cfdb + envlib] The public docs sites lag the releases: merge `dev` into `main` to redeploy them**~~ — **CLOSED 2026-11-27.** Mike merged both: envlib's `dev` into `main` (PR #10) and cfdb's (PR #48). Both docs deploys passed with `mkdocs build --strict` (envlib run 45945988239, cfdb run 45947875645). The live changelogs show the PyPI versions (envlib 0.1.9, cfdb 0.12.0), cfdb's S3 guide has no `num_groups` or `object_key`, and envlib's publishing guide names `num_groups` only in its migration note. The item as it stood:
+  **[cfdb + envlib] The public docs sites lag the releases: merge `dev` into `main` to redeploy them**
+  (added 2026-11-14). Both sites build from `main` on push (`.github/workflows/documentation.yml`), and both
+  `main`s are at 2026-09-24. So mullenkamp.github.io/cfdb shows 0.10.0, and envlib.github.io/envlib shows "0.1.7
+  (unreleased)", while PyPI has cfdb 0.12.0 (2026-11-24) and envlib 0.1.9 (2026-11-26). The live pages document
+  `num_groups`, which raises under both releases, and cfdb's S3 example uses `S3Connection(object_key=...)`,
+  which ebooklet never had. A docs audit on 2026-11-14 fixed the rest on `dev` (uncommitted until Mike commits):
+  dated changelogs; that old hash-grouped remotes cannot be opened and how to move them; that the storage mode is
+  fixed per remote; wrong reference signatures and defaults in cfdb; the forecast types in cfdb's `dataset_type`
+  docstrings; envlib's stale "not hosted yet" notes and quickstart id; `PublishIntegrityError` exported, and it
+  and `validate_dataset` added to envlib's reference. Close-check: each live changelog page shows the PyPI
+  version, and the live S3 and publishing guides have no `num_groups`. Since then the cfdb fixes (2026-11-14) are
+  committed as `8a623d8` and the envlib ones as `7597861`/`b50256a`, all on `dev`; the merge to `main` remains.
+  **Status 2026-11-27:** envlib's half is done. Mike merged `dev` into `main` (PR #10); the live changelog shows
+  0.1.9, and the publishing guide mentions `num_groups` only in its migration note. **cfdb's half remains:** its
+  `main` lacks 4 `dev` commits (`f9cfbad` to `e350cb8`), and mullenkamp.github.io/cfdb/changelog/ shows 0.11.0.
+  The merge will also deploy the docs changes made for the docs-example tests (uncommitted on `dev` as of
+  2026-11-14; the verification debt "The docs-example tests (Sybil) and `mkdocs build --strict`").
 - [x] ~~**[new service + infra] EDR plan 6: going public**~~ — **CLOSED 2026-11-27.** envlib-api 0.6.0 is on PyPI (2026-11-27) and deployed: `https://api.envlib.xyz` answers through a locally managed Cloudflare Tunnel (the plan reversed §11's Traefik design, Mike, 2026-11-26). Plan review `edr-api-plan-6` and code review `edr-api-code-6` (Fable 5.2 and Sonnet 5.5 each) changed it, and Mike agreed every remedy. The close-check (`envlib-api/planning/close-checks-public-2026-11-27.md`): the live docs check passed with 0 problems; the origin refuses direct requests on both web nodes; the rate-limit rule (25 per 10 s, Mike) and the quota 429 were verified from outside; calibration kept every value. Walking the plan's Verification list after closing found six checks not yet run; five were then run and passed (charged answers never cached, b2 outside the rate rule, node and pandas, internal callers exempt, uswest10's port), and the sixth (deleting the test's quota buckets) was left to their TTL. One conditional request in 23 through Cloudflare was charged (a `BYPASS` 304): recorded in the close-check, and documented as a limit (Mike), in "envlib-api's docs batch: built, not yet released". Open follow-ups are their own items: "Warm the cold `/collections`", "`/catalogue` reads the whole mirror on every request" and the verification debt "The weekly live docs check: its first scheduled run". The item as it stood:
   **[new service + infra] EDR plan 6: going public** (added 2026-11-23; §11). Per-IP quotas (hourly and 24-hourly), Traefik's request-rate limit, Cloudflare in front (compression, caching, and an origin locked to Cloudflare's ranges), the allowlist for Mike's servers, and deployment to `api.envlib.xyz`. The caps and quotas are calibrated on the VPSes. **Carried from plan 3** (code review `edr-api-code-3`; its synthesis is in `envlib-api/planning/`):
 - **Links:** they follow the request's `Host` header, so set `public_url`. Behind a proxy that is not on loopback, uvicorn ignores `X-Forwarded-Proto` unless `FORWARDED_ALLOW_IPS` names it.
