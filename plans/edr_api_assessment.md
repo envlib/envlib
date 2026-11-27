@@ -3,6 +3,9 @@
 _Assessment, 2026-10-07. Not a plan: nothing here is decided beyond what the Backlog item in
 `OPEN_WORK.md` records._
 
+_Design decided 2026-11-23: see §11, which supersedes the cache and handle rows of §3, the
+instance row of §5 (corrected in place) and the Swarm layout of §8._
+
 ## Core
 
 **Question.** Can an efficient REST API that *retrieves* envlib data run as a service on the Docker
@@ -203,7 +206,7 @@ extra properties.
 | envlib field | EDR location |
 |---|---|
 | `dataset_id` | collection `id` |
-| `dataset_version_id` | instance id; the default (no instance) is the latest version, as `Catalogue.query()` returns |
+| `dataset_version_id` | **not an instance** (corrected 2026-11-23, §11): instances are reserved for forecast runs. A collection serves its latest version, as `Catalogue.query()` returns. The id rides in the `envlib` object and the `ETag`, and every version is discoverable through `/catalogue`. |
 | `description` | `description` |
 | `bbox`, `time_start`/`time_end` | `extent.spatial`, `extent.temporal` |
 | `variable`, `standard_name` | a `parameter_names` entry; `observedProperty.id` can be the CF standard-name URI on the NERC vocabulary server, as the schema's own example does |
@@ -397,6 +400,335 @@ republished under it.
     Firefox);
   - whether a CDN in front would re-encode zstd responses for clients that do not offer it;
   - behaviour under concurrent load.
+
+## 11. Decisions and spike, 2026-11-23
+
+_Design discussion with Mike, 2026-11-23. The spike's scripts and raw results are in
+`plans/spikes/edr-mongo-store/`._
+
+**Implemented and released 2026-11-24 as ebooklet 0.13.0 (`ebooklet.mongo`) and cfdb 0.12.0
+(`open_store_dataset`).** The authority for how the read path now behaves is ebooklet's `docs/ops.md`,
+"The MongoDB read path"; this section is the design as discussed. Two review rounds (`edr-mongo-plan-1`
+and `edr-mongo-code-1`; records in `ebooklet/planning/`) changed these points:
+- **The 404 rule.** The API compares one HEAD of the db object with the `applied` pair read when the store
+  was built (equal → 500, different → 503). `checked_at` no longer classifies anything: compared with
+  the time of the 404, it almost never gave a 500.
+- **The worker is stateless.** It diffs against MongoDB's entries, not an index held in memory.
+- **The write order** gained a claim step: 0 (`rev`+1 and `applying`), then entries, the dataset document,
+  deletes, and `applied` written last.
+- **Requests overlapping an apply retry.** A store refuses to build while `applying` is set, and the API
+  must call `store.verify()` before responding. Without that, old metadata could decode new chunks.
+- **Per-key objects overwritten since the index copy** raise `StaleIndexError`.
+- **Exactly one refresher is a hard requirement.** Two overlapping refreshers diverge for good.
+- **The schema:** the collections use per-collection compressors (zstd for `entries` and `datasets`, none
+  for `chunks`), and the remote's `ebooklet_type` is recorded.
+- **The store reads public remotes only** (`object_reader` takes a `db_url`). The refresh accepts any
+  `S3Connection`.
+
+**Plan 2 (the worker and MongoDB)** is built in the repo `envlib/envlib-api`. Its README covers how it
+runs and its operating rules, and its `planning/` holds the plan and the review records. It differs
+from "The worker" below in these ways:
+- every catalogued version is mirrored, keyed by `dataset_version_id`;
+- datasets that leave the catalogue are retired by tombstone, behind guards;
+- MongoDB is version 9.0, with a custom role;
+- there is no lease.
+
+**Plan 3 (the API core and station data)** is built in the same repo (`envlib_api/api/`; its README,
+"The API"). Plan review `edr-api-plan-3` changed it from "The API" and "The EDR surface" below in
+these ways:
+- **Reads:** a request reads its data in one batched fetch (`store.load_items` of every data key),
+  not chunk by chunk. Cold, all stations × 48 h took 22–112 s station by station and 0.3–10 s batched.
+- **Time:** `datetime` selects by label containment, through the API's own `searchsorted`, not cfdb's
+  `.loc`.
+- **Output:**
+  - values print at the variable's stored precision, not shortest round-trip;
+  - several stations answer a CoverageJSON `CoverageCollection` of `PointSeries`, not the
+    `MultiPointSeries` of §6, because `MultiPointSeries` cannot carry station ids;
+  - a query that selects nothing answers 204.
+- **Retries:** only a refused store build or a failed `verify()` is retried. An index that is behind
+  the remote answers 503 at once.
+
+**Plan 4 (grid queries)** is built in the same repo (`envlib_api/api/grid.py`; the docs' Grids page, `docs/grids.md`),
+and was released as envlib-api 0.3.0 on 2026-11-25.
+Plan review `edr-api-plan-4` and Mike's decisions changed it from "The EDR surface" below in these
+ways:
+- **The cell** is the nearest stored centre on each axis. It is not a step-based lattice, because the
+  SST centres are float32 values with irregular spacing.
+- **A cube** is the smallest grid rectangle holding every cell whose centre is in the bbox, unmasked.
+  Longitudes are compared mod 360.
+- **A WRF cube** comes back in the grid's own Lambert CRS: a documented deviation from EDR's default
+  of the extent's CRS.
+- **The caps** keep plan 3's defaults (Mike, 2026-11-25), so a full WRF map at one hour (322 chunks,
+  623 MB decoded) answers 413.
+
+**Plan 5 (catalogue discovery)** is built in envlib 0.1.9 (`envlib.match_entries`,
+`envlib.latest_per_dataset`, `envlib.distinct_values`) and in envlib-api 0.4.0 (`envlib_api/api/catalogue.py`;
+the docs' catalogue page, `docs/catalogue.md`), both released on 2026-11-26. Plan review `edr-api-plan-5`, code review
+`edr-api-code-5` and Mike's decisions
+changed it from "Versions and discovery" below in these ways:
+- **A tie on `created_at`** goes to the greater `dataset_version_id` in envlib too, whatever the
+  catalogue order.
+- **The station bbox** is the shortest arc of longitude holding the stations. Before, two live ECan
+  entries spanned about 350°, and a bbox search over Patagonia returned them. Entries correct on
+  republish.
+- **`/catalogue` pages by a cursor** (`after`), not an offset, and clamps a `limit` over the cap.
+- **Each entry links** to its EDR collection with `alternate`, and an older version links to the latest
+  with `latest-version` (RFC 5829).
+- **CORS** headers are on every answer (moved from plan 6, Mike, 2026-11-25), so a catalogue browser
+  on another site can call the API.
+- **0–360 longitudes** work in envlib itself, in both a query `bbox` and a `geometry`, so the API passes
+  them through and an HTTP query and a Python query give the same entries (code review, Mike,
+  2026-11-26).
+
+**Plan 7 (the public docs site)** is built in envlib-api (`docs/`, `mkdocs.yml`,
+`envlib_api/api/routes.py` and `openapi.py`; plan `planning/edr-api-plan-7.md`), released as envlib-api
+0.5.0 on 2026-11-26. It was not in the 2026-11-23 split. Plan review `edr-api-plan-7`, code review
+`edr-api-code-7` and Mike's decisions shaped it:
+- **The site lives in envlib-api** and the API serves it at `/docs/`, built into the image, so the docs
+  always describe the API they are deployed with (Mike, 2026-11-26). It links to envlib's site for the
+  Python side.
+- **`/api` is built from one spec per route,** which also validates every request, so the document and
+  the server cannot disagree. `oas31` is claimed only when the site is mounted, because the landing
+  page's `service-doc` must answer.
+- **The docs examples are tests** against a docs world that carries the live dataset ids. Each client
+  (httpx, curl, node) is confined to the local API, and the node client behaves as a browser on another
+  site would; the harness's known limits are in envlib-api's README. The README's user-facing sections
+  moved into the docs.
+- **The landing page states the API's limits** (`envlib:limits`), and the docs point there rather than
+  restating the numbers that plan 6 calibrates.
+
+**Plan 6 (going public)** is built in envlib-api 0.6.0 (plan `planning/edr-api-plan-6.md`), released and
+deployed on 2026-11-27: the API is public at `https://api.envlib.xyz`. Plan review `edr-api-plan-6`, code review
+`edr-api-code-6` and Mike's decisions changed it from "Limits" below in these ways:
+- **A Cloudflare Tunnel replaces Traefik** (Mike, 2026-11-26). The swarm's Traefik publishes through the
+  routing mesh, so it never sees a source address and cannot lock the origin to Cloudflare's ranges, and it
+  has no certificate resolver for envlib.xyz. The tunnel is outbound-only and locally managed: its routing is
+  `cloudflared/config.yml` in git, the API publishes no port, and the front door depends on no orchestrator.
+- **The request-rate limit is one Cloudflare rule.** The Free plan's rule matches by path only, so it names
+  the API's paths and never B2's `/file/…`.
+- **Who is public:** a request with Cloudflare's markers (`CF-Ray`, `CDN-Loop`) or the public `Host` is
+  public; one with none is an internal caller on the swarm, exempt. The rule fails closed: a public request
+  without an address goes to one shared key, with an ERROR.
+- **The quotas:** IPv6 counts by /56 rather than /64. The charge is refunded on a 5xx, a request is charged
+  once across retries, and every charged answer states what is left (`X-Quota-Remaining`).
+- **The data routes have their own concurrency slots,** shedding with a 503 after a few seconds, because
+  bounding anyio's shared pool would have starved the healthcheck, the errors and the docs. The code review
+  gave the metadata routes their own slots too, and made the exception handlers async.
+- **Charged data answers are `private`,** because they carry their client's quota header, so Cloudflare caches
+  only uncharged answers (code review, Mike, 2026-11-27).
+- **Calibration** (2026-11-27) kept every value: the caps, the quotas (2 GB/h, 10 GB/day), 8 slots, a 5 s queue
+  wait, and a 2 GiB memory limit. The rate-limit rule is 25 per 10 s per IP (Mike: start low, raise it when use
+  needs it). The measurements are in `envlib-api/planning/close-checks-public-2026-11-27.md`.
+
+### Core
+
+**Decided.** The API serves envlib datasets for real-time use. Historical and bulk work goes through
+the envlib and cfdb packages. One worker process mirrors the B2 catalogue and each dataset's remote
+index into MongoDB. Stateless FastAPI processes answer every request from MongoDB. On a cache miss
+they fill an insert-only chunk cache in MongoDB from B2. The worker and the API never talk to each
+other, and MongoDB is the API's only cache.
+
+**Spike.** A prototype store under cfdb read three live datasets exactly as `cfdb.open_edataset`
+does. It used ebooklet's own remote fetchers unchanged. Warm MongoDB reads took 2–15 ms, and a full
+WRF map took 170 ms (mostly decompression). Cold reads cost the same B2 round trips as plain ebooklet.
+
+**Top risks.** (1) A chunk fetch can 404 between a writer's push and the worker's next poll. The API
+retries and then answers 503 or a loud 500 (see "A 404 on a chunk"). (2) One response can span two
+consecutive pushes across different chunks. The worker's write order stops the metadata from running
+ahead of the entries. (3) A stalled worker serves stale data silently unless `checked_at` is
+watched.
+
+### The worker
+
+- It is the only process that reads db objects and the catalogue from B2.
+- It mirrors the B2 catalogue into MongoDB. B2 stays the master, and the mirror is never edited. The
+  worker's list of datasets to poll comes from the mirror.
+- It polls each dataset's db object with a HEAD request. When the remote timestamp moves, it
+  downloads the db object and diffs the new index against the previous one, which it holds in memory.
+- It applies each diff in this order: (1) upsert changed and new entries, (2) update the metadata
+  document, (3) delete the entries of removed keys. The metadata therefore never runs ahead of the
+  entries.
+- Index entries are one document per key: `{key, ts, gid, gen, offset, len}`. Each entry carries its
+  group generation, so the read path needs no manifest. A diff compares whole entries because a
+  repack moves members whose `ts` is unchanged.
+- It updates `checked_at` on every poll, including polls that find no change.
+- It does nothing else. In particular it does not prefill chunks.
+- Known limit: one response can span two consecutive pushes across different chunks.
+
+Full snapshots per push were rejected. They would rewrite the whole index on every change: about 10k
+entries an hour for ECan, and 156k per WRF variable whenever it changes.
+
+### The API
+
+- Every request queries MongoDB. There are no process-level caches.
+- Each request builds its own store object and its own cfdb object. A process shares no mutable
+  state between requests, so cfdb thread-safety is not a concern.
+- The request flow is:
+  1. read the dataset's metadata document;
+  2. resolve the selection on the coordinates through cfdb's native selection;
+  3. compute the request's costs and check the limits;
+  4. read the index entries;
+  5. read the cached chunks;
+  6. fill misses from B2 with ebooklet's fetchers;
+  7. decode with cfdb, and encode the response.
+- The chunk cache is insert-only, keyed `(db_url, chunk key, ts)`. The `ts` is the timestamp of the
+  bytes actually fetched, which for per-key storage is the object's own metadata timestamp. A revised
+  chunk therefore gets a new id, and concurrent fills of one chunk are harmless.
+- A TTL index on the fetch time expires cache documents. The TTL length is open.
+- Coordinates are read natively through the chunk path. Special coordinate indexing is added only
+  if measurement shows a real problem.
+
+### A 404 on a chunk
+
+The API never writes the index. It handles a 404 like this:
+
+1. Re-read the chunk's index entry from MongoDB. If it names a new generation, fetch again.
+2. If the entry is unchanged, wait briefly and repeat step 1, up to a cap of a second or two.
+3. After the cap:
+   - **The worker has not checked since the 404** (`checked_at` is older than it): answer 503 with
+     `Retry-After` set to the poll interval.
+   - **The worker has checked and the entry is unchanged**: this is an integrity fault. Answer 500
+     and log it loudly.
+
+### Limits
+
+- Both caps are computed after the coordinates are resolved and before any data chunk is read:
+  - **decoded bytes touched**: 100 MB per request;
+  - **values returned**: about 1–2 million per request.
+- A request over either cap gets a 413 that points to direct envlib access (§8).
+- Per-IP quotas use the same cost unit over two windows, hourly and 24-hourly. Each window is a set
+  of hourly buckets in MongoDB updated with `$inc`. The placeholders are 2 GB per hour and 10 GB per
+  24 h. A request that would exceed a quota gets a 429 with `Retry-After`.
+- Traefik's rate-limit middleware limits the number of requests.
+- Cloudflare is in front. The client IP comes from `CF-Connecting-IP`, and the origin accepts only
+  Cloudflare's address ranges. IPv6 clients are bucketed by /64.
+- Mike's servers are allowlisted. Dashboards on the swarm call the API on an internal entrypoint,
+  and external servers are allowlisted by IP.
+
+### The EDR surface
+
+- **Collections.**
+  - The collection `id` is the `dataset_id`, and `title` is readable. EDR defines `id` as an
+    identifier and `title` as the label.
+  - A collection serves its latest version only. The `dataset_version_id` rides in the `envlib`
+    object and the `ETag`.
+  - Only catalogued envlib datasets are served.
+- **Queries.**
+  - `ts_ortho` collections offer `/locations`, `/area` and `/radius`. The `locId` is `station_id`,
+    which is unique per row in every ECan dataset. `station_ref` is searchable, and it repeats in the
+    raw datasets.
+  - Grid collections offer `/position` and `/cube`. Grid `/area` comes later.
+- **Parameters and formats.** The parameters are `datetime`, `parameter-name`, `coords`, `bbox`, `f`
+  and `limit`, with CRS84 input only. The formats are CoverageJSON, CSV and GeoJSON. netCDF waits for
+  the ts_ortho export fix (see the `[cfdb]` item in `OPEN_WORK.md`).
+- **Extents.** The collection extents come from the catalogue entry. This was checked 2026-11-23: the
+  catalogue's `time_end` equals the last time value of every ECan dataset.
+
+### Forecasts: later, but designed for now
+
+No forecast dataset is in envlib yet, so nothing here is implemented now. Instances are forecast runs.
+An instance id is the ISO reference time, as in EDR 1.2's own Annex E.4 example. The instance list
+covers the last 30 days. Older runs are reached through envlib directly. `/instances/latest/…`
+redirects to the current run and is not listed. A query on the collection itself returns the best
+estimate: for each valid time, the newest run with a finite value. A collection with this default
+cannot also carry custom run dimensions, because Requirement A.76 statement E would make the default
+"every run".
+
+The rest of the implementation must leave room for this. The `instances` routes stay free. Extents
+come from envlib's forecast helper (`_forecast_time_range`). The cost calculation handles
+three-dimensional forecast selections.
+
+### Versions and discovery
+
+- **`GET /catalogue`** is the HTTP form of `Catalogue.query()`. It has the same queryable fields and
+  the same spatial and temporal filters. It returns the latest version by default and every version
+  on request.
+- Each entry carries the `dataset_version_id`, the metadata, the `db_url`, a `latest` flag, a link to
+  the EDR collection when that version is served, and an envlib snippet that opens it.
+- **`GET /catalogue/distinct/{field}`** mirrors `distinct()`.
+- Each EDR collection links to its versions with `rel="version-history"`.
+- The matching rules have one definition. envlib exposes its catalogue matching as a public function,
+  and the API calls it rather than reimplementing the rules in MongoDB queries.
+- STAC or OGC API – Records are the later route for external harvesting.
+
+### Stack changes this needs
+
+- **ebooklet** (an optional `ebooklet[mongo]` extra) gets two things: the worker's refresh (fetch,
+  parse, diff and apply in order) and the read-only store.
+- **cfdb** gets a public hook to open a dataset on a supplied store.
+- **envlib** gets the public catalogue-matching function.
+
+### Spike results
+
+The spike ran 2026-11-23 on the released stack (ebooklet 0.11.2, booklet 0.12.11, cfdb 0.11.0,
+envlib 0.1.8), pymongo 4.20.1 and MongoDB 8.0 on tmpfs, all reading the live remotes.
+
+| Read | Plain ebooklet, cold | MongoDB store, cold | MongoDB warm | Hot (in process) |
+|---|---|---|---|---|
+| ECan 1 station, 2 weeks | 0.64 s | 0.80–0.85 s | 4 ms | 0.4 ms |
+| ECan 1 station, full history (73 chunks) | 7.8 / 2.0 s | 1.9 / 7.3 s | 3 ms | 2 ms |
+| ECan 144 stations, 48 h | 0.41–0.60 s | 0.48–0.60 s | 5 ms | 4 ms |
+| WRF 1 cell, 1 year | 3.2–3.4 s | 3.5 s | 14 ms | 6 ms |
+| WRF full map, 1 hour (322 chunks) | 2.1–2.2 s | 1.4–2.1 s | 170 ms | 148 ms |
+| Flow forecast, latest run | 1.0–1.2 s | 1.0–1.3 s | 2 ms | 0.3 ms |
+| Flow forecast, last 120 runs (per-key) | 3.0–6.8 s | 2.5–2.6 s | 3 ms | 2 ms |
+
+- **Equality.** Every array equalled plain `open_edataset` exactly, NaN positions included, in 84
+  comparisons across all runs.
+- **Planted defects.**
+  - A miss that returns nothing read DIFFERENT.
+  - Silent fetchers raised.
+  - One 404 healed and read EQUAL.
+  - A persistent 404 raised.
+  - A truncated cached chunk raised.
+  - A swapped cached chunk read DIFFERENT.
+  - A first one-byte-flip mutant read EQUAL. The flip most likely fell in an hour the map does not
+    read, so it was replaced by the truncation and swap mutants.
+- **Concurrency.** Six processes filling one empty collection were all correct and produced no
+  duplicate documents. Together they made 3,918 B2 fetches for 671 unique chunks.
+- **Format 3 and size.** A cold full WRF map on format 3 takes about 2 s and pulls about 22 MB, down
+  from 13 s on format 2 (§1). The largest compressed chunk was 174 KB, far below MongoDB's 16 MB
+  document limit.
+- **Indexes in MongoDB.** The WRF precipitation index has 156,500 entries. It parsed in 0.24 s and
+  inserted in 0.43 s. A 322-key lookup took 0.8–1.0 ms. 167k entries came to 17.3 MB.
+- **Eviction.** A capped collection evicted oldest-first and stayed exactly correct. TTL was chosen
+  instead.
+
+### Open for the plan
+
+- ~~The poll interval for each dataset type.~~ **Settled by plan 2:** one interval for every dataset,
+  60 s (`poll_seconds` in `envlib-api`'s config; at most 150).
+- ~~The TTL length.~~ **Settled by plan 2:** 7 days (`chunk_ttl_days`), to be revisited when plan 6
+  calibrates the caps and quotas.
+- Calibrating the caps and quotas on the swarm. Plan 3 set the caps' defaults, and added a CSV row cap
+  (the `[api]` section of `envlib-api/envlib_api/config.py`). The cluster has four nodes, not the two VPSes assumed
+  here (checked 2026-11-24): uswest9 and uswest12 are processors, and uswest10 and uswest11 are web
+  servers. uswest11 has 8 vCPUs and 23 GiB, and runs the MongoDB and the refresher.
+- The Cloudflare details: compression and re-encoding, caching, and locking the origin.
+- ~~The repo~~ **Settled by plan 2:** the repo is `envlib/envlib-api`. The deployment for
+  `api.envlib.xyz` is plan 6.
+
+### Verification status of this section
+
+- **Ran:** the spike, including the equality comparisons, the planted defects, the concurrency run,
+  the capped collection and the index measurements. Also a check of the catalogue's `time_end` and of
+  `station_id` uniqueness against the live ECan datasets.
+- **Read:**
+  - EDR 1.2 §4.5, §8.2.9, §8.2.10, Requirement A.76, Tables C.5, C.8 and C.10, and Annex E.4, all
+    verbatim;
+  - the cfdb store contract and ebooklet's fetchers in source.
+- **Accepted, not verified:** these came from subagent reports.
+  - CoverageJSON forbids extra domain axes and lists multiple time dimensions as future work.
+  - EDR issue #712 is open, about a default or latest instance.
+  - pygeoapi lacks EDR instances.
+- **Not verified:**
+  - MongoDB on disk and across the network;
+  - B2 latency from the VPSes;
+  - sustained load;
+  - healing against a real writer commit and GC (only simulated);
+  - that capped collections forbid size-changing updates in MongoDB 8;
+  - that RFC 5829 defines `version-history`;
+  - Cloudflare's behaviour.
 
 ## Sources
 

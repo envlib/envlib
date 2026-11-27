@@ -1,0 +1,85 @@
+{
+ "ecan_raw_streamflow": {
+  "open_s": 1.596
+ },
+ "ecan_1stn_2wk": {
+  "first_s": 0.0047,
+  "first": {
+   "mongo_hit": 5,
+   "mongo_s": 0.003,
+   "lru_hit": 1
+  },
+  "hot_s": 0.0003
+ },
+ "ecan_1stn_full": {
+  "first_s": 0.0031,
+  "first": {
+   "mongo_hit": 73,
+   "mongo_s": 0.001,
+   "lru_hit": 79
+  },
+  "hot_s": 0.0022
+ },
+ "ecan_all_48h": {
+  "first_s": 0.0049,
+  "first": {
+   "mongo_hit": 135,
+   "mongo_s": 0.001,
+   "lru_hit": 141
+  },
+  "hot_s": 0.0035
+ },
+ "wrf_precip": {
+  "open_s": 2.713
+ },
+ "wrf_cell_1y": {
+  "first_s": 0.014,
+  "first": {
+   "mongo_hit": 14,
+   "mongo_s": 0.003,
+   "lru_hit": 11
+  },
+  "hot_s": 0.0063
+ },
+ "wrf_map_1h": {
+  "first_s": 1.0369,
+  "first": {
+   "mongo_hit": 319,
+   "mongo_s": 0.018,
+   "lru_hit": 325,
+   "remote_groups": 1,
+   "remote_keys": 3,
+   "remote_s": 0.867,
+   "bytes_fetched": 209078,
+   "mongo_insert_s": 0.001
+  },
+  "hot_s": 0.1488
+ },
+ "flow_fc": {
+  "open_s": 0.55
+ },
+ "fc_latest_run": {
+  "first_s": 0.0029,
+  "first": {
+   "mongo_hit": 6,
+   "mongo_s": 0.002,
+   "lru_hit": 1
+  },
+  "hot_s": 0.0003
+ },
+ "fc_last_120_runs": {
+  "first_s": 0.0027,
+  "first": {
+   "mongo_hit": 116,
+   "mongo_s": 0.001,
+   "lru_hit": 123
+  },
+  "hot_s": 0.0019
+ },
+ "mongo": {
+  "docs": 671,
+  "data_MB": 24.1,
+  "storage_MB": 41.6,
+  "max_doc_B": 174105
+ }
+}

@@ -1,0 +1,5 @@
+{
+ "wrf_precip": "https://b2.envlib.xyz/file/envlib/envlib/wrf-3km-nz-precipitation",
+ "ecan_raw_streamflow": "https://b2.tethys-ts.xyz/file/ecan-env-monitoring/envlib/ecan-env/ecan-streamflow",
+ "flow_fc": "https://b2.tethys-ts.xyz/file/point-forecasts/envlib/flow-forecasts/streamflow"
+}

@@ -37,28 +37,30 @@ pip install envlib
 
 ## Quick example
 
+<!-- skip: start if(not docs_live, reason="reads the live public commons") -->
+
 ```python
-import envlib
-
-# The public envlib catalogue — zero config, no credentials
-cat = envlib.Catalogue()
-
-# What's in it? (the public commons in November 2026; it grows)
-cat.variables       # ['altitude', 'barometric_pressure', ..., 'temperature', ..., 'wind_speed']
-cat.owners          # ['ecan', 'esa', 'uc']
-
-# Find the latest version of each matching dataset
-results = cat.query(
-    variable='temperature',
-    feature='atmosphere',
-    bbox=[166, -47, 179, -34],
-    start_date='2020-01-01',
-)
-
-# Open one as a cfdb dataset and read it
-ds = results[0].open()
-temp = ds['temperature']
+>>> import envlib
+>>> cat = envlib.Catalogue()    # the public envlib catalogue: zero config, no credentials
+>>> # What's in it? (the public commons in November 2026; it grows)
+>>> cat.variables               # doctest: +ELLIPSIS
+['altitude', 'barometric_pressure', ..., 'temperature', ..., 'wind_speed']
+>>> cat.owners
+['ecan', 'esa', 'uc']
+>>> # Find the latest version of each matching dataset
+>>> results = cat.query(
+...     variable='temperature',
+...     feature='atmosphere',
+...     bbox=[166, -47, 179, -34],
+...     start_date='2020-01-01',
+... )
+>>> # Open one as a cfdb dataset and read the last day of it
+>>> ds = results[0].open()
+>>> last_day = ds['temperature'][-24:].data
+>>> ds.close()
 ```
+
+<!-- skip: end -->
 
 Producing data is the same library in the other direction: build a cfdb file, attach `envlib.Metadata`, and `cat.publish(...)` it — see the [documentation](https://envlib.github.io/envlib/) for the full guide.
 

@@ -4,31 +4,39 @@
 
 Most users start here: you want data someone else already published. The zero-config entry point is the public envlib catalogue — no configuration, no account, no credentials:
 
+<!-- skip: start if(not docs_live, reason="reads the live public commons") -->
+
 ```python
-import envlib
-
-cat = envlib.Catalogue()         # the public envlib catalogue
-
-# What does it contain? (the public commons in November 2026; it grows)
-cat.variables                    # ['altitude', 'barometric_pressure', ..., 'temperature', ..., 'wind_speed']
-cat.owners                       # ['ecan', 'esa', 'uc']
-cat.features                     # ['atmosphere', 'land', 'ocean', 'soil', 'waterway']
-
-# Filter down to what you want — the latest version of each matching dataset
-refs = cat.query(
-    variable='temperature',
-    feature='atmosphere',
-    bbox=[166, -47, 179, -34],           # WGS84 [min_lon, min_lat, max_lon, max_lat]
-    start_date='2020-01-01',
-)
-refs[0]                          # prints its full metadata dict
-
-# Open it — a cfdb dataset; chunks download on demand
-ds = refs[0].open()
-ds['temperature'].attrs['standard_name']    # 'air_temperature'
-data = ds['temperature'][-24:].data          # the last 24 hours: (24, 534, 315), 16 MB
-ds.close()
+>>> import envlib
+>>> cat = envlib.Catalogue()         # the public envlib catalogue
+>>> # What does it contain? (the public commons in November 2026; it grows)
+>>> cat.variables                    # doctest: +ELLIPSIS
+['altitude', 'barometric_pressure', ..., 'temperature', ..., 'wind_speed']
+>>> cat.owners
+['ecan', 'esa', 'uc']
+>>> cat.features
+['atmosphere', 'land', 'ocean', 'soil', 'waterway']
 ```
+
+Filter down to what you want — the latest version of each matching dataset — then open it. A `DatasetRef` prints as its full metadata dict; the dataset it opens is a cfdb dataset, whose chunks download on demand:
+
+```python
+>>> refs = cat.query(
+...     variable='temperature',
+...     feature='atmosphere',
+...     bbox=[166, -47, 179, -34],       # WGS84 [min_lon, min_lat, max_lon, max_lat]
+...     start_date='2020-01-01',
+... )
+>>> ds = refs[0].open()
+>>> ds['temperature'].attrs['standard_name']
+'air_temperature'
+>>> data = ds['temperature'][-24:].data    # the last 24 hours, 16 MB
+>>> data.shape
+(24, 534, 315)
+>>> ds.close()
+```
+
+<!-- skip: end -->
 
 That's the whole flow — browse, query, open. From here it's the [cfdb API](https://mullenkamp.github.io/cfdb/) — selection, chunk iteration, netCDF export.
 
@@ -87,11 +95,13 @@ with cfdb.open_dataset('data.cfdb', flag='n') as ds:
 `validate_dataset()` checks everything a registration would — metadata completeness, the primary variable and its `units`, CRS, the time coordinate — and extracts the spatial/temporal extents, without touching any remote:
 
 ```python
-result = envlib.validate_dataset('data.cfdb')   # no catalogue, no network
-
-result['dataset_version_id']   # '7617935dd05fc23bfb4365c2'
-result['state']['bbox']        # [170.0, -44.0, 172.0, -42.0]
-result['standard_name']        # {'action': 'populate', 'value': 'air_temperature'}
+>>> result = envlib.validate_dataset('data.cfdb')   # no catalogue, no network
+>>> result['dataset_version_id']
+'7617935dd05fc23bfb4365c2'
+>>> result['state']['bbox']
+[170.0, -44.0, 172.0, -42.0]
+>>> result['standard_name']
+{'action': 'populate', 'value': 'air_temperature'}
 ```
 
 Note the last line: you never set a CF `standard_name` — envlib derives it from its curated `(variable, feature)` mapping and will stamp it on the variable at publish time.

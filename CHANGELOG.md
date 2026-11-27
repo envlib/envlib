@@ -3,10 +3,45 @@
 Notable changes to envlib. The format loosely follows [Keep a Changelog](https://keepachangelog.com/);
 envlib does not promise SemVer before 1.0 — minor versions may change behavior.
 
-## Unreleased
+## 0.1.9 (2026-11-26)
+
+- **Catalogue matching is public:** `envlib.match_entries`, `envlib.latest_per_dataset`,
+  `envlib.distinct_values` and `envlib.QUERYABLE_FIELDS` take catalogue `user_meta` dicts, and
+  `Catalogue.query()` and `Catalogue.distinct()` now call them. The envlib EDR API uses the same
+  functions, so a Python query and an HTTP query give the same entries.
+- **`Catalogue.query(all_versions=True)`** returns every matching version, not only the latest.
+- **A `created_at` tie** now goes to the greater `dataset_version_id`, whatever the catalogue order.
+  Before, the first version read won.
+- **A damaged catalogue entry no longer fails every query.** An unparsable `created_at` counts as
+  the oldest, and an unparsable stored time or bbox matches no filter on it. Each warns.
+- **`envlib.version_key(meta)`** is the order of a dataset's versions that `latest_per_dataset` uses.
+- **Station bboxes cross 180° when that is shorter.** A ts_ortho or ts_forecast dataset's bbox is the
+  shortest arc of longitude holding its stations, after they are reprojected to EPSG:4326, whatever the
+  dataset's CRS. Before, stations on both sides of 180° gave a box of nearly the whole circle, which
+  matched spatial queries anywhere at those latitudes. Longitudes in 0–360° and a station at exactly
+  180° are placed on the shortest arc too. A station dataset in a projected CRS now gets the extent of
+  its reprojected stations, where before it got the reprojected box of its native extent. Entries
+  correct when they are republished.
+- **`query(bbox=...)` reads longitudes from −360 to 360**, so a 0–360° box matches what its −180–180°
+  twin matches. A query bbox envlib cannot read (not four finite numbers, south above north, a
+  latitude past 90°, or an east more than 360° east of its west) raises `ValueError`; before, most
+  such boxes silently matched nothing.
+- **`query(geometry=...)` also tries the geometry 360° east and west**, so a shape drawn in 0–360°
+  longitudes matches. A geometry with non-finite coordinates raises `ValueError`.
+- **`start_date` and `end_date` are parsed before matching**, so an unparsable one raises even when no
+  entry would have reached the time test (an empty catalogue, or no field match). Before, it raised
+  only when an entry did.
+- **A stored bbox that is not four finite numbers** matches no spatial filter, with a warning. Before,
+  a NaN in it could match a `within_radius` query. Four numeric strings are now read as numbers, where
+  before they raised.
+- **Fractional seconds of one or two digits parse on Python 3.10**, which accepts only three or six.
+- **`distinct()` of mixed value types** sorts by text instead of raising.
 
 - **`envlib.PublishIntegrityError` is exported** (it lived only in `envlib.metadata`), so the error
   `publish()` raises after a silent over-claim can be caught from the top-level package.
+- **Documentation:** every code example in the README and the docs now runs as a test, and the shown values
+  are checked. Fixes from that: the Browsing & Querying page no longer replaces the public `cat` with an
+  agency catalogue partway down, pages define every name they use, and the shown outputs are the real ones.
 
 ## 0.1.8 (2026-10-07)
 

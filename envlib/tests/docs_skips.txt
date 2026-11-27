@@ -1,0 +1,11 @@
+# Every skip in README.md and docs/, as "<file>  <action>  <reason>  covers=<examples skipped>". test_docs_inventory.py
+# compares this against the docs, so a new or changed skip shows up in review. Blocks skipped
+# with "if(not docs_live, ...)" run under `pytest README.md docs --docs-live`.
+README.md  start  if(not docs_live, reason="reads the live public commons")  covers=8
+docs/getting-started/quickstart.md  start  if(not docs_live, reason="reads the live public commons")  covers=11
+docs/guide/browsing-querying.md  start  if(not docs_live, reason="reads the live public commons")  covers=1
+docs/guide/browsing-querying.md  start  if(not docs_live, reason="reads the live public commons")  covers=9
+docs/guide/opening-data.md  start  if(not docs_live, reason="reads the live public commons")  covers=7
+docs/guide/opening-data.md  next  "needs your own keys for a private bucket"  covers=1
+docs/guide/opening-data.md  start  if(not docs_live, reason="reads the live public commons")  covers=5
+docs/guide/vocabularies.md  start  if(not docs_live, reason="fetches the upstream vocabularies over the internet")  covers=1

@@ -1,7 +1,16 @@
 """envlib: a distributed database and catalogue for environmental data."""
 
 from envlib import vocabularies
-from envlib.catalogue import Catalogue, DatasetRef, validate_dataset
+from envlib.catalogue import (
+    QUERYABLE_FIELDS,
+    Catalogue,
+    DatasetRef,
+    distinct_values,
+    latest_per_dataset,
+    match_entries,
+    validate_dataset,
+    version_key,
+)
 from envlib.metadata import (
     Metadata,
     PublishIntegrityError,
@@ -10,9 +19,10 @@ from envlib.metadata import (
     compute_station_id,
 )
 
-__version__ = '0.1.8'
+__version__ = '0.1.9'
 
 __all__ = [
+    'QUERYABLE_FIELDS',
     'Catalogue',
     'DatasetRef',
     'Metadata',
@@ -20,6 +30,10 @@ __all__ = [
     'ValidationError',
     'canonical_station_point',
     'compute_station_id',
+    'distinct_values',
+    'latest_per_dataset',
+    'match_entries',
     'validate_dataset',
+    'version_key',
     'vocabularies',
 ]

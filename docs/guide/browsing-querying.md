@@ -4,19 +4,27 @@
 
 The default catalogue is the public envlib commons — shared, credential-free, zero configuration:
 
+<!-- skip: start if(not docs_live, reason="reads the live public commons") -->
+
 ```python
 import envlib
 
 cat = envlib.Catalogue()
 ```
 
+<!-- skip: end -->
+
 !!! note
     A bare `Catalogue()` connects to the public envlib commons (read-only, no credentials) at `https://b2.envlib.xyz/file/envlib/envlib-commons/catalogue`. The `ENVLIB_PUBLIC_RCG_URL` environment variable overrides the default — useful for stand-ins, testing, or mirrors.
 
 Any other catalogue — an agency's, a research group's, your own — is addressed by location. For a publicly hosted index that's just its HTTPS URL, still credential-free:
 
+<!-- invisible-code-block: python
+import envlib
+-->
+
 ```python
-cat = envlib.Catalogue(remotes=['https://s3.example.com/some-bucket/catalogue.rcg'])
+agency_cat = envlib.Catalogue(remotes=['https://s3.example.com/some-bucket/catalogue.rcg'])
 ```
 
 Passing `remotes=` *replaces* the public default; add `include_public=True` to merge your remotes with the commons. (A remote can also be an `ebooklet.S3Connection` or a dict of its parameters, for indexes on private buckets that need credentials.)
@@ -29,18 +37,26 @@ The catalogue snapshots all entries at construction. After new registrations lan
 
 The plural properties answer "what does this catalogue actually contain" — one per identity field, plus `licenses` and `dataset_types`. The values shown are the public commons' in November 2026; the lists grow as datasets are added:
 
+<!-- skip: start if(not docs_live, reason="reads the live public commons") -->
+
 ```python
-cat.variables            # ['altitude', 'barometric_pressure', 'evapotranspiration', ..., 'wind_speed']
-cat.owners               # ['ecan', 'esa', 'uc']
-cat.features             # ['atmosphere', 'land', 'ocean', 'soil', 'waterway']
-cat.product_codes        # ['cci-sst-l4-v3-nz', 'wrf-3km-nz']
-cat.dataset_types        # ['grid', 'ts_ortho']
+>>> cat.variables            # doctest: +ELLIPSIS
+['altitude', 'barometric_pressure', 'evapotranspiration', ..., 'wind_speed']
+>>> cat.owners
+['ecan', 'esa', 'uc']
+>>> cat.features
+['atmosphere', 'land', 'ocean', 'soil', 'waterway']
+>>> cat.product_codes
+['cci-sst-l4-v3-nz', 'wrf-3km-nz']
+>>> cat.dataset_types
+['grid', 'ts_ortho']
 ```
 
 They all wrap `cat.distinct(field, counts=False)`, which additionally gives you counts (including how many entries *lack* an optional field):
 
 ```python
-cat.distinct('product_code', counts=True)    # {'cci-sst-l4-v3-nz': 1, 'wrf-3km-nz': 12, None: 5}
+>>> cat.distinct('product_code', counts=True)
+{'cci-sst-l4-v3-nz': 1, 'wrf-3km-nz': 12, None: 5}
 ```
 
 This is a different question from what's *valid* — for that, see the [vocabularies module](vocabularies.md). For the free-form fields (`owner`, `product_code`, `version`), browsing the catalogue is the *only* way to discover values.
@@ -62,7 +78,9 @@ Matching is **case-insensitive on both sides** — `owner='ECAN'` matches stored
 
 ### The latest-version default
 
-Without an explicit `version=` kwarg, the results contain **the latest version of each matching dataset** (grouped by `dataset_id`; "latest" is the greatest `created_at`). Pin `version='2'` to get a specific version, or pass `version=['1', '2']` to see several.
+Without an explicit `version=` kwarg, the results contain **the latest version of each matching dataset** (grouped by `dataset_id`; "latest" is the greatest `created_at`, and on a tie the greater `dataset_version_id`). Pin `version='2'` to get a specific version, pass `version=['1', '2']` to see several, or pass `all_versions=True` to get every matching version.
+
+The latest is chosen among the versions that match, so a time filter can return an older version of a dataset whose newest version does not overlap it. `envlib.latest_per_dataset(...)` gives the latest over the whole catalogue.
 
 !!! warning "Back-fill caveat"
     "Latest" is decided by *first registration time*, not by parsing version strings. If someone back-fills version 1 *after* registering version 2, the back-filled v1 becomes "latest". When exact versions matter, pin `version=` explicitly.
@@ -72,12 +90,16 @@ Without an explicit `version=` kwarg, the results contain **the latest version o
 At most one of these per query; all in EPSG:4326 (WGS84 lon/lat), all *intersects* semantics against each dataset's stored bounding box:
 
 ```python
+import shapely
+
 cat.query(bbox=[166, -47, 179, -34])                  # [min_lon, min_lat, max_lon, max_lat]
 cat.query(within_radius=((174.0, -41.0), 50))          # ((lon, lat), km) great-circle
-cat.query(geometry=shapely.box(170, -45, 175, -40))   # any shapely geometry (import shapely)
+cat.query(geometry=shapely.box(170, -45, 175, -40))   # any shapely geometry
 ```
 
-Bounding boxes use the GeoJSON antimeridian convention: `min_lon > max_lon` means the box crosses 180° (a domain spanning 166°E–172°W is `[166, -47, -172, -34]`, not a near-global box). Both stored and query boxes may cross; envlib handles the wraparound, including for `within_radius` distances across the dateline.
+Bounding boxes use the GeoJSON antimeridian convention: `min_lon > max_lon` means the box crosses 180° (a domain spanning 166°E–172°W is `[166, -47, -172, -34]`, not a near-global box). Both stored and query boxes may cross; envlib handles the wraparound, including for `within_radius` distances across the dateline. A query `bbox` may also use longitudes from −360 to 360 (`[175, -45, 184, -42]` is the same box as `[175, -45, -176, -42]`), with its east up to 360° east of its west; a box envlib cannot read, such as one wider than 360° or with south above north, raises `ValueError`. A `geometry` is also tried 360° east and west, so a shape drawn in 0–360° longitudes finds what the same shape in −180–180° finds; one with non-finite coordinates raises `ValueError`.
+
+A station dataset's stored box is the shortest arc of longitude that holds every station, whatever the dataset's CRS (the stations are reprojected to EPSG:4326 first): stations on Canterbury and the Chatham Islands give a box from about 169.8°E to 176.6°W that crosses 180°. Before envlib 0.1.9 it was the plain minimum and maximum longitude, which for such a dataset spanned about 350°. An entry registered before then keeps that box until it is republished.
 
 The stored bbox is a coarse, never-too-small filter — for precise spatial selection, open the dataset and use cfdb's native selection against its actual coordinates.
 
@@ -88,6 +110,8 @@ The stored bbox is a coarse, never-too-small filter — for precise spatial sele
 ```python
 cat.query(variable='streamflow', start_date='2015-01-01', end_date='2020-01-01')
 ```
+
+<!-- skip: end -->
 
 !!! warning "Quasi-static data"
     Temporal filters match *recorded timestamps*, not validity periods. A DEM registered with a single 2013 survey date is a zero-width interval — a `start_date='2020-01-01'` query will not return it even though the terrain is still current. Don't temporally filter quasi-static features.
